@@ -371,8 +371,15 @@ socket.on('lobby_state', (state) => {
   }
   
   const pegs = state.gameSettings.pegsPerPlayer;
-  document.getElementById('btn-pegs-2').className = `flex-1 py-3 rounded-xl font-bold border-2 transition-colors ${pegs === 2 ? 'bg-slate-800 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-500'}`;
-  document.getElementById('btn-pegs-4').className = `flex-1 py-3 rounded-xl font-bold border-2 transition-colors ${pegs === 4 ? 'bg-slate-800 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-500'}`;
+  const btn2 = document.getElementById('btn-pegs-2');
+  const btn4 = document.getElementById('btn-pegs-4');
+  if (pegs === 2) {
+    btn2.style.cssText = "background: linear-gradient(135deg,#6366f1,#8b5cf6); color: white; border: 1px solid transparent;";
+    btn4.style.cssText = "background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #94a3b8;";
+  } else {
+    btn2.style.cssText = "background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #94a3b8;";
+    btn4.style.cssText = "background: linear-gradient(135deg,#6366f1,#8b5cf6); color: white; border: 1px solid transparent;";
+  }
   
   const startBtn = document.getElementById('start-btn');
   if (isHost && state.slots.filter(s => s !== null).length >= 2) {
