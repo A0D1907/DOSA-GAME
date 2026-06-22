@@ -38,7 +38,7 @@ function broadcastOpenRooms() {
       totalCount,
       playerNames: room.playerNames.filter(n => n !== '')
     };
-  });
+  }).filter(r => r.humanCount > 0);
   io.emit('open_rooms', list);
 }
 
@@ -277,8 +277,9 @@ io.on('connection', (socket) => {
       }
     }
     
-    // Cleanup empty rooms
-    if (state.slots.every(s => s === null)) {
+    // Cleanup empty rooms (rooms with no human players left)
+    const humanCount = state.slots.filter(s => s !== null && s !== 'bot').length;
+    if (humanCount === 0) {
       delete rooms[socket.roomId];
       console.log(`Deleted empty room: ${socket.roomId}`);
     }
