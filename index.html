@@ -116,7 +116,8 @@
       </div>
 
       <button id="start-btn" onclick="startGame()" disabled class="w-full py-4 rounded-xl bg-slate-800 text-white font-bold tracking-widest uppercase disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:bg-slate-700 transition-colors">Waiting for players...</button>
-      <div class="text-center mt-4">
+      <div class="text-center mt-4 flex justify-between px-4">
+        <button onclick="leaveRoom()" class="text-xs font-bold text-slate-500 uppercase tracking-wider hover:text-slate-700 transition-colors">🚪 Leave Room</button>
         <button onclick="resetSession()" class="text-xs font-bold text-red-500 uppercase tracking-wider hover:text-red-600 transition-colors">Force Reset Session</button>
       </div>
     </div>
@@ -127,16 +128,23 @@
     <div class="bg-white shadow-2xl rounded-[3rem] p-12 w-full max-w-md border border-slate-200 text-center transform transition-transform">
       <h2 class="text-xl font-bold text-slate-400 uppercase tracking-[0.3em] mb-4">Victory!</h2>
       <h1 id="winner-name" class="text-5xl font-black text-slate-800 mb-10 tracking-wide">Player 1</h1>
-      <button onclick="returnToLobby()" class="px-8 py-4 rounded-full bg-slate-800 text-white font-bold tracking-widest uppercase hover:bg-slate-700 transition-colors shadow-xl w-full">Return to Lobby</button>
+      <button onclick="returnToLobby()" class="px-8 py-4 mb-4 rounded-full bg-slate-800 text-white font-bold tracking-widest uppercase hover:bg-slate-700 transition-colors shadow-xl w-full">Return to Lobby</button>
+      <button onclick="leaveRoom()" class="px-8 py-4 rounded-full bg-slate-100 text-slate-500 font-bold tracking-widest uppercase hover:bg-slate-200 transition-colors shadow w-full">Leave Room</button>
     </div>
   </div>
 
   <!-- GAME SCREEN -->
   <div id="game-screen" class="hidden h-full flex-col">
     <!-- Header -->
-    <header class="text-center pt-8 pb-4 relative z-10 flex-shrink-0">
-      <h1 class="text-3xl font-black tracking-[0.4em] text-[#ff007f] drop-shadow-[0_0_10px_rgba(255,0,127,0.8)] uppercase">DOSA</h1>
-      <p id="status-text" class="text-xs font-bold mt-4 bg-white border border-slate-200 inline-block px-6 py-2 rounded-full tracking-widest uppercase shadow-sm transition-colors duration-300">Game Started</p>
+    <header class="text-center pt-8 pb-4 relative z-10 flex-shrink-0 flex items-center justify-between px-6">
+      <button onclick="leaveRoom()" class="w-10 h-10 bg-white rounded-full flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-slate-100 transition-all shadow-sm shadow-slate-200" title="Leave Room">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clip-rule="evenodd" /></svg>
+      </button>
+      <div>
+        <h1 class="text-3xl font-black tracking-[0.4em] text-[#ff007f] drop-shadow-[0_0_10px_rgba(255,0,127,0.8)] uppercase">DOSA</h1>
+        <p id="status-text" class="text-xs font-bold mt-2 bg-white border border-slate-200 inline-block px-6 py-2 rounded-full tracking-widest uppercase shadow-sm transition-colors duration-300">Game Started</p>
+      </div>
+      <div class="w-10 pointer-events-none"></div>
     </header>
 
     <!-- Board Area -->
@@ -332,7 +340,7 @@ socket.on('lobby_state', (state) => {
       break;
     }
   }
-  isHost = (state.slots[0] === socket.id) || (state.slots.find(s => s !== null) === socket.id);
+  isHost = (state.slots.find(s => s !== null && s !== 'bot') === socket.id);
 
   if (state.gameState === 'playing') {
     document.getElementById('home-screen').classList.add('hidden');
@@ -415,6 +423,13 @@ function setPegs(num) { socket.emit('update_settings', { pegsPerPlayer: num }); 
 function startGame() { if(isHost) socket.emit('start_game'); }
 function resetSession() { socket.emit('reset_session'); }
 function returnToLobby() { socket.emit('return_to_lobby'); }
+
+function leaveRoom() {
+  socket.emit('leave_room');
+  sessionStorage.removeItem('dosaRoom');
+  sessionStorage.removeItem('dosaSlot');
+  window.location.reload();
+}
 
 socket.on('game_started', (data) => {
   document.getElementById('lobby-screen').classList.add('hidden');
