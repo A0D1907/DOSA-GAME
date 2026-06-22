@@ -414,6 +414,7 @@ socket.on('game_started', (data) => {
   document.getElementById('game-screen').classList.remove('hidden');
   document.getElementById('game-screen').classList.add('flex');
   pegsCountGlobal = data.gameSettings.pegsPerPlayer;
+  latestSlots = data.slots;
   activeSlots = data.slots.map((s, i) => s ? i : null).filter(i => i !== null);
   
   visualMap = {0: 0, 1: 1, 2: 2, 3: 3};
@@ -673,6 +674,10 @@ function updateUI() {
       setTimeout(() => rollDice(), 1000);
     }
     if (!diceRolled && !isAnimating) cube.style.transform = 'rotateX(-25deg) rotateY(45deg)';
+  }
+
+  if (isHost && pieces && pieces.length > 0) {
+    socket.emit('update_board_state', { pieces, currentPlayer, activeSlots, pegsCountGlobal, visualMap, slots: latestSlots });
   }
 }
 

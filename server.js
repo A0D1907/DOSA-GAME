@@ -133,9 +133,21 @@ io.on('connection', (socket) => {
     io.to(socket.roomId).emit('lobby_state', { ...state, roomId: socket.roomId });
   });
 
+  socket.on('update_board_state', (boardState) => {
+    if (!socket.roomId) return;
+    const state = getRoomState(socket.roomId);
+    state.boardState = boardState;
+  });
+
   socket.on('request_sync', () => {
     if (!socket.roomId) return;
     socket.to(socket.roomId).emit('sync_requested', socket.id);
+    
+    // Also send the server's cached state directly as a fallback for bot-only matches
+    const state = getRoomState(socket.roomId);
+    if (state.boardState) {
+      socket.emit('sync_data', state.boardState);
+    }
   });
 
   socket.on('send_sync', (data) => {
