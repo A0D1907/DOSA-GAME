@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#f8fafc">
+  <title>Cross & Circle Multiplayer</title>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap');
+    body { overscroll-behavior: none; font-family: 'Outfit', sans-serif; background-color: #f8fafc; color: #0f172a; }
+    .piece { transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+    
+    /* 3D Dice CSS */
+    .dice-scene { width: 44px; height: 44px; perspective: 400px; margin: 0 auto; z-index: 20; }
+    .cube {
+      width: 100%; height: 100%; position: relative;
+      transform-style: preserve-3d;
+      transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transform: rotateX(-25deg) rotateY(45deg);
+    }
+    .cube.rolling { animation: spin 0.4s linear infinite; }
+    @keyframes spin {
+      0% { transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg); }
+      100% { transform: rotateX(720deg) rotateY(360deg) rotateZ(360deg); }
+    }
+    .face {
+      position: absolute; width: 44px; height: 44px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0; border-radius: 8px;
+      display: grid; padding: 6px;
+      box-shadow: inset 0 0 10px rgba(0,0,0,0.02);
+    }
+    .face-1 { transform: rotateY(0deg) translateZ(22px); place-items: center; }
+    .face-2 { transform: rotateY(90deg) translateZ(22px); grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+    .face-2 .dot:nth-child(1) { align-self: start; justify-self: start; margin: 2px; }
+    .face-2 .dot:nth-child(2) { align-self: end; justify-self: end; margin: 2px; }
+    .face-3 { transform: rotateX(90deg) translateZ(22px); grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 1fr 1fr 1fr; }
+    .face-3 .dot:nth-child(1) { grid-area: 1/3/2/4; align-self: start; justify-self: end; }
+    .face-3 .dot:nth-child(2) { grid-area: 2/2/3/3; align-self: center; justify-self: center; }
+    .face-3 .dot:nth-child(3) { grid-area: 3/1/4/2; align-self: end; justify-self: start; }
+    .face-4 { transform: rotateX(-90deg) translateZ(22px); grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+    .face-4 .dot { align-self: center; justify-self: center; }
+    .face-5 { transform: rotateY(-90deg) translateZ(22px); grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 1fr 1fr 1fr; }
+    .face-5 .dot { align-self: center; justify-self: center; }
+    .face-5 .dot:nth-child(1) { grid-area: 1/1/2/2; }
+    .face-5 .dot:nth-child(2) { grid-area: 1/3/2/4; }
+    .face-5 .dot:nth-child(3) { grid-area: 2/2/3/3; }
+    .face-5 .dot:nth-child(4) { grid-area: 3/1/4/2; }
+    .face-5 .dot:nth-child(5) { grid-area: 3/3/4/4; }
+    .face-6 { transform: rotateY(180deg) translateZ(22px); grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr 1fr; }
+    .face-6 .dot { align-self: center; justify-self: center; }
+    
+    .dot {
+      background-color: var(--player-color, #333);
+      border-radius: 50%; width: 6px; height: 6px;
+      box-shadow: 0 0 6px var(--player-color, rgba(0,0,0,0.5));
+      transition: background-color 0.4s ease, box-shadow 0.4s ease;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 h-screen flex flex-col overflow-hidden relative selection:bg-rose-500/30">
+
+  <!-- HOME SCREEN -->
+  <div id="home-screen" class="absolute inset-0 z-[60] bg-slate-50 flex flex-col items-center justify-center p-6">
+    <h1 class="text-4xl font-light tracking-[0.3em] text-slate-800 uppercase mb-8 text-center">DOSA<br><span class="text-xl opacity-50">Online</span></h1>
+    <div class="bg-white shadow-xl rounded-[2rem] p-8 w-full max-w-md border border-slate-200 text-center">
+      <p class="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6">Enter Room Code</p>
+      <input type="text" id="room-code-input" placeholder="e.g. FUN" class="w-full h-16 bg-slate-50 border-2 border-slate-200 rounded-xl px-4 text-center text-xl font-bold text-slate-800 focus:outline-none focus:border-indigo-500 uppercase transition-colors mb-6 tracking-widest" autocomplete="off" maxlength="8" />
+      <button onclick="joinRoom()" class="w-full py-4 rounded-xl bg-indigo-500 text-white font-bold tracking-widest uppercase shadow-lg shadow-indigo-500/30 hover:bg-indigo-600 transition-all hover:-translate-y-1 active:translate-y-0">Join Session</button>
+      <p class="text-xs text-slate-400 mt-6 font-medium">Make up any word to create a new room, or enter your friend's code to join theirs.</p>
+    </div>
+  </div>
+
+  <!-- LOBBY SCREEN -->
+  <div id="lobby-screen" class="hidden absolute inset-0 z-50 bg-slate-50 flex flex-col items-center justify-center p-6">
+    <h1 class="text-4xl font-light tracking-[0.3em] text-slate-800 uppercase mb-8 text-center">DOSA<br><span class="text-xl opacity-50">Online</span></h1>
+    <div class="bg-white shadow-xl rounded-[2rem] p-8 w-full max-w-md border border-slate-200">
+      
+      <div class="mb-6 text-center">
+        <h2 class="text-2xl font-black text-slate-800 tracking-tight" id="lobby-room-code">Room: ----</h2>
+        <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Select Your Player</p>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4 mb-8">
+        <button id="slot-0" onclick="joinSlot(0)" class="h-16 rounded-xl border-2 bg-white font-bold flex items-center justify-center gap-2 transition-all border-slate-200 text-slate-500 hover:border-slate-400 hover:bg-slate-50"><div class="w-4 h-4 rounded-full bg-[#f43f5e]"></div> P1</button>
+        <button id="slot-1" onclick="joinSlot(1)" class="h-16 rounded-xl border-2 bg-white font-bold flex items-center justify-center gap-2 transition-all border-slate-200 text-slate-500 hover:border-slate-400 hover:bg-slate-50"><div class="w-4 h-4 rounded-full bg-[#3b82f6]"></div> P2</button>
+        <button id="slot-2" onclick="joinSlot(2)" class="h-16 rounded-xl border-2 bg-white font-bold flex items-center justify-center gap-2 transition-all border-slate-200 text-slate-500 hover:border-slate-400 hover:bg-slate-50"><div class="w-4 h-4 rounded-full bg-[#eab308]"></div> P3</button>
+        <button id="slot-3" onclick="joinSlot(3)" class="h-16 rounded-xl border-2 bg-white font-bold flex items-center justify-center gap-2 transition-all border-slate-200 text-slate-500 hover:border-slate-400 hover:bg-slate-50"><div class="w-4 h-4 rounded-full bg-[#22c55e]"></div> P4</button>
+      </div>
+
+      <div class="mb-8">
+        <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 text-center">Pegs per Player</p>
+        <div class="flex gap-4">
+          <button id="btn-pegs-2" onclick="setPegs(2)" class="flex-1 py-3 rounded-xl font-bold border-2 transition-colors bg-white border-slate-200 text-slate-500">2 Pegs</button>
+          <button id="btn-pegs-4" onclick="setPegs(4)" class="flex-1 py-3 rounded-xl font-bold border-2 transition-colors bg-slate-800 border-slate-800 text-white">4 Pegs</button>
+        </div>
+      </div>
+
+      <button id="start-btn" onclick="startGame()" disabled class="w-full py-4 rounded-xl bg-slate-800 text-white font-bold tracking-widest uppercase disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:bg-slate-700 transition-colors">Waiting for players...</button>
+      <div class="text-center mt-4">
+        <button onclick="resetSession()" class="text-xs font-bold text-red-500 uppercase tracking-wider hover:text-red-600 transition-colors">Force Reset Session</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- VICTORY SCREEN -->
+  <div id="victory-screen" class="hidden absolute inset-0 z-[60] bg-white/80 backdrop-blur-md flex flex-col items-center justify-center p-6">
+    <div class="bg-white shadow-2xl rounded-[3rem] p-12 w-full max-w-md border border-slate-200 text-center transform transition-transform">
+      <h2 class="text-xl font-bold text-slate-400 uppercase tracking-[0.3em] mb-4">Victory!</h2>
+      <h1 id="winner-name" class="text-5xl font-black text-slate-800 mb-10 tracking-wide">Player 1</h1>
+      <button onclick="returnToLobby()" class="px-8 py-4 rounded-full bg-slate-800 text-white font-bold tracking-widest uppercase hover:bg-slate-700 transition-colors shadow-xl w-full">Return to Lobby</button>
+    </div>
+  </div>
+
+  <!-- GAME SCREEN -->
+  <div id="game-screen" class="hidden h-full flex-col">
+    <!-- Header -->
+    <header class="text-center pt-8 pb-4 relative z-10 flex-shrink-0">
+      <h1 class="text-2xl font-light tracking-[0.4em] uppercase text-slate-800">Cross & Circle</h1>
+      <p id="status-text" class="text-xs font-bold mt-4 bg-white border border-slate-200 inline-block px-6 py-2 rounded-full tracking-widest uppercase shadow-sm transition-colors duration-300">Game Started</p>
+    </header>
+
+    <!-- Board Container -->
+    <div class="w-full max-w-[420px] mx-auto relative aspect-square flex-shrink-0 z-10" id="board-container">
+      <!-- Surface -->
+      <div class="absolute inset-4 bg-slate-200 shadow-xl border-4 border-white" style="clip-path: polygon(25% 0%, 75% 0%, 100% 25%, 100% 75%, 75% 100%, 25% 100%, 0% 75%, 0% 25%)"></div>
+      <div id="holes" class="absolute inset-4 z-0"></div>
+      <div id="pieces" class="absolute inset-4 z-10 pointer-events-auto"></div>
+    </div>
+
+    <!-- Bottom UI Controls -->
+    <div class="flex-1 w-full max-w-[420px] mx-auto mt-2 mb-8 px-4 flex justify-center items-center relative z-10">
+      <button id="dice-btn" onclick="rollDice()" class="w-24 h-24 bg-white border border-slate-200 rounded-full flex flex-col items-center justify-center hover:bg-slate-50 active:scale-95 transition-all outline-none relative group shadow-lg">
+        <div class="dice-scene pointer-events-none">
+          <div class="cube" id="dice-cube" style="--player-color: #f43f5e;">
+            <div class="face face-1"><div class="dot"></div></div>
+            <div class="face face-2"><div class="dot"></div><div class="dot"></div></div>
+            <div class="face face-3"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+            <div class="face face-4"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+            <div class="face face-5"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+            <div class="face face-6"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+          </div>
+        </div>
+      </button>
+    </div>
+  </div>
+
+<script>
+const socket = io();
+
+
+// =============== BOARD CONSTANTS ===============
+const GRID_SIZE = 19; // -9 to 9
+const OFFSET = 9;
+
+const JAILS = {
+  0: [[-1.5, -9], [-0.5, -9], [0.5, -9], [1.5, -9]], // Top
+  1: [[9, -1.5], [9, -0.5], [9, 0.5], [9, 1.5]],     // Right
+  2: [[1.5, 9], [0.5, 9], [-0.5, 9], [-1.5, 9]],     // Bottom
+  3: [[-9, 1.5], [-9, 0.5], [-9, -0.5], [-9, -1.5]]  // Left
+};
+
+const HOMES = {
+  0: [[0, -7], [0, -6], [0, -5], [0, -4], [0, -3], [0, -2], [0, -1]],
+  1: [[7, 0], [6, 0], [5, 0], [4, 0], [3, 0], [2, 0], [1, 0]],
+  2: [[0, 7], [0, 6], [0, 5], [0, 4], [0, 3], [0, 2], [0, 1]],
+  3: [[-7, 0], [-6, 0], [-5, 0], [-4, 0], [-3, 0], [-2, 0], [-1, 0]]
+};
+
+const GOAL = [0, 0];
+
+// 64 spaces around the perimeter
+const PERIMETER = [
+  [-2, -8], [-1, -8], [0, -8], [1, -8], [2, -8],
+  [2, -7], [2, -6], [2, -5], [2, -4], [2, -3], [2, -2],
+  [3, -2], [4, -2], [5, -2], [6, -2], [7, -2], [8, -2],
+  [8, -1], [8, 0], [8, 1], [8, 2],
+  [7, 2], [6, 2], [5, 2], [4, 2], [3, 2], [2, 2],
+  [2, 3], [2, 4], [2, 5], [2, 6], [2, 7], [2, 8],
+  [1, 8], [0, 8], [-1, 8], [-2, 8],
+  [-2, 7], [-2, 6], [-2, 5], [-2, 4], [-2, 3], [-2, 2],
+  [-3, 2], [-4, 2], [-5, 2], [-6, 2], [-7, 2], [-8, 2],
+  [-8, 1], [-8, 0], [-8, -1], [-8, -2],
+  [-7, -2], [-6, -2], [-5, -2], [-4, -2], [-3, -2], [-2, -2],
+  [-2, -3], [-2, -4], [-2, -5], [-2, -6], [-2, -7]
+];
+
+const START_SPACES = [4, 20, 36, 52]; // Left outer corner when facing center
+const SHORTCUT_SPACES = [10, 26, 42, 58]; // The 4 inner corners
+
+const PLAYERS = {
+  0: { color: 'bg-[#f43f5e]', dotColor: '#f43f5e', glow: 'shadow-[0_0_15px_#f43f5e]', text: 'text-rose-500', name: 'Player 1' },
+  1: { color: 'bg-[#3b82f6]', dotColor: '#3b82f6', glow: 'shadow-[0_0_15px_#3b82f6]', text: 'text-blue-500', name: 'Player 2' },
+  2: { color: 'bg-[#eab308]', dotColor: '#eab308', glow: 'shadow-[0_0_15px_#eab308]', text: 'text-yellow-500', name: 'Player 3' },
+  3: { color: 'bg-[#22c55e]', dotColor: '#22c55e', glow: 'shadow-[0_0_15px_#22c55e]', text: 'text-green-500', name: 'Player 4' }
+};
+
+const DICE_ROTATIONS = [
+  'rotateX(0deg) rotateY(0deg)',      // 1
+  'rotateX(0deg) rotateY(-90deg)',    // 2
+  'rotateX(-90deg) rotateY(0deg)',    // 3
+  'rotateX(90deg) rotateY(0deg)',     // 4
+  'rotateX(0deg) rotateY(90deg)',     // 5
+  'rotateX(0deg) rotateY(180deg)'     // 6
+];
+
+// =============== MULTIPLAYER STATE ===============
+let mySlot = null;
+let isHost = false;
+let pegsCountGlobal = 4;
+let activeSlots = [0, 1, 2, 3];
+let visualMap = {0: 0, 1: 1, 2: 2, 3: 3};
+
+// =============== GAME STATE ===============
+let pieces = [];
+let currentPlayer = 0;
+let diceValue = null;
+let diceRolled = false;
+let validMoves = [];
+let isAnimating = false;
+
+// =============== NETWORK HANDLERS ===============
+socket.on('connect', () => {
+  const code = document.getElementById('room-code-input')?.value?.toUpperCase()?.trim();
+  const gameHidden = document.getElementById('game-screen')?.classList.contains('hidden');
+  if (code && !gameHidden) {
+    socket.emit('join_room', code); // Auto-rejoin room if socket disconnected
+    setTimeout(() => socket.emit('request_sync'), 500); // Ask peers for missed events
+  }
+});
+
+socket.on('sync_requested', (requesterSocketId) => {
+  // If I am the host (or just an active player), send them my state
+  if (isHost || activeSlots[0] === mySlot) {
+    socket.emit('send_sync', {
+      targetSocket: requesterSocketId,
+      state: { pieces, currentPlayer, activeSlots, pegsCountGlobal, visualMap }
+    });
+  }
+});
+
+socket.on('sync_data', (state) => {
+  if (state && state.pieces) {
+    pieces = state.pieces;
+    currentPlayer = state.currentPlayer;
+    activeSlots = state.activeSlots;
+    pegsCountGlobal = state.pegsCountGlobal;
+    visualMap = state.visualMap;
+    diceRolled = false;
+    isAnimating = false;
+    validMoves = [];
+    updateUI();
+    renderPieces();
+  }
+});
+
+// Failsafe for mobile background throttling
+setInterval(() => {
+  if (isAnimating) {
+    const cube = document.getElementById('dice-cube');
+    cube.classList.remove('rolling');
+    isAnimating = false;
+    updateUI();
+  }
+}, 3000);
+
+socket.on('lobby_state', (state) => {
+  const gameHidden = document.getElementById('game-screen')?.classList.contains('hidden');
+  if (state.gameState === 'playing' && !gameHidden) {
+    return; // Ignore lobby state updates if we are actively playing (e.g. reconnected)
+  }
+
+  document.getElementById('lobby-screen').classList.remove('hidden');
+  document.getElementById('game-screen').classList.add('hidden');
+  document.getElementById('victory-screen').classList.add('hidden');
+  document.getElementById('lobby-room-code').innerText = `Room: ${state.roomId}`;
+
+  mySlot = null;
+  for(let i=0; i<4; i++) {
+    const btn = document.getElementById(`slot-${i}`);
+    if (state.slots[i]) {
+       if (state.slots[i] === socket.id) {
+         mySlot = i;
+         btn.innerHTML = `<div class="w-4 h-4 rounded-full ${PLAYERS[i].color}"></div> You (P${i+1})`;
+         btn.className = `h-16 rounded-xl border-2 bg-slate-100 font-bold flex items-center justify-center gap-2 transition-all border-slate-300 text-slate-800`;
+       } else {
+         btn.innerHTML = `P${i+1} Joined`;
+         btn.className = `h-16 rounded-xl border-2 bg-slate-50 font-bold flex items-center justify-center gap-2 transition-all border-slate-200 text-slate-400 cursor-not-allowed opacity-70`;
+       }
+    } else {
+       btn.innerHTML = `<div class="w-4 h-4 rounded-full ${PLAYERS[i].color}"></div> Join P${i+1}`;
+       btn.className = `h-16 rounded-xl border-2 bg-white font-bold flex items-center justify-center gap-2 transition-all border-slate-200 text-slate-500 hover:border-slate-400 hover:bg-slate-50`;
+    }
+  }
+  
+  const pegs = state.gameSettings.pegsPerPlayer;
+  document.getElementById('btn-pegs-2').className = `flex-1 py-3 rounded-xl font-bold border-2 transition-colors ${pegs === 2 ? 'bg-slate-800 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-500'}`;
+  document.getElementById('btn-pegs-4').className = `flex-1 py-3 rounded-xl font-bold border-2 transition-colors ${pegs === 4 ? 'bg-slate-800 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-500'}`;
+  
+  isHost = (state.slots[0] === socket.id) || (state.slots.find(s => s !== null) === socket.id); 
+  
+  const startBtn = document.getElementById('start-btn');
+  if (isHost && state.slots.filter(s => s !== null).length >= 2) {
+    startBtn.disabled = false;
+    startBtn.innerText = "Start Game";
+  } else {
+    startBtn.disabled = true;
+    startBtn.innerText = "Waiting for players (min 2)...";
+  }
+});
+
+function joinRoom() {
+  const code = document.getElementById('room-code-input').value.toUpperCase().trim();
+  if (code) {
+    socket.emit('join_room', code);
+    document.getElementById('home-screen').classList.add('hidden');
+  } else {
+    alert("Please enter a room code!");
+  }
+}
+
+function joinSlot(idx) { socket.emit('join_slot', idx); }
+function setPegs(num) { socket.emit('update_settings', { pegsPerPlayer: num }); }
+function startGame() { if(isHost) socket.emit('start_game'); }
+function resetSession() { socket.emit('reset_session'); }
+function returnToLobby() { socket.emit('return_to_lobby'); }
+
+socket.on('game_started', (data) => {
+  document.getElementById('lobby-screen').classList.add('hidden');
+  document.getElementById('victory-screen').classList.add('hidden');
+  document.getElementById('game-screen').classList.remove('hidden');
+  document.getElementById('game-screen').classList.add('flex');
+  pegsCountGlobal = data.gameSettings.pegsPerPlayer;
+  activeSlots = data.slots.map((s, i) => s ? i : null).filter(i => i !== null);
+  
+  visualMap = {0: 0, 1: 1, 2: 2, 3: 3};
+  if (activeSlots.length === 2) {
+    visualMap[activeSlots[0]] = activeSlots[0];
+    visualMap[activeSlots[1]] = (activeSlots[0] + 2) % 4;
+  }
+  
+  initBoard();
+});
+
+socket.on('dice_rolled', (data) => {
+  isAnimating = true;
+  const cube = document.getElementById('dice-cube');
+  cube.classList.add('rolling');
+  cube.style.transform = ''; 
+  
+  setTimeout(() => {
+    cube.classList.remove('rolling');
+    diceValue = data.value;
+    cube.style.transform = DICE_ROTATIONS[diceValue - 1];
+    
+    diceRolled = true;
+    isAnimating = false;
+    
+    if (currentPlayer === mySlot) {
+      calculateValidMoves();
+      if (validMoves.length === 0) {
+        if (diceValue === 6) {
+          setTimeout(() => { diceRolled = false; validMoves = []; updateUI(); renderPieces(); }, 1000);
+        } else {
+          setTimeout(() => socket.emit('next_turn'), 1000);
+        }
+      } else {
+        renderPieces();
+      }
+    }
+  }, 600);
+});
+
+socket.on('move_executed', (data) => {
+  const piece = pieces.find(p => p.id === data.pieceId);
+  const { action, target } = data;
+  
+  if (action === 'leave_jail' || action === 'shortcut' || action === 'move') {
+    piece.state = 'perimeter'; piece.pos = target;
+  } else if (action === 'home') {
+    piece.state = 'home'; piece.pos = target;
+  } else if (action === 'goal') {
+    piece.state = 'goal'; piece.pos = null;
+  }
+  
+  // Combat Check
+  if (piece.state === 'perimeter') {
+    const enemies = pieces.filter(p => p.player !== currentPlayer && p.state === 'perimeter' && p.pos === piece.pos);
+    enemies.forEach(e => {
+      e.state = 'jail';
+      const taken = pieces.filter(p => p.player === e.player && p.state === 'jail').map(p => p.pos);
+      for (let i = 0; i < pegsCountGlobal; i++) {
+        const checkPos = pegsCountGlobal === 2 ? i + 1 : i; 
+        if (!taken.includes(checkPos)) { e.pos = checkPos; break; }
+      }
+    });
+  }
+  
+  validMoves = [];
+  renderPieces();
+  
+  // Win Check
+  const remaining = pieces.filter(p => p.player === currentPlayer && p.state !== 'goal');
+  if (remaining.length === 0) {
+    if (currentPlayer === mySlot) socket.emit('player_won', PLAYERS[currentPlayer].name);
+    return;
+  }
+  
+  if (currentPlayer === mySlot) {
+    if (diceValue === 6 || action === 'shortcut') {
+      diceRolled = false; updateUI();
+    } else {
+      setTimeout(() => socket.emit('next_turn'), 600);
+    }
+  }
+});
+
+socket.on('turn_passed', () => {
+  do {
+    currentPlayer = (currentPlayer + 1) % 4;
+  } while (!activeSlots.includes(currentPlayer) && activeSlots.length > 0);
+  diceRolled = false;
+  validMoves = [];
+  diceValue = null;
+  updateUI();
+  renderPieces();
+});
+
+socket.on('game_over', (winnerName) => {
+  document.getElementById('victory-screen').classList.remove('hidden');
+  document.getElementById('winner-name').innerText = winnerName;
+});
+
+// =============== BOARD INITIALIZATION ===============
+
+function initBoard() {
+  const holesEl = document.getElementById('holes');
+  holesEl.innerHTML = ''; 
+  pieces = [];
+  currentPlayer = activeSlots.length > 0 ? activeSlots[0] : 0;
+  diceRolled = false;
+  diceValue = null;
+  
+  function addHole(x, y, bgClass) {
+    const el = document.createElement('div');
+    let actualBg = 'bg-slate-100 border-[1.5px] border-slate-300 shadow-inner';
+    if (bgClass.includes('bg-slate-900/80')) {
+      actualBg = 'bg-slate-300 border-[1.5px] border-slate-400 shadow-inner'; 
+    } else if (bgClass !== 'bg-slate-800') {
+      actualBg = bgClass; 
+    }
+    el.className = `absolute rounded-full ${actualBg} transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center`;
+    el.style.left = `${(x + OFFSET + 0.5) * (100 / GRID_SIZE)}%`;
+    el.style.top = `${(y + OFFSET + 0.5) * (100 / GRID_SIZE)}%`;
+    el.style.width = '3%';
+    el.style.height = '3%';
+    holesEl.appendChild(el);
+  }
+
+  for (let p in JAILS) {
+    JAILS[p].forEach((pos, i) => {
+      if (pegsCountGlobal === 2 && (i === 0 || i === 3)) return;
+      addHole(pos[0], pos[1], 'bg-slate-900/80');
+    });
+  }
+  
+  PERIMETER.forEach((pos, i) => {
+    let bg = 'bg-slate-800';
+    addHole(pos[0], pos[1], bg);
+  });
+  
+  // Draw Player Labels
+  const LABEL_POS = { 0: [0, -10.5], 1: [10.5, 0], 2: [0, 10.5], 3: [-10.5, 0] };
+  for (let p of activeSlots) {
+    const vPlayer = visualMap[p];
+    const el = document.createElement('div');
+    el.className = `absolute text-xs font-bold opacity-40 tracking-widest ${PLAYERS[p].text} transform -translate-x-1/2 -translate-y-1/2 pointer-events-none`;
+    el.style.left = `${(LABEL_POS[vPlayer][0] + OFFSET + 0.5) * (100 / GRID_SIZE)}%`;
+    el.style.top = `${(LABEL_POS[vPlayer][1] + OFFSET + 0.5) * (100 / GRID_SIZE)}%`;
+    el.innerText = `P${parseInt(p)+1}`;
+    holesEl.appendChild(el);
+  }
+
+  const piecesContainer = document.getElementById('pieces');
+  piecesContainer.innerHTML = '';
+  for (let p = 0; p < 4; p++) {
+    if (!activeSlots.includes(p)) continue;
+    for (let i = 0; i < pegsCountGlobal; i++) {
+      const id = `${p}-${i}`;
+      const startPos = pegsCountGlobal === 2 ? i + 1 : i; 
+      pieces.push({ id, player: p, state: 'jail', pos: startPos });
+      
+      const el = document.createElement('div');
+      el.id = `piece-${id}`;
+      el.className = `piece absolute rounded-full ${PLAYERS[p].color} ${PLAYERS[p].glow} transform -translate-x-1/2 -translate-y-1/2 z-10`;
+      el.style.width = '2.2%';
+      el.style.height = '2.2%';
+      piecesContainer.appendChild(el);
+    }
+  }
+
+  updateUI();
+  renderPieces();
+}
+
+function getPieceVisualPosition(piece) {
+  let cx, cy;
+  let vPlayer = visualMap[piece.player];
+  if (piece.state === 'jail') [cx, cy] = JAILS[vPlayer][piece.pos];
+  else if (piece.state === 'perimeter') [cx, cy] = PERIMETER[piece.pos];
+  else if (piece.state === 'home') [cx, cy] = HOMES[vPlayer][piece.pos];
+  else if (piece.state === 'goal') [cx, cy] = GOAL;
+  
+  let off = {x:0, y:0};
+  if (piece.state === 'perimeter' || piece.state === 'home') {
+    const sharing = pieces.filter(p => p.state === piece.state && p.pos === piece.pos);
+    const index = sharing.indexOf(piece);
+    const offsets = [{x:0,y:0}, {x:-4,y:-4}, {x:4,y:-4}, {x:-4,y:4}, {x:4,y:4}];
+    off = offsets[index] || {x:0, y:0};
+  }
+  return { x: cx, y: cy, offsetX: off.x, offsetY: off.y };
+}
+
+function renderPieces() {
+  pieces.forEach(piece => {
+    const { x, y, offsetX, offsetY } = getPieceVisualPosition(piece);
+    const el = document.getElementById(`piece-${piece.id}`);
+    
+    el.style.left = `calc(${(x + OFFSET + 0.5) * (100 / GRID_SIZE)}% + ${offsetX}px)`;
+    el.style.top = `calc(${(y + OFFSET + 0.5) * (100 / GRID_SIZE)}% + ${offsetY}px)`;
+    
+    const isValid = currentPlayer === mySlot && validMoves.some(m => m.piece.id === piece.id);
+    if (isValid) {
+      el.classList.add('ring-4', 'ring-indigo-500/50', 'animate-pulse', 'cursor-pointer', 'scale-125', 'z-20');
+      el.onclick = () => selectMove(validMoves.find(m => m.piece.id === piece.id));
+    } else {
+      el.classList.remove('ring-4', 'ring-indigo-500/50', 'animate-pulse', 'cursor-pointer', 'scale-125', 'z-20');
+      el.onclick = null;
+    }
+  });
+}
+
+function updateUI() {
+  const statusEl = document.getElementById('status-text');
+  let prefix = currentPlayer === mySlot ? '👉 Your Turn' : `${PLAYERS[currentPlayer].name}'s Turn`;
+  statusEl.innerText = prefix;
+  statusEl.className = `text-xs font-bold mt-4 bg-white border border-slate-200 inline-block px-6 py-2 rounded-full tracking-widest uppercase shadow-sm transition-colors duration-300 ${PLAYERS[currentPlayer].text}`;
+
+  const cube = document.getElementById('dice-cube');
+  if (cube) {
+    cube.style.setProperty('--player-color', PLAYERS[currentPlayer].dotColor);
+    if (!diceRolled && !isAnimating) cube.style.transform = 'rotateX(-25deg) rotateY(45deg)';
+  }
+}
+
+// =============== INTERACTION LOGIC ===============
+function rollDice() {
+  if (currentPlayer !== mySlot || diceRolled || isAnimating) return;
+  const val = Math.floor(Math.random() * 6) + 1;
+  socket.emit('roll_dice', { value: val, player: mySlot });
+}
+
+function selectMove(moveObj) {
+  socket.emit('execute_move', { pieceId: moveObj.piece.id, action: moveObj.action, target: moveObj.target });
+}
+
+function calculateValidMoves() {
+  validMoves = [];
+  
+  // 1. Mandatory Shortcut Check
+  let forcedShortcuts = [];
+  for (let piece of pieces.filter(p => p.player === currentPlayer)) {
+    if (piece.state === 'perimeter' && SHORTCUT_SPACES.includes(piece.pos) && diceValue === 1) {
+      const target = (piece.pos + 16) % 64; // Jump to the NEXT inner corner
+      let isBlocked = pieces.some(p => p.player === currentPlayer && p.state === 'perimeter' && p.pos === target);
+      if (!isBlocked) {
+        forcedShortcuts.push({ piece, action: 'shortcut', target });
+      }
+    }
+  }
+
+  // If there are forced shortcuts, those are the ONLY valid moves.
+  if (forcedShortcuts.length > 0) {
+    validMoves = forcedShortcuts;
+    return;
+  }
+
+  // 2. Normal Moves
+  let potentialMoves = [];
+  pieces.filter(p => p.player === currentPlayer).forEach(piece => {
+    if (piece.state === 'jail') {
+      if (diceValue === 6) potentialMoves.push({ piece, action: 'leave_jail', target: visualMap[currentPlayer] * 16 + 4 }); // Land on LEFT outer corner
+    } else if (piece.state === 'perimeter') {
+      const start = visualMap[currentPlayer] * 16 + 4;
+      const currentDist = (piece.pos - start + 64) % 64;
+      const targetDist = currentDist + diceValue;
+      if (targetDist <= 62) potentialMoves.push({ piece, action: 'move', target: (piece.pos + diceValue) % 64 });
+      else {
+        const homePos = targetDist - 63;
+        if (homePos <= 6) potentialMoves.push({ piece, action: 'home', target: homePos });
+        else if (homePos === 7) potentialMoves.push({ piece, action: 'goal', target: null });
+      }
+    } else if (piece.state === 'home') {
+      const targetPos = piece.pos + diceValue;
+      if (targetPos <= 6) potentialMoves.push({ piece, action: 'home', target: targetPos });
+      else if (targetPos === 7) potentialMoves.push({ piece, action: 'goal', target: null });
+    }
+  });
+
+  validMoves = potentialMoves.filter(move => {
+    if (move.action === 'goal') return true;
+    const targetState = (move.action === 'home') ? 'home' : 'perimeter';
+    return !pieces.some(p => p.player === currentPlayer && p.state === targetState && p.pos === move.target);
+  });
+}
+</script>
+</body>
+</html>
