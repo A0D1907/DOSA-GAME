@@ -125,8 +125,8 @@
   <div id="victory-screen" class="hidden absolute inset-0 z-[60] flex flex-col items-center justify-center p-6" style="background: rgba(15,12,41,0.85); backdrop-filter: blur(20px);">
     <div class="w-full max-w-sm p-10 rounded-3xl text-center" style="background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.15); box-shadow: 0 25px 60px rgba(0,0,0,0.6);">
       <div class="text-5xl mb-4">🏆</div>
-      <h2 class="text-xs font-bold text-indigo-300 uppercase tracking-[0.4em] mb-3">Victory!</h2>
-      <h1 id="winner-name" class="text-4xl font-black text-white mb-8 tracking-wide" style="text-shadow: 0 0 20px rgba(255,0,127,0.6);">Player 1</h1>
+      <h2 class="text-xs font-bold text-indigo-300 uppercase tracking-[0.4em] mb-3">Final Standings</h2>
+      <div id="winner-name" class="text-left mb-8 space-y-1" style="min-height:40px;"></div>
       <button onclick="returnToLobby()" class="w-full py-4 mb-3 rounded-2xl font-black tracking-widest uppercase transition-all hover:-translate-y-1" style="background: linear-gradient(135deg,#6366f1,#8b5cf6); color: white; box-shadow: 0 8px 25px rgba(99,102,241,0.4);">Play Again</button>
       <button onclick="leaveRoom()" class="w-full py-4 rounded-2xl font-bold tracking-widest uppercase transition-all" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #94a3b8;">Leave Room</button>
     </div>
@@ -263,6 +263,7 @@ let diceValue = null;
 let diceRolled = false;
 let validMoves = [];
 let isAnimating = false;
+let finishedPlayers = []; // tracks finish order (slot indices)
 
 // =============== NETWORK HANDLERS ===============
 socket.on('connect', () => {
@@ -422,6 +423,8 @@ socket.on('game_started', (data) => {
   isAnimating = false;
   diceRolled = false;
   validMoves = [];
+  finishedPlayers = [];
+  document.getElementById('spectator-banner')?.remove();
   document.getElementById('lobby-screen').classList.add('hidden');
   document.getElementById('victory-screen').classList.add('hidden');
   document.getElementById('game-screen').classList.remove('hidden');
@@ -537,11 +540,14 @@ socket.on('move_executed', (data) => {
   validMoves = [];
   renderPieces();
   
-  // Win Check
+  // Win Check — player finished all pegs in home
   const inHome = pieces.filter(p => p.player === currentPlayer && p.state === 'home');
-  if (inHome.length === pegsCountGlobal) {
-    if (currentPlayer === mySlot || (isHost && latestSlots[currentPlayer] === 'bot')) socket.emit('player_won', PLAYERS[currentPlayer].name);
-    return;
+  if (inHome.length === pegsCountGlobal && !finishedPlayers.includes(currentPlayer)) {
+    finishedPlayers.push(currentPlayer);
+    if (currentPlayer === mySlot || (isHost && latestSlots[currentPlayer] === 'bot')) {
+      socket.emit('player_finished', currentPlayer);
+    }
+    return; // wait for server player_ranked response to continue
   }
   
   if (currentPlayer === mySlot || (isHost && latestSlots[currentPlayer] === 'bot')) {
@@ -556,7 +562,7 @@ socket.on('move_executed', (data) => {
 socket.on('turn_passed', () => {
   do {
     currentPlayer = (currentPlayer + 1) % 4;
-  } while (!activeSlots.includes(currentPlayer) && activeSlots.length > 0);
+  } while ((!activeSlots.includes(currentPlayer) || finishedPlayers.includes(currentPlayer)) && activeSlots.length > 0);
   diceRolled = false;
   validMoves = [];
   diceValue = null;
@@ -564,9 +570,49 @@ socket.on('turn_passed', () => {
   renderPieces();
 });
 
-socket.on('game_over', (winnerName) => {
+socket.on('player_ranked', (data) => {
+  const { playerSlot, rank, finishOrder } = data;
+  finishedPlayers = finishOrder;
+  const rankEmoji = ['🥇','🥈','🥉','4️⃣'][rank - 1] || `#${rank}`;
+  const name = latestSlots[playerSlot] === 'bot' ? `Bot P${playerSlot+1}` : PLAYERS[playerSlot].name;
+  
+  // Show toast
+  const toast = document.createElement('div');
+  toast.style.cssText = `position:fixed; top:20px; left:50%; transform:translateX(-50%); z-index:200; padding:12px 24px; border-radius:999px; font-weight:900; font-size:14px; letter-spacing:0.1em; text-transform:uppercase; animation: floatUp 3s forwards; white-space:nowrap; background: linear-gradient(135deg,#1e1b4b,#312e81); border: 1px solid rgba(255,255,255,0.2); color: white; box-shadow: 0 8px 30px rgba(0,0,0,0.5);`;
+  toast.innerText = `${rankEmoji} ${name} finished!`;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 3000);
+  
+  // If I finished, show spectator banner
+  if (playerSlot === mySlot) {
+    const banner = document.createElement('div');
+    banner.id = 'spectator-banner';
+    banner.style.cssText = `position:fixed; bottom:0; left:0; right:0; z-index:100; padding:14px; text-align:center; font-weight:900; font-size:13px; letter-spacing:0.15em; text-transform:uppercase; background: linear-gradient(135deg,rgba(99,102,241,0.9),rgba(139,92,246,0.9)); backdrop-filter:blur(10px); border-top: 1px solid rgba(255,255,255,0.2); color:white;`;
+    banner.innerText = `${rankEmoji} You finished ${rank === 1 ? '1st' : rank === 2 ? '2nd' : rank === 3 ? '3rd' : rank+'th'}! Spectating...`;
+    document.body.appendChild(banner);
+  }
+  
+  // Continue the game — pass the turn
+  if (currentPlayer === mySlot || (isHost && latestSlots[currentPlayer] === 'bot')) {
+    setTimeout(() => socket.emit('next_turn'), 600);
+  }
+});
+
+socket.on('game_over', (finishOrder) => {
+  document.getElementById('spectator-banner')?.remove();
+  const MEDALS = ['🥇','🥈','🥉','4️⃣'];
+  let podium = '';
+  if (Array.isArray(finishOrder) && finishOrder.length > 0) {
+    finishOrder.forEach((slot, i) => {
+      const name = latestSlots[slot] === 'bot' ? `Bot P${slot+1}` : PLAYERS[slot].name;
+      podium += `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.08);">
+        <span style="font-size:1.4rem;">${MEDALS[i]||'·'}</span>
+        <span style="font-weight:800;color:${PLAYERS[slot].dotColor};letter-spacing:0.05em;">${name}</span>
+      </div>`;
+    });
+  }
+  document.getElementById('winner-name').innerHTML = podium || 'Game Over';
   document.getElementById('victory-screen').classList.remove('hidden');
-  document.getElementById('winner-name').innerText = winnerName;
 });
 
 // =============== BOARD INITIALIZATION ===============

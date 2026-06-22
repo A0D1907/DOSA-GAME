@@ -96,6 +96,7 @@ io.on('connection', (socket) => {
     const totalPlayers = state.slots.filter(s => s !== null).length;
     if (hasHuman && totalPlayers >= 2) {
       state.gameState = 'playing';
+      state.finishOrder = []; // reset finish rankings
       io.to(socket.roomId).emit('game_started', state);
     }
   });
@@ -119,11 +120,26 @@ io.on('connection', (socket) => {
      io.to(socket.roomId).emit('turn_passed');
   });
 
-  socket.on('player_won', (pName) => {
+  socket.on('player_finished', (playerSlot) => {
     if (!socket.roomId) return;
     const state = getRoomState(socket.roomId);
-    state.gameState = 'finished';
-    io.to(socket.roomId).emit('game_over', pName);
+    if (state.gameState !== 'playing') return;
+    if (!state.finishOrder) state.finishOrder = [];
+    if (!state.finishOrder.includes(playerSlot)) {
+      state.finishOrder.push(playerSlot);
+    }
+    const rank = state.finishOrder.length;
+    // Broadcast that this player finished with their rank
+    io.to(socket.roomId).emit('player_ranked', { playerSlot, rank, finishOrder: state.finishOrder });
+    
+    // Count how many unfinished players remain
+    const totalActive = state.slots.filter(s => s !== null).length;
+    const unfinished = totalActive - state.finishOrder.length;
+    if (unfinished <= 1) {
+      // Game is truly over
+      state.gameState = 'finished';
+      io.to(socket.roomId).emit('game_over', state.finishOrder);
+    }
   });
 
   socket.on('return_to_lobby', () => {
