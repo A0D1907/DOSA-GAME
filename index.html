@@ -241,7 +241,7 @@ socket.on('connect', () => {
 });
 
 socket.on('sync_requested', (requesterSocketId) => {
-  if (isHost || activeSlots[0] === mySlot) {
+  if (pieces && pieces.length > 0) {
     socket.emit('send_sync', {
       targetSocket: requesterSocketId,
       state: { pieces, currentPlayer, activeSlots, pegsCountGlobal, visualMap }
