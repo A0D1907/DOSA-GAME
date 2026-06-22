@@ -124,12 +124,14 @@
       <p id="status-text" class="text-xs font-bold mt-4 bg-white border border-slate-200 inline-block px-6 py-2 rounded-full tracking-widest uppercase shadow-sm transition-colors duration-300">Game Started</p>
     </header>
 
-    <!-- Board Container -->
-    <div class="w-full max-w-[420px] mx-auto relative aspect-square flex-shrink-0 z-10" id="board-container">
-      <!-- Surface -->
-      <div class="absolute inset-4 bg-slate-200 shadow-xl border-4 border-white" style="clip-path: polygon(25% 0%, 75% 0%, 100% 25%, 100% 75%, 75% 100%, 25% 100%, 0% 75%, 0% 25%)"></div>
-      <div id="holes" class="absolute inset-4 z-0"></div>
-      <div id="pieces" class="absolute inset-4 z-10 pointer-events-auto"></div>
+    <!-- Board Area -->
+    <div class="w-full max-w-[420px] mx-auto relative aspect-square flex-shrink-0 z-10">
+      <div id="board-container" class="absolute inset-4 transition-transform duration-700 ease-in-out">
+        <!-- Surface -->
+        <div class="absolute inset-0 bg-slate-200 shadow-xl border-4 border-white" style="clip-path: polygon(25% 0%, 75% 0%, 100% 25%, 100% 75%, 75% 100%, 25% 100%, 0% 75%, 0% 25%)"></div>
+        <div id="holes" class="absolute inset-0 z-0"></div>
+        <div id="pieces" class="absolute inset-0 z-10 pointer-events-auto"></div>
+      </div>
     </div>
 
     <!-- Bottom UI Controls -->
@@ -502,14 +504,26 @@ function initBoard(keepState = false) {
     }
   }
   
+  // Determine Board Rotation
+  let boardRot = 0;
+  if (mySlot !== null) {
+    const myVPlayer = visualMap[mySlot];
+    if (myVPlayer === 0) boardRot = 180;
+    else if (myVPlayer === 1) boardRot = 90;
+    else if (myVPlayer === 2) boardRot = 0;
+    else if (myVPlayer === 3) boardRot = -90;
+  }
+  document.getElementById('board-container').style.transform = `rotate(${boardRot}deg)`;
+
   // Draw Player Labels
   const LABEL_POS = { 0: [0, -10.5], 1: [10.5, 0], 2: [0, 10.5], 3: [-10.5, 0] };
   for (let p of activeSlots) {
     const vPlayer = visualMap[p];
     const el = document.createElement('div');
-    el.className = `absolute text-xs font-bold opacity-40 tracking-widest ${PLAYERS[p].text} transform -translate-x-1/2 -translate-y-1/2 pointer-events-none`;
+    el.className = `absolute text-xs font-bold opacity-40 tracking-widest ${PLAYERS[p].text} pointer-events-none text-center whitespace-nowrap`;
     el.style.left = `${(LABEL_POS[vPlayer][0] + OFFSET + 0.5) * (100 / GRID_SIZE)}%`;
     el.style.top = `${(LABEL_POS[vPlayer][1] + OFFSET + 0.5) * (100 / GRID_SIZE)}%`;
+    el.style.transform = `translate(-50%, -50%) rotate(${-boardRot}deg)`;
     el.innerText = `P${parseInt(p)+1}`;
     holesEl.appendChild(el);
   }
