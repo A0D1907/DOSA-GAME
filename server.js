@@ -128,10 +128,11 @@ io.on('connection', (socket) => {
 
   socket.on('reclaim_slot', (data) => {
     const state = getRoomState(data.roomId);
-    if (state.gameState === 'playing' && !state.slots[data.slot]) {
+    if (state.gameState === 'playing') {
       state.slots[data.slot] = socket.id;
       socket.roomId = data.roomId;
       socket.join(data.roomId);
+      socket.emit('lobby_state', { ...state, roomId: data.roomId });
     }
   });
 
@@ -148,6 +149,12 @@ io.on('connection', (socket) => {
       } else {
         io.to(socket.roomId).emit('player_disconnected', oldSlot);
       }
+    }
+    
+    // Cleanup empty rooms
+    if (state.slots.every(s => s === null)) {
+      delete rooms[socket.roomId];
+      console.log(`Deleted empty room: ${socket.roomId}`);
     }
   });
 });

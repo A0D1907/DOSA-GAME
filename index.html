@@ -498,15 +498,9 @@ function initBoard(keepState = false) {
   for (let p in HOMES) {
     for (let i = 0; i < pegsCountGlobal; i++) {
       let pos = HOMES[p][i];
-      let bg = p == 0 ? 'bg-slate-100 border-[2px] border-rose-500' : 
-               p == 1 ? 'bg-slate-100 border-[2px] border-blue-500' : 
-               p == 2 ? 'bg-slate-100 border-[2px] border-yellow-500' : 
-                        'bg-slate-100 border-[2px] border-green-500';
-      addHole(pos[0], pos[1], bg);
+      addHole(pos[0], pos[1], 'bg-slate-800');
     }
   }
-  
-  addHole(GOAL[0], GOAL[1], 'bg-slate-900 shadow-[0_0_20px_rgba(0,0,0,0.5)] border-slate-700');
   
   // Draw Player Labels
   const LABEL_POS = { 0: [0, -10.5], 1: [10.5, 0], 2: [0, 10.5], 3: [-10.5, 0] };
