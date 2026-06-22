@@ -169,6 +169,8 @@
           <button onclick="sendEmote('😡')" class="w-12 h-12 rounded-full text-2xl transition-all hover:scale-125">😡</button>
           <button onclick="sendEmote('😭')" class="w-12 h-12 rounded-full text-2xl transition-all hover:scale-125">😭</button>
           <button onclick="sendEmote('💀')" class="w-12 h-12 rounded-full text-2xl transition-all hover:scale-125">💀</button>
+          <button onclick="sendEmote('🐦')" class="w-12 h-12 rounded-full text-2xl transition-all hover:scale-125">🐦</button>
+          <button onclick="sendEmote('💧')" class="w-12 h-12 rounded-full text-2xl transition-all hover:scale-125">💧</button>
         </div>
       </div>
 
@@ -770,10 +772,23 @@ function sendEmote(emoji) {
   document.activeElement.blur();
 }
 
+// Sound map for special emotes
+const EMOTE_SOUNDS = {
+  '🐦': new Audio('/bird sound.mp3'),
+  '💧': new Audio('/waterdrop sound.mp3'),
+};
+
 socket.on('receive_emote', (data) => {
   const { player, emoji } = data;
   const vPlayer = visualMap[player];
   const holesEl = document.getElementById('holes');
+  
+  // Play sound if this emote has one
+  if (EMOTE_SOUNDS[emoji]) {
+    const snd = EMOTE_SOUNDS[emoji].cloneNode();
+    snd.volume = 0.8;
+    snd.play().catch(() => {}); // silently ignore autoplay block
+  }
   
   const wrapper = document.createElement('div');
   wrapper.className = 'absolute z-[100] drop-shadow-xl pointer-events-none';
