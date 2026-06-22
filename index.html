@@ -285,6 +285,7 @@ socket.on('lobby_state', (state) => {
     return;
   }
 
+  document.getElementById('home-screen').classList.add('hidden');
   document.getElementById('lobby-screen').classList.remove('hidden');
   document.getElementById('game-screen').classList.add('hidden');
   document.getElementById('victory-screen').classList.add('hidden');
@@ -329,6 +330,7 @@ function joinRoom() {
   if (code.length > 0) {
     sessionStorage.setItem('dosaRoom', code);
     socket.emit('join_room', code);
+    document.getElementById('home-screen').classList.add('hidden');
   } else {
     alert("Please enter a room code!");
   }
