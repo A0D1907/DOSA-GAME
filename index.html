@@ -226,16 +226,20 @@ let isAnimating = false;
 
 // =============== NETWORK HANDLERS ===============
 socket.on('connect', () => {
-  const code = document.getElementById('room-code-input')?.value?.toUpperCase()?.trim();
+  const code = sessionStorage.getItem('dosaRoom');
+  const slot = sessionStorage.getItem('dosaSlot');
   const gameHidden = document.getElementById('game-screen')?.classList.contains('hidden');
+  
   if (code && !gameHidden) {
-    socket.emit('join_room', code); // Auto-rejoin room if socket disconnected
-    setTimeout(() => socket.emit('request_sync'), 500); // Ask peers for missed events
+    socket.emit('join_room', code); 
+    setTimeout(() => socket.emit('request_sync'), 500); 
+  } else if (code && slot !== null) {
+    socket.emit('reclaim_slot', { roomId: code, slot: parseInt(slot) });
+    setTimeout(() => socket.emit('request_sync'), 500);
   }
 });
 
 socket.on('sync_requested', (requesterSocketId) => {
-  // If I am the host (or just an active player), send them my state
   if (isHost || activeSlots[0] === mySlot) {
     socket.emit('send_sync', {
       targetSocket: requesterSocketId,
@@ -254,6 +258,9 @@ socket.on('sync_data', (state) => {
     diceRolled = false;
     isAnimating = false;
     validMoves = [];
+    document.getElementById('home-screen').classList.add('hidden');
+    document.getElementById('lobby-screen').classList.add('hidden');
+    document.getElementById('game-screen').classList.remove('hidden');
     updateUI();
     renderPieces();
   }
@@ -271,8 +278,12 @@ setInterval(() => {
 
 socket.on('lobby_state', (state) => {
   const gameHidden = document.getElementById('game-screen')?.classList.contains('hidden');
-  if (state.gameState === 'playing' && !gameHidden) {
-    return; // Ignore lobby state updates if we are actively playing (e.g. reconnected)
+  if (state.gameState === 'playing') {
+    document.getElementById('home-screen').classList.add('hidden');
+    document.getElementById('lobby-screen').classList.add('hidden');
+    document.getElementById('game-screen').classList.remove('hidden');
+    socket.emit('request_sync');
+    return;
   }
 
   document.getElementById('lobby-screen').classList.remove('hidden');
