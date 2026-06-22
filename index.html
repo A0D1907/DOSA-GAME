@@ -67,10 +67,10 @@
     }
     
     @keyframes floatUp {
-      0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
-      10% { transform: translate(-50%, -150%) scale(1.5); opacity: 1; }
-      80% { transform: translate(-50%, -180%) scale(1.5); opacity: 1; }
-      100% { transform: translate(-50%, -200%) scale(1); opacity: 0; }
+      0% { transform: translateY(0) scale(0.5); opacity: 0; }
+      10% { transform: translateY(-50px) scale(1.5); opacity: 1; }
+      80% { transform: translateY(-70px) scale(1.5); opacity: 1; }
+      100% { transform: translateY(-100px) scale(1); opacity: 0; }
     }
     .emote-anim {
       animation: floatUp 2.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
@@ -681,7 +681,7 @@ function updateUI() {
 
   const cube = document.getElementById('dice-cube');
   if (cube) {
-    cube.style.setProperty('--player-color', PLAYERS[currentPlayer].hex);
+    cube.style.setProperty('--player-color', PLAYERS[currentPlayer].dotColor);
     // Trigger bot roll
     if (isHost && latestSlots[currentPlayer] === 'bot' && !diceRolled && !isAnimating) {
       setTimeout(() => rollDice(), 1000);
@@ -707,22 +707,26 @@ socket.on('receive_emote', (data) => {
   const vPlayer = visualMap[player];
   const holesEl = document.getElementById('holes');
   
+  const wrapper = document.createElement('div');
+  wrapper.className = 'absolute z-[100] drop-shadow-xl pointer-events-none';
+  
   const el = document.createElement('div');
-  el.className = 'absolute text-5xl pointer-events-none z-[100] drop-shadow-xl emote-anim';
+  el.className = 'text-5xl emote-anim';
   el.innerText = emoji;
   
   const LABEL_POS = { 0: [0, -9], 1: [9, 0], 2: [0, 9], 3: [-9, 0] };
-  el.style.left = `${(LABEL_POS[vPlayer][0] + OFFSET + 0.5) * (100 / GRID_SIZE)}%`;
-  el.style.top = `${(LABEL_POS[vPlayer][1] + OFFSET + 0.5) * (100 / GRID_SIZE)}%`;
+  wrapper.style.left = `${(LABEL_POS[vPlayer][0] + OFFSET + 0.5) * (100 / GRID_SIZE)}%`;
+  wrapper.style.top = `${(LABEL_POS[vPlayer][1] + OFFSET + 0.5) * (100 / GRID_SIZE)}%`;
   
-  // Counter-rotate the emote so it always flies upwards relative to the screen
+  // Counter-rotate the wrapper so it always faces upwards relative to the screen
   const container = document.getElementById('board-container');
   const rotMatch = container.style.transform.match(/rotate\(([-\d]+)deg\)/);
   const boardRot = rotMatch ? parseInt(rotMatch[1]) : 0;
-  el.style.transform = `translate(-50%, -50%) rotate(${-boardRot}deg)`;
+  wrapper.style.transform = `translate(-50%, -50%) rotate(${-boardRot}deg)`;
   
-  holesEl.appendChild(el);
-  setTimeout(() => el.remove(), 2000);
+  wrapper.appendChild(el);
+  holesEl.appendChild(wrapper);
+  setTimeout(() => wrapper.remove(), 2000);
 });
 
 function rollDice() {
