@@ -250,6 +250,14 @@ let pegsCountGlobal = 4;
 let isHost = false;
 let latestSlots = [];
 let visualMap = {0: 0, 1: 1, 2: 2, 3: 3};
+const DICE_ROTATIONS = [
+  'rotateY(0deg) rotateX(0deg)',
+  'rotateY(-90deg) rotateX(0deg)',
+  'rotateX(-90deg) rotateY(0deg)',
+  'rotateX(90deg) rotateY(0deg)',
+  'rotateY(90deg) rotateX(0deg)',
+  'rotateY(180deg) rotateX(0deg)'
+];
 
 // =============== GAME STATE ===============
 let pieces = [];
