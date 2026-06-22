@@ -84,10 +84,20 @@
     <h1 class="text-6xl font-black tracking-[0.3em] uppercase mb-2 text-center" style="color:#ff007f; text-shadow: 0 0 30px rgba(255,0,127,0.8), 0 0 60px rgba(255,0,127,0.4);">DOSA</h1>
     <p class="text-sm font-bold tracking-[0.5em] text-indigo-300 mb-10 uppercase">Online</p>
     <div class="w-full max-w-sm p-8 rounded-3xl text-center" style="background: rgba(255,255,255,0.05); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 25px 50px rgba(0,0,0,0.5);">
-      <p class="text-xs font-bold text-indigo-300 uppercase tracking-widest mb-5">Enter Room Code</p>
-      <input type="text" id="room-code-input" placeholder="e.g. DOSA" class="w-full h-14 rounded-xl px-4 text-center text-xl font-bold uppercase tracking-widest focus:outline-none transition-all mb-5" style="background: rgba(255,255,255,0.08); border: 2px solid rgba(255,255,255,0.15); color: #f1f5f9;" autocomplete="off" maxlength="8" />
+      <p class="text-xs font-bold text-indigo-300 uppercase tracking-widest mb-2">Your Nickname</p>
+      <input type="text" id="nickname-input" placeholder="e.g. Maverick" class="w-full h-12 rounded-xl px-4 text-center text-lg font-bold focus:outline-none transition-all mb-4" style="background: rgba(255,255,255,0.08); border: 2px solid rgba(255,255,255,0.15); color: #f1f5f9;" autocomplete="off" maxlength="15" />
+      
+      <p class="text-xs font-bold text-indigo-300 uppercase tracking-widest mb-2">Enter Room Code</p>
+      <input type="text" id="room-code-input" placeholder="e.g. DOSA" class="w-full h-12 rounded-xl px-4 text-center text-lg font-bold uppercase tracking-widest focus:outline-none transition-all mb-5" style="background: rgba(255,255,255,0.08); border: 2px solid rgba(255,255,255,0.15); color: #f1f5f9;" autocomplete="off" maxlength="8" />
+      
       <button onclick="joinRoom()" class="w-full py-4 rounded-xl font-black tracking-widest uppercase transition-all hover:-translate-y-1 active:translate-y-0" style="background: linear-gradient(135deg, #ff007f, #ff6b35); color: white; box-shadow: 0 8px 25px rgba(255,0,127,0.4);">Join Session</button>
       <p class="text-xs text-indigo-300/60 mt-5 font-medium">Create a room or join a friend's.</p>
+    </div>
+    
+    <!-- Open Lobbies Container -->
+    <div id="open-rooms-container" class="w-full max-w-sm mt-6 p-6 rounded-3xl text-center hidden" style="background: rgba(255,255,255,0.05); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 25px 50px rgba(0,0,0,0.5);">
+      <p class="text-xs font-bold text-indigo-300 uppercase tracking-widest mb-3 text-center">Live Games & Lobbies</p>
+      <div id="open-rooms-list" class="flex flex-col gap-3 max-h-48 overflow-y-auto pr-1"></div>
     </div>
   </div>
 
@@ -252,10 +262,10 @@ function updateBoardConstants() {
   };
 
   HOMES = is2Pegs ? {
-    0: [[0, -4], [0, -3]],
-    1: [[4, 0], [3, 0]],
-    2: [[0, 4], [0, 3]],
-    3: [[-4, 0], [-3, 0]]
+    0: [[0, -3], [0, -2]],
+    1: [[3, 0], [2, 0]],
+    2: [[0, 3], [0, 2]],
+    3: [[-3, 0], [-2, 0]]
   } : {
     0: [[0, -7], [0, -6], [0, -5], [0, -4], [0, -3], [0, -2], [0, -1]],
     1: [[7, 0], [6, 0], [5, 0], [4, 0], [3, 0], [2, 0], [1, 0]],
@@ -309,6 +319,7 @@ let activeSlots = [];
 let pegsCountGlobal = 4;
 let isHost = false;
 let latestSlots = [];
+let latestPlayerNames = ['', '', '', ''];
 let visualMap = {0: 0, 1: 1, 2: 2, 3: 3};
 
 // =============== GAME STATE ===============
@@ -330,7 +341,8 @@ socket.on('connect', () => {
     socket.emit('join_room', code); 
     setTimeout(() => socket.emit('request_sync'), 500); 
   } else if (code && slot !== null) {
-    socket.emit('reclaim_slot', { roomId: code, slot: parseInt(slot) });
+    const name = sessionStorage.getItem('dosaName') || `Player ${parseInt(slot) + 1}`;
+    socket.emit('reclaim_slot', { roomId: code, slot: parseInt(slot), playerName: name });
     setTimeout(() => socket.emit('request_sync'), 500);
   }
 });
@@ -339,7 +351,7 @@ socket.on('sync_requested', (requesterSocketId) => {
   if (pieces && pieces.length > 0) {
     socket.emit('send_sync', {
       targetSocket: requesterSocketId,
-      state: { pieces, currentPlayer, activeSlots, pegsCountGlobal, visualMap, slots: latestSlots }
+      state: { pieces, currentPlayer, activeSlots, pegsCountGlobal, visualMap, slots: latestSlots, playerNames: latestPlayerNames }
     });
   }
 });
@@ -355,6 +367,9 @@ socket.on('sync_data', (state) => {
     activeSlots = state.activeSlots;
     pegsCountGlobal = state.pegsCountGlobal;
     visualMap = state.visualMap;
+    if (state.playerNames) {
+      latestPlayerNames = state.playerNames;
+    }
     if (state.slots) {
       latestSlots = state.slots;
       mySlot = null;
@@ -397,6 +412,10 @@ socket.on('lobby_state', (state) => {
   }
   isHost = (state.slots.find(s => s !== null && s !== 'bot') === socket.id);
 
+  if (state.playerNames) {
+    latestPlayerNames = state.playerNames;
+  }
+
   if (state.gameState === 'playing') {
     document.getElementById('home-screen').classList.add('hidden');
     document.getElementById('lobby-screen').classList.add('hidden');
@@ -416,14 +435,14 @@ socket.on('lobby_state', (state) => {
     const btn = document.getElementById(`slot-${i}`);
     if (state.slots[i]) {
        if (state.slots[i] === socket.id) {
-         btn.innerHTML = `<button class="w-full h-full bg-slate-100 font-bold flex items-center justify-center gap-2 text-slate-800"><div class="w-4 h-4 rounded-full ${PLAYERS[i].color}"></div> You (P${i+1})</button>`;
+         btn.innerHTML = `<button class="w-full h-full bg-slate-100 font-bold flex items-center justify-center gap-2 text-slate-800"><div class="w-4 h-4 rounded-full ${PLAYERS[i].color}"></div> ${state.playerNames[i]} (You)</button>`;
        } else if (state.slots[i] === 'bot') {
          btn.innerHTML = `
-           <div class="flex-1 h-full bg-slate-50 font-bold flex items-center justify-center gap-2 text-slate-600"><div class="w-4 h-4 rounded-full ${PLAYERS[i].color}"></div> Bot 🤖</div>
+           <div class="flex-1 h-full bg-slate-50 font-bold flex items-center justify-center gap-2 text-slate-600"><div class="w-4 h-4 rounded-full ${PLAYERS[i].color}"></div> ${state.playerNames[i]}</div>
            ${isHost ? `<button onclick="removeBot(${i})" class="w-12 h-full bg-red-100 hover:bg-red-200 text-red-600 font-bold flex items-center justify-center transition-colors">X</button>` : ''}
          `;
        } else {
-         btn.innerHTML = `<div class="w-full h-full bg-slate-50 font-bold flex items-center justify-center gap-2 text-slate-400 opacity-70 cursor-not-allowed">P${i+1} Joined</div>`;
+         btn.innerHTML = `<div class="w-full h-full bg-slate-50 font-bold flex items-center justify-center gap-2 text-slate-400 opacity-70 cursor-not-allowed">${state.playerNames[i]}</div>`;
        }
     } else {
        btn.innerHTML = `
@@ -467,8 +486,10 @@ function joinRoom() {
 
 function joinSlot(slotIndex) {
   if (mySlot !== null) return;
+  const name = document.getElementById('nickname-input')?.value.trim() || `Player ${slotIndex + 1}`;
   sessionStorage.setItem('dosaSlot', slotIndex);
-  socket.emit('join_slot', slotIndex);
+  sessionStorage.setItem('dosaName', name);
+  socket.emit('join_slot', { slotIndex, playerName: name });
 }
 
 function addBot(slotIndex) {
@@ -503,6 +524,9 @@ socket.on('game_started', (data) => {
   document.getElementById('game-screen').classList.add('flex');
   pegsCountGlobal = data.gameSettings.pegsPerPlayer;
   latestSlots = data.slots;
+  if (data.playerNames) {
+    latestPlayerNames = data.playerNames;
+  }
   activeSlots = data.slots.map((s, i) => s ? i : null).filter(i => i !== null);
 
   // Recalculate mySlot and isHost to prevent any desync at start
@@ -537,6 +561,16 @@ socket.on('dice_rolled', (data) => {
     
     diceRolled = true;
     isAnimating = false;
+
+    // Bot emote on 6:
+    if (isHost && latestSlots[currentPlayer] === 'bot' && diceValue === 6 && Math.random() < 0.4) {
+      setTimeout(() => {
+        const emotes6 = ['🎲', '😮', '🍀', '😎'];
+        const randomEmote = emotes6[Math.floor(Math.random() * emotes6.length)];
+        socket.emit('send_emote', { player: currentPlayer, emoji: randomEmote });
+      }, 300);
+    }
+
     if (currentPlayer === mySlot || (isHost && latestSlots[currentPlayer] === 'bot')) {
       calculateValidMoves();
       if (validMoves.length === 0) {
@@ -609,17 +643,43 @@ socket.on('move_executed', (data) => {
   }
   
   // Combat Check
+  let captured = false;
   if (piece.state === 'perimeter') {
     const enemies = pieces.filter(p => p.player !== currentPlayer && p.state === 'perimeter' && p.pos === piece.pos);
     enemies.forEach(e => {
       e.state = 'jail';
+      captured = true;
       const taken = pieces.filter(p => p.player === e.player && p.state === 'jail').map(p => p.pos);
       for (let i = 0; i < pegsCountGlobal; i++) {
         if (!taken.includes(i)) { e.pos = i; break; }
       }
+      // If the captured player is a bot, let them emote sad
+      if (isHost && latestSlots[e.player] === 'bot' && Math.random() < 0.6) {
+        setTimeout(() => {
+          socket.emit('send_emote', { player: e.player, emoji: Math.random() < 0.5 ? '😢' : '💧' });
+        }, 500);
+      }
     });
   }
   
+  // If current player is a bot, let them emote depending on their action!
+  if (isHost && latestSlots[currentPlayer] === 'bot') {
+    let emote = null;
+    if (captured) {
+      emote = Math.random() < 0.5 ? '😎' : '😂';
+    } else if (action === 'home') {
+      emote = Math.random() < 0.5 ? '🎉' : '🚀';
+    } else if (action === 'shortcut') {
+      emote = '🔥';
+    }
+    
+    if (emote && Math.random() < 0.8) {
+      setTimeout(() => {
+        socket.emit('send_emote', { player: currentPlayer, emoji: emote });
+      }, 400);
+    }
+  }
+
   validMoves = [];
   renderPieces();
   
@@ -657,7 +717,7 @@ socket.on('player_ranked', (data) => {
   const { playerSlot, rank, finishOrder } = data;
   finishedPlayers = finishOrder;
   const rankEmoji = ['🥇','🥈','🥉','4️⃣'][rank - 1] || `#${rank}`;
-  const name = latestSlots[playerSlot] === 'bot' ? `Bot P${playerSlot+1}` : PLAYERS[playerSlot].name;
+  const name = latestPlayerNames[playerSlot] || (latestSlots[playerSlot] === 'bot' ? `Bot P${playerSlot+1}` : PLAYERS[playerSlot].name);
   
   // Show toast
   const toast = document.createElement('div');
@@ -687,7 +747,7 @@ socket.on('game_over', (finishOrder) => {
   let podium = '';
   if (Array.isArray(finishOrder) && finishOrder.length > 0) {
     finishOrder.forEach((slot, i) => {
-      const name = latestSlots[slot] === 'bot' ? `Bot P${slot+1}` : PLAYERS[slot].name;
+      const name = latestPlayerNames[slot] || (latestSlots[slot] === 'bot' ? `Bot P${slot+1}` : PLAYERS[slot].name);
       podium += `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.08);">
         <span style="font-size:1.4rem;">${MEDALS[i]||'·'}</span>
         <span style="font-weight:800;color:${PLAYERS[slot].dotColor};letter-spacing:0.05em;">${name}</span>
@@ -759,7 +819,7 @@ function initBoard(keepState = false) {
     el.style.left = `${(LABEL_POS[vPlayer][0] + OFFSET + 0.5) * (100 / GRID_SIZE)}%`;
     el.style.top = `${(LABEL_POS[vPlayer][1] + OFFSET + 0.5) * (100 / GRID_SIZE)}%`;
     el.style.transform = `translate(-50%, -50%) rotate(${-boardRot}deg)`;
-    el.innerText = `P${parseInt(p)+1}`;
+    el.innerText = latestPlayerNames[p] || `P${parseInt(p)+1}`;
     holesEl.appendChild(el);
   }
 
@@ -825,7 +885,8 @@ function renderPieces() {
 
 function updateUI() {
   const statusEl = document.getElementById('status-text');
-  let prefix = currentPlayer === mySlot ? '👉 Your Turn' : `${PLAYERS[currentPlayer].name}'s Turn`;
+  let nameStr = latestPlayerNames[currentPlayer] || `Player ${currentPlayer + 1}`;
+  let prefix = currentPlayer === mySlot ? '👉 Your Turn' : `${nameStr}'s Turn`;
   statusEl.innerText = prefix;
   const col = PLAYERS[currentPlayer].dotColor;
   statusEl.style.cssText = `background: rgba(255,255,255,0.1); border: 1px solid ${col}66; color: ${col}; box-shadow: 0 0 12px ${col}44;`;
@@ -842,7 +903,7 @@ function updateUI() {
   }
 
   if (isHost && pieces && pieces.length > 0) {
-    socket.emit('update_board_state', { pieces, currentPlayer, activeSlots, pegsCountGlobal, visualMap, slots: latestSlots });
+    socket.emit('update_board_state', { pieces, currentPlayer, activeSlots, pegsCountGlobal, visualMap, slots: latestSlots, playerNames: latestPlayerNames });
   }
 }
 
@@ -962,6 +1023,72 @@ function calculateValidMoves() {
     return !pieces.some(p => p.player === currentPlayer && p.state === targetState && p.pos === move.target);
   });
 }
+
+// Randomly spam bird and waterdrop emotes for bots as a joke
+setInterval(() => {
+  if (isHost && document.getElementById('home-screen').classList.contains('hidden') && document.getElementById('lobby-screen').classList.contains('hidden')) {
+    const botSlots = [];
+    for (let i = 0; i < 4; i++) {
+      if (latestSlots[i] === 'bot') botSlots.push(i);
+    }
+    if (botSlots.length > 0 && Math.random() < 0.15) { // 15% chance every 8 seconds
+      const randomBot = botSlots[Math.floor(Math.random() * botSlots.length)];
+      const jokeEmotes = ['🐦', '💧'];
+      const emoji = jokeEmotes[Math.floor(Math.random() * jokeEmotes.length)];
+      socket.emit('send_emote', { player: randomBot, emoji });
+    }
+  }
+}, 8000);
+
+socket.on('open_rooms', (roomsList) => {
+  const container = document.getElementById('open-rooms-container');
+  const listEl = document.getElementById('open-rooms-list');
+  if (!container || !listEl) return;
+  
+  listEl.innerHTML = '';
+  const activeRooms = roomsList.filter(r => r.totalCount > 0);
+  
+  if (activeRooms.length === 0) {
+    container.classList.add('hidden');
+    return;
+  }
+  
+  container.classList.remove('hidden');
+  activeRooms.forEach(room => {
+    const el = document.createElement('div');
+    el.className = 'flex flex-col gap-1 p-3 rounded-xl text-left transition-all hover:bg-white/10 border border-white/5 cursor-pointer';
+    el.style.background = 'rgba(255, 255, 255, 0.04)';
+    el.onclick = () => {
+      document.getElementById('room-code-input').value = room.roomId;
+      joinRoom();
+    };
+    
+    const statusText = room.gameState === 'lobby' ? 'In Lobby ⏳' : 'Playing 🎮';
+    const statusColor = room.gameState === 'lobby' ? 'text-green-400' : 'text-indigo-400';
+    
+    el.innerHTML = `
+      <div class="flex justify-between items-center">
+        <span class="font-bold text-white tracking-wider uppercase text-sm">Room: ${room.roomId}</span>
+        <span class="text-xs font-semibold ${statusColor}">${statusText}</span>
+      </div>
+      <div class="flex justify-between items-center text-xs text-indigo-200/60">
+        <span>Players: ${room.totalCount}/4 (${room.humanCount} human)</span>
+      </div>
+      <div class="text-[10px] text-indigo-300/40 truncate">
+        ${room.playerNames.join(', ')}
+      </div>
+    `;
+    listEl.appendChild(el);
+  });
+});
+
+document.addEventListener("DOMContentLoaded", () => {
+  const savedName = sessionStorage.getItem('dosaName');
+  if (savedName) {
+    const input = document.getElementById('nickname-input');
+    if (input) input.value = savedName;
+  }
+});
 </script>
 </body>
 </html>

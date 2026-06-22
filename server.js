@@ -26,8 +26,25 @@ function getRoomState(roomId) {
   return rooms[roomId];
 }
 
+function broadcastOpenRooms() {
+  const list = Object.keys(rooms).map(roomId => {
+    const room = rooms[roomId];
+    const humanCount = room.slots.filter(s => s !== null && s !== 'bot').length;
+    const totalCount = room.slots.filter(s => s !== null).length;
+    return {
+      roomId,
+      gameState: room.gameState,
+      humanCount,
+      totalCount,
+      playerNames: room.playerNames.filter(n => n !== '')
+    };
+  });
+  io.emit('open_rooms', list);
+}
+
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
+  broadcastOpenRooms();
   
   socket.on('join_room', (roomId) => {
     Array.from(socket.rooms).forEach(r => {
@@ -38,12 +55,16 @@ io.on('connection', (socket) => {
     
     const state = getRoomState(roomId);
     socket.emit('lobby_state', { ...state, socketId: socket.id, roomId });
+    broadcastOpenRooms();
   });
 
-  socket.on('join_slot', (slotIndex) => {
+  socket.on('join_slot', (data) => {
     if (!socket.roomId) return;
     const state = getRoomState(socket.roomId);
     if (state.gameState !== 'lobby') return;
+    
+    const slotIndex = (typeof data === 'object' && data !== null) ? data.slotIndex : data;
+    const name = (typeof data === 'object' && data !== null && data.playerName) ? data.playerName : `Player ${slotIndex + 1}`;
     
     const oldSlot = state.slots.indexOf(socket.id);
     if (oldSlot !== -1) {
@@ -53,10 +74,11 @@ io.on('connection', (socket) => {
     
     if (!state.slots[slotIndex]) {
       state.slots[slotIndex] = socket.id;
-      state.playerNames[slotIndex] = `Player ${slotIndex + 1}`;
+      state.playerNames[slotIndex] = name;
     }
     
     io.to(socket.roomId).emit('lobby_state', { ...state, roomId: socket.roomId });
+    broadcastOpenRooms();
   });
 
   socket.on('update_settings', (settings) => {
@@ -65,6 +87,7 @@ io.on('connection', (socket) => {
     if (state.gameState !== 'lobby') return;
     state.gameSettings = settings;
     io.to(socket.roomId).emit('lobby_state', { ...state, roomId: socket.roomId });
+    broadcastOpenRooms();
   });
 
   socket.on('add_bot', (slot) => {
@@ -74,6 +97,7 @@ io.on('connection', (socket) => {
       state.slots[slot] = 'bot';
       state.playerNames[slot] = 'Bot 🤖';
       io.to(socket.roomId).emit('lobby_state', { ...state, roomId: socket.roomId });
+      broadcastOpenRooms();
     }
   });
 
@@ -84,6 +108,7 @@ io.on('connection', (socket) => {
       state.slots[slot] = null;
       state.playerNames[slot] = '';
       io.to(socket.roomId).emit('lobby_state', { ...state, roomId: socket.roomId });
+      broadcastOpenRooms();
     }
   });
 
@@ -98,6 +123,7 @@ io.on('connection', (socket) => {
       state.gameState = 'playing';
       state.finishOrder = []; // reset finish rankings
       io.to(socket.roomId).emit('game_started', state);
+      broadcastOpenRooms();
     }
   });
 
@@ -140,6 +166,7 @@ io.on('connection', (socket) => {
       state.gameState = 'finished';
       io.to(socket.roomId).emit('game_over', state.finishOrder);
     }
+    broadcastOpenRooms();
   });
 
   socket.on('return_to_lobby', () => {
@@ -147,6 +174,7 @@ io.on('connection', (socket) => {
     const state = getRoomState(socket.roomId);
     state.gameState = 'lobby';
     io.to(socket.roomId).emit('lobby_state', { ...state, roomId: socket.roomId });
+    broadcastOpenRooms();
   });
 
   socket.on('update_board_state', (boardState) => {
@@ -177,24 +205,59 @@ io.on('connection', (socket) => {
     state.playerNames = ['', '', '', ''];
     state.gameState = 'lobby';
     io.to(socket.roomId).emit('lobby_state', { ...state, roomId: socket.roomId });
+    broadcastOpenRooms();
   });
 
   socket.on('reclaim_slot', (data) => {
     const state = getRoomState(data.roomId);
     if (state.gameState === 'playing') {
       state.slots[data.slot] = socket.id;
+      if (data.playerName) {
+        state.playerNames[data.slot] = data.playerName;
+      } else if (!state.playerNames[data.slot]) {
+        state.playerNames[data.slot] = `Player ${data.slot + 1}`;
+      }
       socket.roomId = data.roomId;
       socket.join(data.roomId);
       socket.emit('lobby_state', { ...state, roomId: data.roomId });
+      broadcastOpenRooms();
     }
   });
 
-  socket.on('send_emote', (emoji) => {
+  socket.on('leave_room', () => {
+    if (!socket.roomId) return;
+    const state = getRoomState(socket.roomId);
+    const oldSlot = state.slots.indexOf(socket.id);
+    if (oldSlot !== -1) {
+      state.slots[oldSlot] = null;
+      state.playerNames[oldSlot] = '';
+      if (state.gameState === 'lobby') {
+        io.to(socket.roomId).emit('lobby_state', { ...state, roomId: socket.roomId });
+      } else {
+        io.to(socket.roomId).emit('player_disconnected', oldSlot);
+      }
+    }
+    socket.leave(socket.roomId);
+    socket.roomId = null;
+    broadcastOpenRooms();
+  });
+
+  socket.on('send_emote', (data) => {
     if (!socket.roomId) return;
     const state = getRoomState(socket.roomId);
     if (state.gameState !== 'playing') return;
-    const slotIndex = state.slots.indexOf(socket.id);
-    if (slotIndex !== -1) {
+    
+    let slotIndex;
+    let emoji;
+    if (typeof data === 'object' && data !== null) {
+      slotIndex = data.player;
+      emoji = data.emoji;
+    } else {
+      slotIndex = state.slots.indexOf(socket.id);
+      emoji = data;
+    }
+    
+    if (slotIndex !== -1 && slotIndex !== null && slotIndex !== undefined) {
       io.to(socket.roomId).emit('receive_emote', { player: slotIndex, emoji });
     }
   });
@@ -219,6 +282,7 @@ io.on('connection', (socket) => {
       delete rooms[socket.roomId];
       console.log(`Deleted empty room: ${socket.roomId}`);
     }
+    broadcastOpenRooms();
   });
 });
 
