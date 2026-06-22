@@ -279,7 +279,15 @@ setInterval(() => {
 }, 3000);
 
 socket.on('lobby_state', (state) => {
-  const gameHidden = document.getElementById('game-screen')?.classList.contains('hidden');
+  mySlot = null;
+  for(let i=0; i<4; i++) {
+    if (state.slots[i] === socket.id) {
+      mySlot = i;
+      break;
+    }
+  }
+  isHost = (state.slots[0] === socket.id) || (state.slots.find(s => s !== null) === socket.id);
+
   if (state.gameState === 'playing') {
     document.getElementById('home-screen').classList.add('hidden');
     document.getElementById('lobby-screen').classList.add('hidden');
