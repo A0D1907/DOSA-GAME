@@ -16,7 +16,7 @@
   
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap');
-    body { overscroll-behavior: none; font-family: 'Outfit', sans-serif; background-color: #f8fafc; color: #0f172a; }
+    body { overscroll-behavior: none; font-family: 'Outfit', sans-serif; background: linear-gradient(135deg, #0f0c29, #302b63, #24243e); color: #f1f5f9; min-height: 100vh; }
     .piece { transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
     
     /* 3D Dice CSS */
@@ -80,69 +80,68 @@
 <body class="bg-slate-50 text-slate-900 h-screen flex flex-col overflow-hidden relative selection:bg-rose-500/30">
 
   <!-- HOME SCREEN -->
-  <div id="home-screen" class="absolute inset-0 z-[60] bg-slate-50 flex flex-col items-center justify-center p-6">
-    <h1 class="text-6xl font-black tracking-[0.3em] text-[#ff007f] drop-shadow-[0_0_15px_rgba(255,0,127,0.8)] uppercase mb-8 text-center">DOSA<br><span class="text-xl font-bold tracking-[0.4em] text-slate-400 opacity-80 drop-shadow-none">Online</span></h1>
-    <div class="bg-white shadow-xl rounded-[2rem] p-8 w-full max-w-md border border-slate-200 text-center">
-      <p class="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6">Enter Room Code</p>
-      <input type="text" id="room-code-input" placeholder="e.g. FUN" class="w-full h-16 bg-slate-50 border-2 border-slate-200 rounded-xl px-4 text-center text-xl font-bold text-slate-800 focus:outline-none focus:border-pink-500 uppercase transition-colors mb-6 tracking-widest" autocomplete="off" maxlength="8" />
-      <button onclick="joinRoom()" class="w-full py-4 rounded-xl bg-pink-500 text-white font-bold tracking-widest uppercase shadow-lg shadow-pink-500/30 hover:bg-pink-600 transition-all hover:-translate-y-1 active:translate-y-0">Join Session</button>
-      <p class="text-xs text-slate-400 mt-6 font-medium">Make up any word to create a new room, or enter your friend's code to join theirs.</p>
+  <div id="home-screen" class="absolute inset-0 z-[60] flex flex-col items-center justify-center p-6" style="background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);">
+    <h1 class="text-6xl font-black tracking-[0.3em] uppercase mb-2 text-center" style="color:#ff007f; text-shadow: 0 0 30px rgba(255,0,127,0.8), 0 0 60px rgba(255,0,127,0.4);">DOSA</h1>
+    <p class="text-sm font-bold tracking-[0.5em] text-indigo-300 mb-10 uppercase">Online</p>
+    <div class="w-full max-w-sm p-8 rounded-3xl text-center" style="background: rgba(255,255,255,0.05); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 25px 50px rgba(0,0,0,0.5);">
+      <p class="text-xs font-bold text-indigo-300 uppercase tracking-widest mb-5">Enter Room Code</p>
+      <input type="text" id="room-code-input" placeholder="e.g. DOSA" class="w-full h-14 rounded-xl px-4 text-center text-xl font-bold uppercase tracking-widest focus:outline-none transition-all mb-5" style="background: rgba(255,255,255,0.08); border: 2px solid rgba(255,255,255,0.15); color: #f1f5f9;" autocomplete="off" maxlength="8" />
+      <button onclick="joinRoom()" class="w-full py-4 rounded-xl font-black tracking-widest uppercase transition-all hover:-translate-y-1 active:translate-y-0" style="background: linear-gradient(135deg, #ff007f, #ff6b35); color: white; box-shadow: 0 8px 25px rgba(255,0,127,0.4);">Join Session</button>
+      <p class="text-xs text-indigo-300/60 mt-5 font-medium">Create a room or join a friend's.</p>
     </div>
   </div>
 
   <!-- LOBBY SCREEN -->
-  <div id="lobby-screen" class="hidden absolute inset-0 z-50 bg-slate-50 flex flex-col items-center justify-center p-6">
-    <h1 class="text-6xl font-black tracking-[0.3em] text-[#ff007f] drop-shadow-[0_0_15px_rgba(255,0,127,0.8)] uppercase mb-8 text-center">DOSA<br><span class="text-xl font-bold tracking-[0.4em] text-slate-400 opacity-80 drop-shadow-none">Online</span></h1>
-    <div class="bg-white shadow-xl rounded-[2rem] p-8 w-full max-w-md border border-slate-200">
-      
-      <div class="mb-6 text-center">
-        <h2 class="text-2xl font-black text-slate-800 tracking-tight" id="lobby-room-code">Room: ----</h2>
-        <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Select Your Player</p>
+  <div id="lobby-screen" class="hidden absolute inset-0 z-50 flex flex-col items-center justify-center p-6" style="background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);">
+    <h1 class="text-5xl font-black tracking-[0.3em] uppercase mb-1 text-center" style="color:#ff007f; text-shadow: 0 0 20px rgba(255,0,127,0.7);">DOSA</h1>
+    <p class="text-xs font-bold tracking-[0.5em] text-indigo-300 mb-8 uppercase">Online</p>
+    <div class="w-full max-w-sm p-6 rounded-3xl" style="background: rgba(255,255,255,0.05); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 25px 50px rgba(0,0,0,0.5);">
+      <div class="mb-5 text-center">
+        <h2 class="text-xl font-black text-white tracking-tight" id="lobby-room-code">Room: ----</h2>
+        <p class="text-xs font-bold text-indigo-300 uppercase tracking-widest mt-1">Select Your Player</p>
       </div>
-
-      <div class="grid grid-cols-2 gap-4 mb-8">
-        <div id="slot-0" class="h-16 rounded-xl border-2 bg-white flex transition-all border-slate-200 overflow-hidden"></div>
-        <div id="slot-1" class="h-16 rounded-xl border-2 bg-white flex transition-all border-slate-200 overflow-hidden"></div>
-        <div id="slot-2" class="h-16 rounded-xl border-2 bg-white flex transition-all border-slate-200 overflow-hidden"></div>
-        <div id="slot-3" class="h-16 rounded-xl border-2 bg-white flex transition-all border-slate-200 overflow-hidden"></div>
+      <div class="grid grid-cols-2 gap-3 mb-6">
+        <div id="slot-0" class="h-14 rounded-xl flex overflow-hidden transition-all" style="border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.05);"></div>
+        <div id="slot-1" class="h-14 rounded-xl flex overflow-hidden transition-all" style="border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.05);"></div>
+        <div id="slot-2" class="h-14 rounded-xl flex overflow-hidden transition-all" style="border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.05);"></div>
+        <div id="slot-3" class="h-14 rounded-xl flex overflow-hidden transition-all" style="border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.05);"></div>
       </div>
-
-      <div class="mb-8">
-        <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 text-center">Pegs per Player</p>
-        <div class="flex gap-4">
-          <button id="btn-pegs-2" onclick="setPegs(2)" class="flex-1 py-3 rounded-xl font-bold border-2 transition-colors bg-white border-slate-200 text-slate-500">2 Pegs</button>
-          <button id="btn-pegs-4" onclick="setPegs(4)" class="flex-1 py-3 rounded-xl font-bold border-2 transition-colors bg-slate-800 border-slate-800 text-white">4 Pegs</button>
+      <div class="mb-5">
+        <p class="text-xs font-bold text-indigo-300 uppercase tracking-widest mb-3 text-center">Pegs per Player</p>
+        <div class="flex gap-3">
+          <button id="btn-pegs-2" onclick="setPegs(2)" class="flex-1 py-3 rounded-xl font-bold transition-all" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #94a3b8;">2 Pegs</button>
+          <button id="btn-pegs-4" onclick="setPegs(4)" class="flex-1 py-3 rounded-xl font-bold transition-all" style="background: linear-gradient(135deg,#6366f1,#8b5cf6); color: white;">4 Pegs</button>
         </div>
       </div>
-
-      <button id="start-btn" onclick="startGame()" disabled class="w-full py-4 rounded-xl bg-slate-800 text-white font-bold tracking-widest uppercase disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:bg-slate-700 transition-colors">Waiting for players...</button>
-      <div class="text-center mt-4 flex justify-between px-4">
-        <button onclick="leaveRoom()" class="text-xs font-bold text-slate-500 uppercase tracking-wider hover:text-slate-700 transition-colors">🚪 Leave Room</button>
-        <button onclick="resetSession()" class="text-xs font-bold text-red-500 uppercase tracking-wider hover:text-red-600 transition-colors">Force Reset Session</button>
+      <button id="start-btn" onclick="startGame()" disabled class="w-full py-4 rounded-xl font-black tracking-widest uppercase transition-all disabled:opacity-40 disabled:cursor-not-allowed" style="background: linear-gradient(135deg,#ff007f,#ff6b35); color: white; box-shadow: 0 8px 25px rgba(255,0,127,0.4);">Waiting for players...</button>
+      <div class="text-center mt-4 flex justify-between px-2">
+        <button onclick="leaveRoom()" class="text-xs font-bold text-indigo-300 uppercase tracking-wider hover:text-white transition-colors">🚪 Leave</button>
+        <button onclick="resetSession()" class="text-xs font-bold text-red-400 uppercase tracking-wider hover:text-red-300 transition-colors">⚠ Force Reset</button>
       </div>
     </div>
   </div>
 
   <!-- VICTORY SCREEN -->
-  <div id="victory-screen" class="hidden absolute inset-0 z-[60] bg-white/80 backdrop-blur-md flex flex-col items-center justify-center p-6">
-    <div class="bg-white shadow-2xl rounded-[3rem] p-12 w-full max-w-md border border-slate-200 text-center transform transition-transform">
-      <h2 class="text-xl font-bold text-slate-400 uppercase tracking-[0.3em] mb-4">Victory!</h2>
-      <h1 id="winner-name" class="text-5xl font-black text-slate-800 mb-10 tracking-wide">Player 1</h1>
-      <button onclick="returnToLobby()" class="px-8 py-4 mb-4 rounded-full bg-slate-800 text-white font-bold tracking-widest uppercase hover:bg-slate-700 transition-colors shadow-xl w-full">Return to Lobby</button>
-      <button onclick="leaveRoom()" class="px-8 py-4 rounded-full bg-slate-100 text-slate-500 font-bold tracking-widest uppercase hover:bg-slate-200 transition-colors shadow w-full">Leave Room</button>
+  <div id="victory-screen" class="hidden absolute inset-0 z-[60] flex flex-col items-center justify-center p-6" style="background: rgba(15,12,41,0.85); backdrop-filter: blur(20px);">
+    <div class="w-full max-w-sm p-10 rounded-3xl text-center" style="background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.15); box-shadow: 0 25px 60px rgba(0,0,0,0.6);">
+      <div class="text-5xl mb-4">🏆</div>
+      <h2 class="text-xs font-bold text-indigo-300 uppercase tracking-[0.4em] mb-3">Victory!</h2>
+      <h1 id="winner-name" class="text-4xl font-black text-white mb-8 tracking-wide" style="text-shadow: 0 0 20px rgba(255,0,127,0.6);">Player 1</h1>
+      <button onclick="returnToLobby()" class="w-full py-4 mb-3 rounded-2xl font-black tracking-widest uppercase transition-all hover:-translate-y-1" style="background: linear-gradient(135deg,#6366f1,#8b5cf6); color: white; box-shadow: 0 8px 25px rgba(99,102,241,0.4);">Play Again</button>
+      <button onclick="leaveRoom()" class="w-full py-4 rounded-2xl font-bold tracking-widest uppercase transition-all" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #94a3b8;">Leave Room</button>
     </div>
   </div>
 
   <!-- GAME SCREEN -->
   <div id="game-screen" class="hidden h-full flex-col">
     <!-- Header -->
-    <header class="text-center pt-8 pb-4 relative z-10 flex-shrink-0 flex items-center justify-between px-6">
-      <button onclick="leaveRoom()" class="w-10 h-10 bg-white rounded-full flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-slate-100 transition-all shadow-sm shadow-slate-200" title="Leave Room">
+    <header class="text-center pt-6 pb-2 relative z-10 flex-shrink-0 flex items-center justify-between px-5">
+      <button onclick="leaveRoom()" class="w-10 h-10 rounded-full flex items-center justify-center transition-all" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15); color: #94a3b8;" title="Leave">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clip-rule="evenodd" /></svg>
       </button>
       <div>
-        <h1 class="text-3xl font-black tracking-[0.4em] text-[#ff007f] drop-shadow-[0_0_10px_rgba(255,0,127,0.8)] uppercase">DOSA</h1>
-        <p id="status-text" class="text-xs font-bold mt-2 bg-white border border-slate-200 inline-block px-6 py-2 rounded-full tracking-widest uppercase shadow-sm transition-colors duration-300">Game Started</p>
+        <h1 class="text-2xl font-black tracking-[0.4em] uppercase" style="color:#ff007f; text-shadow: 0 0 15px rgba(255,0,127,0.8);">DOSA</h1>
+        <p id="status-text" class="text-xs font-bold mt-1 inline-block px-5 py-1.5 rounded-full tracking-widest uppercase transition-all duration-300" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15); color: #e2e8f0;">Game Started</p>
       </div>
       <div class="w-10 pointer-events-none"></div>
     </header>
@@ -151,30 +150,29 @@
     <div class="w-full max-w-[420px] mx-auto relative aspect-square flex-shrink-0 z-10">
       <div id="board-container" class="absolute inset-4 transition-transform duration-700 ease-in-out">
         <!-- Surface -->
-        <div class="absolute inset-0 bg-slate-200 shadow-xl border-4 border-white" style="clip-path: polygon(25% 0%, 75% 0%, 100% 25%, 100% 75%, 75% 100%, 25% 100%, 0% 75%, 0% 25%)"></div>
+        <div class="absolute inset-0 rounded-2xl shadow-2xl border-2 border-white/10" style="background: linear-gradient(145deg, #1e1b4b, #312e81); box-shadow: 0 0 40px rgba(99,102,241,0.3), inset 0 1px 0 rgba(255,255,255,0.1);"></div>
         <div id="holes" class="absolute inset-0 z-0"></div>
         <div id="pieces" class="absolute inset-0 z-10 pointer-events-auto"></div>
       </div>
     </div>
 
     <!-- Bottom UI Controls -->
-    <div class="flex-1 w-full max-w-[420px] mx-auto mt-2 mb-8 px-4 flex justify-between items-center relative z-10">
+    <div class="flex-1 w-full max-w-[420px] mx-auto mt-2 mb-6 px-4 flex justify-between items-center relative z-10">
       
       <!-- Emote Button -->
       <div class="relative group">
-        <button class="w-16 h-16 bg-white border border-slate-200 rounded-full flex items-center justify-center hover:bg-slate-50 active:scale-95 transition-all outline-none shadow-lg text-2xl focus:ring-4 focus:ring-pink-500/30">
+        <button class="w-16 h-16 rounded-full flex items-center justify-center active:scale-95 transition-all outline-none text-2xl" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); backdrop-filter: blur(10px);">
           💬
         </button>
-        <!-- Emote Menu (Popup) -->
-        <div class="absolute bottom-full mb-4 left-0 bg-white border border-slate-200 p-2 rounded-[2rem] shadow-2xl flex-col gap-2 hidden group-hover:flex group-focus-within:flex z-50">
-          <button onclick="sendEmote('😂')" class="w-12 h-12 rounded-full hover:bg-slate-100 text-2xl transition-all">😂</button>
-          <button onclick="sendEmote('😡')" class="w-12 h-12 rounded-full hover:bg-slate-100 text-2xl transition-all">😡</button>
-          <button onclick="sendEmote('😭')" class="w-12 h-12 rounded-full hover:bg-slate-100 text-2xl transition-all">😭</button>
-          <button onclick="sendEmote('💀')" class="w-12 h-12 rounded-full hover:bg-slate-100 text-2xl transition-all">💀</button>
+        <div class="absolute bottom-full mb-3 left-0 p-2 rounded-[2rem] flex-col gap-1 hidden group-hover:flex group-focus-within:flex z-50" style="background: rgba(15,12,41,0.9); border: 1px solid rgba(255,255,255,0.15); backdrop-filter: blur(20px); box-shadow: 0 20px 40px rgba(0,0,0,0.5);">
+          <button onclick="sendEmote('😂')" class="w-12 h-12 rounded-full text-2xl transition-all hover:scale-125">😂</button>
+          <button onclick="sendEmote('😡')" class="w-12 h-12 rounded-full text-2xl transition-all hover:scale-125">😡</button>
+          <button onclick="sendEmote('😭')" class="w-12 h-12 rounded-full text-2xl transition-all hover:scale-125">😭</button>
+          <button onclick="sendEmote('💀')" class="w-12 h-12 rounded-full text-2xl transition-all hover:scale-125">💀</button>
         </div>
       </div>
 
-      <button id="dice-btn" onclick="rollDice()" class="w-24 h-24 bg-white border border-slate-200 rounded-full flex flex-col items-center justify-center hover:bg-slate-50 active:scale-95 transition-all outline-none relative shadow-lg">
+      <button id="dice-btn" onclick="rollDice()" class="w-24 h-24 rounded-full flex flex-col items-center justify-center active:scale-95 transition-all outline-none relative" style="background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.2); backdrop-filter: blur(10px); box-shadow: 0 8px 32px rgba(0,0,0,0.3);">
         <div class="dice-scene pointer-events-none">
           <div class="cube" id="dice-cube" style="--player-color: #f43f5e;">
             <div class="face face-1"><div class="dot"></div></div>
@@ -187,7 +185,6 @@
         </div>
       </button>
 
-      <!-- Empty Space to balance flex -->
       <div class="w-16 h-16 pointer-events-none"></div>
     </div>
   </div>
@@ -466,33 +463,42 @@ socket.on('dice_rolled', (data) => {
       } else {
         renderPieces();
         if (isHost && latestSlots[currentPlayer] === 'bot') {
-          // Bot AI - priority: capture enemy > enter home > leave jail > advance furthest piece
           setTimeout(() => {
-            // Score each move
+            // Weighted scoring bot: all factors considered simultaneously
             function scoreBotMove(m) {
-              // 1. CAPTURE: moving to a perimeter square occupied by an enemy
+              let score = 0;
+              // Capture enemy: highest value but weighed against other factors
               if (m.action === 'move' || m.action === 'leave_jail') {
-                const targetPos = m.target;
                 const hasEnemy = pieces.some(p =>
-                  p.player !== currentPlayer && p.state === 'perimeter' && p.pos === targetPos
+                  p.player !== currentPlayer && p.state === 'perimeter' && p.pos === m.target
                 );
-                if (hasEnemy) return 100;
+                if (hasEnemy) score += 150;
               }
-              // 2. ENTER HOME safe zone
-              if (m.action === 'home') return 80;
-              // 3. LEAVE JAIL on a 6
-              if (m.action === 'leave_jail') return 60;
-              // 4. ADVANCE: prefer moving the piece that is furthest along the perimeter
+              // Advance toward home: reward distance traveled
               if (m.action === 'move') {
                 const start = visualMap[currentPlayer] * 16 + 4;
                 const dist = (m.piece.pos - start + 64) % 64;
-                return dist; // 0-62, furthest piece scores highest
+                score += dist; // 0-62
+                // Penalize moving piece that is very far back (prefer advancing front pieces)
+                if (dist > 50) score += 30;
               }
-              return 0;
+              // Entering home is very good
+              if (m.action === 'home') score += 120 + (m.target * 10);
+              // Getting out of jail is good but not at all costs
+              if (m.action === 'leave_jail') score += 60;
+              // Avoid dangerous squares (occupied by enemies that could capture us next turn)
+              if (m.action === 'move') {
+                const inDanger = pieces.some(p =>
+                  p.player !== currentPlayer && p.state === 'perimeter' &&
+                  (p.pos + 1) % 64 === m.target
+                );
+                if (inDanger) score -= 30;
+              }
+              return score;
             }
 
             let bestMove = validMoves[0];
-            let bestScore = -1;
+            let bestScore = -Infinity;
             for (let m of validMoves) {
               const s = scoreBotMove(m);
               if (s > bestScore) { bestScore = s; bestMove = m; }
@@ -576,38 +582,29 @@ function initBoard(keepState = false) {
     diceValue = null;
   }
   
-  function addHole(x, y, bgClass) {
+  function addHole(x, y, type) {
     const el = document.createElement('div');
-    let actualBg = 'bg-slate-100 border-[1.5px] border-slate-300 shadow-inner';
-    if (bgClass.includes('bg-slate-900/80')) {
-      actualBg = 'bg-slate-300 border-[1.5px] border-slate-400 shadow-inner'; 
-    } else if (bgClass !== 'bg-slate-800') {
-      actualBg = bgClass; 
-    }
-    el.className = `absolute rounded-full ${actualBg} transform -translate-x-1/2 -translate-y-1/2 flex items-center justify-center`;
-    el.style.left = `${(x + OFFSET + 0.5) * (100 / GRID_SIZE)}%`;
-    el.style.top = `${(y + OFFSET + 0.5) * (100 / GRID_SIZE)}%`;
-    el.style.width = '3%';
-    el.style.height = '3%';
+    let bg;
+    if (type === 'jail') bg = 'rgba(255,255,255,0.12)';
+    else if (type === 'home') bg = 'rgba(255,255,255,0.18)';
+    else bg = 'rgba(255,255,255,0.1)';
+    el.className = `absolute rounded-full`;
+    el.style.cssText = `left:${(x + OFFSET + 0.5) * (100 / GRID_SIZE)}%; top:${(y + OFFSET + 0.5) * (100 / GRID_SIZE)}%; width:4%; height:4%; transform:translate(-50%,-50%); background:${bg}; border: 1px solid rgba(255,255,255,0.25); box-shadow: inset 0 1px 3px rgba(0,0,0,0.4);`;
     holesEl.appendChild(el);
   }
 
   for (let p in JAILS) {
     JAILS[p].forEach((pos, i) => {
       if (pegsCountGlobal === 2 && (i === 0 || i === 3)) return;
-      addHole(pos[0], pos[1], 'bg-slate-900/80');
+      addHole(pos[0], pos[1], 'jail');
     });
   }
   
-  PERIMETER.forEach((pos, i) => {
-    let bg = 'bg-slate-800';
-    addHole(pos[0], pos[1], bg);
-  });
+  PERIMETER.forEach((pos) => addHole(pos[0], pos[1], 'perimeter'));
   
   for (let p in HOMES) {
     for (let i = 0; i < pegsCountGlobal; i++) {
-      let pos = HOMES[p][i];
-      addHole(pos[0], pos[1], 'bg-slate-800');
+      addHole(HOMES[p][i][0], HOMES[p][i][1], 'home');
     }
   }
   
@@ -649,9 +646,8 @@ function initBoard(keepState = false) {
       
       const el = document.createElement('div');
       el.id = `piece-${id}`;
-      el.className = `piece absolute rounded-full ${PLAYERS[p].color} ${PLAYERS[p].glow} transform -translate-x-1/2 -translate-y-1/2 z-10`;
-      el.style.width = '2.2%';
-      el.style.height = '2.2%';
+      el.className = `piece absolute rounded-full ${PLAYERS[p].glow} z-10`;
+      el.style.cssText = `width:2.8%; height:2.8%; transform:translate(-50%,-50%); background:${PLAYERS[p].dotColor}; box-shadow: 0 0 8px ${PLAYERS[p].dotColor}, 0 0 16px ${PLAYERS[p].dotColor}55;`;
       piecesContainer.appendChild(el);
     }
   }
@@ -701,7 +697,9 @@ function updateUI() {
   const statusEl = document.getElementById('status-text');
   let prefix = currentPlayer === mySlot ? '👉 Your Turn' : `${PLAYERS[currentPlayer].name}'s Turn`;
   statusEl.innerText = prefix;
-  statusEl.className = `text-xs font-bold mt-4 bg-white border border-slate-200 inline-block px-6 py-2 rounded-full tracking-widest uppercase shadow-sm transition-colors duration-300 ${PLAYERS[currentPlayer].text}`;
+  const col = PLAYERS[currentPlayer].dotColor;
+  statusEl.style.cssText = `background: rgba(255,255,255,0.1); border: 1px solid ${col}66; color: ${col}; box-shadow: 0 0 12px ${col}44;`;
+  statusEl.className = `text-xs font-bold mt-1 inline-block px-5 py-1.5 rounded-full tracking-widest uppercase transition-all duration-300`;
 
   const cube = document.getElementById('dice-cube');
   if (cube) {
