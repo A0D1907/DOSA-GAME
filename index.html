@@ -258,14 +258,6 @@ let pegsCountGlobal = 4;
 let isHost = false;
 let latestSlots = [];
 let visualMap = {0: 0, 1: 1, 2: 2, 3: 3};
-const DICE_ROTATIONS = [
-  'rotateY(0deg) rotateX(0deg)',
-  'rotateY(-90deg) rotateX(0deg)',
-  'rotateX(-90deg) rotateY(0deg)',
-  'rotateX(90deg) rotateY(0deg)',
-  'rotateY(90deg) rotateX(0deg)',
-  'rotateY(180deg) rotateX(0deg)'
-];
 
 // =============== GAME STATE ===============
 let pieces = [];
@@ -381,8 +373,6 @@ socket.on('lobby_state', (state) => {
   const pegs = state.gameSettings.pegsPerPlayer;
   document.getElementById('btn-pegs-2').className = `flex-1 py-3 rounded-xl font-bold border-2 transition-colors ${pegs === 2 ? 'bg-slate-800 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-500'}`;
   document.getElementById('btn-pegs-4').className = `flex-1 py-3 rounded-xl font-bold border-2 transition-colors ${pegs === 4 ? 'bg-slate-800 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-500'}`;
-  
-  isHost = (state.slots[0] === socket.id) || (state.slots.find(s => s !== null) === socket.id); 
   
   const startBtn = document.getElementById('start-btn');
   if (isHost && state.slots.filter(s => s !== null).length >= 2) {
