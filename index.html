@@ -302,7 +302,17 @@ socket.on('sync_data', (state) => {
     activeSlots = state.activeSlots;
     pegsCountGlobal = state.pegsCountGlobal;
     visualMap = state.visualMap;
-    if (state.slots) latestSlots = state.slots;
+    if (state.slots) {
+      latestSlots = state.slots;
+      mySlot = null;
+      for(let i=0; i<4; i++) {
+        if (state.slots[i] === socket.id) {
+          mySlot = i;
+          break;
+        }
+      }
+      isHost = (state.slots.find(s => s !== null && s !== 'bot') === socket.id);
+    }
 
     diceRolled = false;
     isAnimating = false;
@@ -441,6 +451,16 @@ socket.on('game_started', (data) => {
   pegsCountGlobal = data.gameSettings.pegsPerPlayer;
   latestSlots = data.slots;
   activeSlots = data.slots.map((s, i) => s ? i : null).filter(i => i !== null);
+
+  // Recalculate mySlot and isHost to prevent any desync at start
+  mySlot = null;
+  for(let i=0; i<4; i++) {
+    if (data.slots[i] === socket.id) {
+      mySlot = i;
+      break;
+    }
+  }
+  isHost = (data.slots.find(s => s !== null && s !== 'bot') === socket.id);
   
   visualMap = {0: 0, 1: 1, 2: 2, 3: 3};
   if (activeSlots.length === 2) {
