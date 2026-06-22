@@ -35,9 +35,9 @@
       box-shadow: inset 0 0 10px rgba(0,0,0,0.02);
     }
     .face-1 { transform: rotateY(0deg) translateZ(22px); place-items: center; }
-    .face-2 { transform: rotateY(90deg) translateZ(22px); grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
-    .face-2 .dot:nth-child(1) { align-self: start; justify-self: start; margin: 2px; }
-    .face-2 .dot:nth-child(2) { align-self: end; justify-self: end; margin: 2px; }
+    .face-2 { transform: rotateY(90deg) translateZ(22px); display: flex; flex-direction: column; justify-content: space-between; padding: 6px; box-sizing: border-box; }
+    .face-2 .dot:nth-child(1) { align-self: flex-start; margin: 0; }
+    .face-2 .dot:nth-child(2) { align-self: flex-end; margin: 0; }
     .face-3 { transform: rotateX(90deg) translateZ(22px); grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 1fr 1fr 1fr; }
     .face-3 .dot:nth-child(1) { grid-area: 1/3/2/4; align-self: start; justify-self: end; }
     .face-3 .dot:nth-child(2) { grid-area: 2/2/3/3; align-self: center; justify-self: center; }
@@ -260,6 +260,7 @@ socket.on('sync_data', (state) => {
     document.getElementById('home-screen').classList.add('hidden');
     document.getElementById('lobby-screen').classList.add('hidden');
     document.getElementById('game-screen').classList.remove('hidden');
+    initBoard(true);
     updateUI();
     renderPieces();
   }
@@ -455,13 +456,16 @@ socket.on('game_over', (winnerName) => {
 
 // =============== BOARD INITIALIZATION ===============
 
-function initBoard() {
+function initBoard(keepState = false) {
   const holesEl = document.getElementById('holes');
   holesEl.innerHTML = ''; 
-  pieces = [];
-  currentPlayer = activeSlots.length > 0 ? activeSlots[0] : 0;
-  diceRolled = false;
-  diceValue = null;
+  
+  if (!keepState) {
+    pieces = [];
+    currentPlayer = activeSlots.length > 0 ? activeSlots[0] : 0;
+    diceRolled = false;
+    diceValue = null;
+  }
   
   function addHole(x, y, bgClass) {
     const el = document.createElement('div');
@@ -509,8 +513,11 @@ function initBoard() {
     if (!activeSlots.includes(p)) continue;
     for (let i = 0; i < pegsCountGlobal; i++) {
       const id = `${p}-${i}`;
-      const startPos = pegsCountGlobal === 2 ? i + 1 : i; 
-      pieces.push({ id, player: p, state: 'jail', pos: startPos });
+      
+      if (!keepState) {
+        const startPos = pegsCountGlobal === 2 ? i + 1 : i; 
+        pieces.push({ id, player: p, state: 'jail', pos: startPos });
+      }
       
       const el = document.createElement('div');
       el.id = `piece-${id}`;
