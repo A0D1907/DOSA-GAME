@@ -470,9 +470,8 @@ socket.on('dice_rolled', (data) => {
           setTimeout(() => {
             let bestMove = validMoves[0];
             for (let m of validMoves) {
-              if (m.action === 'goal') bestMove = m;
-              else if (m.action === 'home' && bestMove.action !== 'goal') bestMove = m;
-              else if (m.action === 'leave_jail' && bestMove.action !== 'goal' && bestMove.action !== 'home') bestMove = m;
+              if (m.action === 'home') bestMove = m;
+              else if (m.action === 'leave_jail' && bestMove.action !== 'home') bestMove = m;
             }
             selectMove(bestMove);
           }, 800);
@@ -490,8 +489,6 @@ socket.on('move_executed', (data) => {
     piece.state = 'perimeter'; piece.pos = target;
   } else if (action === 'home') {
     piece.state = 'home'; piece.pos = target;
-  } else if (action === 'goal') {
-    piece.state = 'goal'; piece.pos = null;
   }
   
   // Combat Check
@@ -511,8 +508,8 @@ socket.on('move_executed', (data) => {
   renderPieces();
   
   // Win Check
-  const remaining = pieces.filter(p => p.player === currentPlayer && p.state !== 'goal');
-  if (remaining.length === 0) {
+  const inHome = pieces.filter(p => p.player === currentPlayer && p.state === 'home');
+  if (inHome.length === pegsCountGlobal) {
     if (currentPlayer === mySlot || (isHost && latestSlots[currentPlayer] === 'bot')) socket.emit('player_won', PLAYERS[currentPlayer].name);
     return;
   }
@@ -662,11 +659,6 @@ function renderPieces() {
     const { x, y, offsetX, offsetY } = getPieceVisualPosition(piece);
     const el = document.getElementById(`piece-${piece.id}`);
     
-    if (piece.state === 'goal') {
-      el.style.display = 'none';
-      return;
-    }
-    el.style.display = 'block';
     el.style.left = `calc(${(x + OFFSET + 0.5) * (100 / GRID_SIZE)}% + ${offsetX}px)`;
     el.style.top = `calc(${(y + OFFSET + 0.5) * (100 / GRID_SIZE)}% + ${offsetY}px)`;
     
@@ -784,17 +776,14 @@ function calculateValidMoves() {
       else {
         const homePos = targetDist - 63;
         if (homePos < pegsCountGlobal) potentialMoves.push({ piece, action: 'home', target: homePos });
-        else if (homePos === pegsCountGlobal) potentialMoves.push({ piece, action: 'goal', target: null });
       }
     } else if (piece.state === 'home') {
       const targetPos = piece.pos + diceValue;
       if (targetPos < pegsCountGlobal) potentialMoves.push({ piece, action: 'home', target: targetPos });
-      else if (targetPos === pegsCountGlobal) potentialMoves.push({ piece, action: 'goal', target: null });
     }
   });
 
   validMoves = potentialMoves.filter(move => {
-    if (move.action === 'goal') return true;
     const targetState = (move.action === 'home') ? 'home' : 'perimeter';
     return !pieces.some(p => p.player === currentPlayer && p.state === targetState && p.pos === move.target);
   });
