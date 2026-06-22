@@ -466,12 +466,36 @@ socket.on('dice_rolled', (data) => {
       } else {
         renderPieces();
         if (isHost && latestSlots[currentPlayer] === 'bot') {
-          // Bot selects move
+          // Bot AI - priority: capture enemy > enter home > leave jail > advance furthest piece
           setTimeout(() => {
+            // Score each move
+            function scoreBotMove(m) {
+              // 1. CAPTURE: moving to a perimeter square occupied by an enemy
+              if (m.action === 'move' || m.action === 'leave_jail') {
+                const targetPos = m.target;
+                const hasEnemy = pieces.some(p =>
+                  p.player !== currentPlayer && p.state === 'perimeter' && p.pos === targetPos
+                );
+                if (hasEnemy) return 100;
+              }
+              // 2. ENTER HOME safe zone
+              if (m.action === 'home') return 80;
+              // 3. LEAVE JAIL on a 6
+              if (m.action === 'leave_jail') return 60;
+              // 4. ADVANCE: prefer moving the piece that is furthest along the perimeter
+              if (m.action === 'move') {
+                const start = visualMap[currentPlayer] * 16 + 4;
+                const dist = (m.piece.pos - start + 64) % 64;
+                return dist; // 0-62, furthest piece scores highest
+              }
+              return 0;
+            }
+
             let bestMove = validMoves[0];
+            let bestScore = -1;
             for (let m of validMoves) {
-              if (m.action === 'home') bestMove = m;
-              else if (m.action === 'leave_jail' && bestMove.action !== 'home') bestMove = m;
+              const s = scoreBotMove(m);
+              if (s > bestScore) { bestScore = s; bestMove = m; }
             }
             selectMove(bestMove);
           }, 800);
