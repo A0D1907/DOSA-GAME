@@ -67,12 +67,37 @@ io.on('connection', (socket) => {
     io.to(socket.roomId).emit('lobby_state', { ...state, roomId: socket.roomId });
   });
 
+  socket.on('add_bot', (slot) => {
+    if (!socket.roomId) return;
+    const state = getRoomState(socket.roomId);
+    if (state.gameState === 'lobby' && !state.slots[slot]) {
+      state.slots[slot] = 'bot';
+      state.playerNames[slot] = 'Bot 🤖';
+      io.to(socket.roomId).emit('lobby_state', { ...state, roomId: socket.roomId });
+    }
+  });
+
+  socket.on('remove_bot', (slot) => {
+    if (!socket.roomId) return;
+    const state = getRoomState(socket.roomId);
+    if (state.gameState === 'lobby' && state.slots[slot] === 'bot') {
+      state.slots[slot] = null;
+      state.playerNames[slot] = '';
+      io.to(socket.roomId).emit('lobby_state', { ...state, roomId: socket.roomId });
+    }
+  });
+
   socket.on('start_game', () => {
     if (!socket.roomId) return;
     const state = getRoomState(socket.roomId);
     if (state.gameState !== 'lobby') return;
-    state.gameState = 'playing';
-    io.to(socket.roomId).emit('game_started', state);
+    
+    const hasHuman = state.slots.some(s => s !== null && s !== 'bot');
+    const totalPlayers = state.slots.filter(s => s !== null).length;
+    if (hasHuman && totalPlayers >= 2) {
+      state.gameState = 'playing';
+      io.to(socket.roomId).emit('game_started', state);
+    }
   });
 
   socket.on('roll_dice', (data) => {
@@ -133,6 +158,16 @@ io.on('connection', (socket) => {
       socket.roomId = data.roomId;
       socket.join(data.roomId);
       socket.emit('lobby_state', { ...state, roomId: data.roomId });
+    }
+  });
+
+  socket.on('send_emote', (emoji) => {
+    if (!socket.roomId) return;
+    const state = getRoomState(socket.roomId);
+    if (state.gameState !== 'playing') return;
+    const slotIndex = state.slots.indexOf(socket.id);
+    if (slotIndex !== -1) {
+      io.to(socket.roomId).emit('receive_emote', { player: slotIndex, emoji });
     }
   });
 
