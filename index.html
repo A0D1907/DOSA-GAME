@@ -475,15 +475,16 @@ function initBoard() {
   });
   
   for (let p in HOMES) {
-    HOMES[p].forEach((pos) => {
-      let bg = p == 0 ? 'bg-rose-500/20 border-rose-500/50' : 
-               p == 1 ? 'bg-blue-500/20 border-blue-500/50' : 
-               p == 2 ? 'bg-yellow-500/20 border-yellow-500/50' : 
-                        'bg-green-500/20 border-green-500/50';
+    HOMES[p].forEach((pos, i) => {
+      if (pegsCountGlobal === 2 && (i === 0 || i === 3)) return;
+      let bg = p == 0 ? 'bg-rose-500/20 border-2 border-rose-500/50' : 
+               p == 1 ? 'bg-blue-500/20 border-2 border-blue-500/50' : 
+               p == 2 ? 'bg-yellow-500/20 border-2 border-yellow-500/50' : 
+                        'bg-green-500/20 border-2 border-green-500/50';
       addHole(pos[0], pos[1], bg);
     });
   }
-  addHole(GOAL[0], GOAL[1], 'bg-slate-900 shadow-[0_0_20px_rgba(0,0,0,0.5)] border-slate-700');
+  addHole(GOAL[0], GOAL[1], 'bg-slate-900 border-2 shadow-[0_0_20px_rgba(0,0,0,0.5)] border-slate-700');
   
   // Draw Player Labels
   const LABEL_POS = { 0: [0, -10.5], 1: [10.5, 0], 2: [0, 10.5], 3: [-10.5, 0] };
