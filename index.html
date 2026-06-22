@@ -27,10 +27,10 @@
       transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
       transform: rotateX(-25deg) rotateY(45deg);
     }
-    .cube.rolling { animation: spin 0.4s linear infinite; }
+    .cube.rolling { animation: spin 0.6s linear infinite; }
     @keyframes spin {
       0% { transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg); }
-      100% { transform: rotateX(720deg) rotateY(360deg) rotateZ(360deg); }
+      100% { transform: rotateX(360deg) rotateY(360deg) rotateZ(0deg); }
     }
     .face {
       position: absolute; width: 44px; height: 44px;
@@ -422,6 +422,9 @@ function leaveRoom() {
 }
 
 socket.on('game_started', (data) => {
+  isAnimating = false;
+  diceRolled = false;
+  validMoves = [];
   document.getElementById('lobby-screen').classList.add('hidden');
   document.getElementById('victory-screen').classList.add('hidden');
   document.getElementById('game-screen').classList.remove('hidden');
@@ -659,6 +662,11 @@ function renderPieces() {
     const { x, y, offsetX, offsetY } = getPieceVisualPosition(piece);
     const el = document.getElementById(`piece-${piece.id}`);
     
+    if (piece.state === 'goal') {
+      el.style.display = 'none';
+      return;
+    }
+    el.style.display = 'block';
     el.style.left = `calc(${(x + OFFSET + 0.5) * (100 / GRID_SIZE)}% + ${offsetX}px)`;
     el.style.top = `calc(${(y + OFFSET + 0.5) * (100 / GRID_SIZE)}% + ${offsetY}px)`;
     
@@ -684,7 +692,7 @@ function updateUI() {
     cube.style.setProperty('--player-color', PLAYERS[currentPlayer].dotColor);
     // Trigger bot roll
     if (isHost && latestSlots[currentPlayer] === 'bot' && !diceRolled && !isAnimating) {
-      setTimeout(() => rollDice(), 1000);
+      setTimeout(() => rollDice(true), 1000);
     }
     if (!diceRolled && !isAnimating) cube.style.transform = 'rotateX(-25deg) rotateY(45deg)';
   }
@@ -729,9 +737,11 @@ socket.on('receive_emote', (data) => {
   setTimeout(() => wrapper.remove(), 2000);
 });
 
-function rollDice() {
+function rollDice(isBotAuto = false) {
   if (isAnimating || diceRolled) return;
-  if (currentPlayer !== mySlot && !(isHost && latestSlots[currentPlayer] === 'bot')) return;
+  if (currentPlayer !== mySlot) {
+    if (!isHost || latestSlots[currentPlayer] !== 'bot' || !isBotAuto) return;
+  }
   const val = Math.floor(Math.random() * 6) + 1;
   socket.emit('roll_dice', { player: currentPlayer, value: val });
 }
