@@ -15,172 +15,250 @@
   <script src="/socket.io/socket.io.js"></script>
   
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=Chakra+Petch:wght@600;700;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap');
     
     :root {
-      --bg-dark: #09071a;
-      --board-bg: #110e2e;
-      --accent-pink: #ff007f;
-      --accent-orange: #ff6b35;
-      --accent-indigo: #6366f1;
+      --bg-dark: #070614;
+      --board-bg: #0e0c24;
+      --neon-cyan: #00f0ff;
+      --neon-pink: #ff0077;
+      --neon-purple: #9d00ff;
+      --neon-gold: #ffbe0b;
+      --neon-green: #00ff88;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
     }
 
     body {
       overscroll-behavior: none;
-      font-family: 'Outfit', sans-serif;
-      background: radial-gradient(circle at 50% 10%, #1f1647 0%, #0c0824 55%, #050312 100%);
+      font-family: 'Rajdhani', sans-serif;
+      background: #060412;
       color: #f1f5f9;
       min-height: 100vh;
+      overflow: hidden;
     }
 
-    /* Ambient Video Game Glow & Mesh */
-    .bg-cyber-glow {
+    /* Animated Cyber Grid Matrix Background */
+    .cyber-grid-bg {
       position: absolute;
       inset: 0;
       background-image: 
-        radial-gradient(circle at 20% 15%, rgba(255, 0, 127, 0.15) 0%, transparent 40%),
-        radial-gradient(circle at 80% 85%, rgba(99, 102, 241, 0.18) 0%, transparent 45%);
+        linear-gradient(to right, rgba(0, 240, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 0, 119, 0.05) 1px, transparent 1px);
+      background-size: 32px 32px;
+      perspective: 500px;
+      transform-origin: center bottom;
       pointer-events: none;
       z-index: 0;
     }
 
-    .game-font { font-family: 'Chakra Petch', sans-serif; }
-
-    /* AAA Game Cards */
-    .game-card {
-      background: rgba(18, 14, 45, 0.82);
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      backdrop-filter: blur(28px);
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.75), 0 0 30px rgba(99, 102, 241, 0.15);
+    .bg-cyber-glow {
+      position: absolute;
+      inset: 0;
+      background: 
+        radial-gradient(ellipse 80% 50% at 50% -10%, rgba(157, 0, 255, 0.28) 0%, transparent 70%),
+        radial-gradient(ellipse 60% 40% at 50% 110%, rgba(0, 240, 255, 0.2) 0%, transparent 60%);
+      pointer-events: none;
+      z-index: 0;
     }
 
-    /* 3D Tactile Buttons */
+    .game-font { font-family: 'Orbitron', monospace; font-weight: 900; }
+    .hud-font { font-family: 'Orbitron', sans-serif; }
+
+    /* AAA Holographic Glass Cards */
+    .game-card {
+      background: linear-gradient(135deg, rgba(20, 16, 48, 0.88), rgba(10, 8, 28, 0.94));
+      border: 1px solid rgba(0, 240, 255, 0.25);
+      backdrop-filter: blur(24px);
+      border-radius: 1.5rem;
+      box-shadow: 
+        0 20px 50px rgba(0, 0, 0, 0.85),
+        0 0 30px rgba(157, 0, 255, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15),
+        inset 0 -1px 0 rgba(0, 240, 255, 0.2);
+      position: relative;
+    }
+
+    .game-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 15%; right: 15%; height: 1px;
+      background: linear-gradient(90deg, transparent, #00f0ff, transparent);
+      box-shadow: 0 0 10px #00f0ff;
+    }
+
+    /* High-Impact Video Game Buttons */
     .btn-game-primary {
-      background: linear-gradient(135deg, #ff007f, #ff6b35);
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      box-shadow: 0 5px 0 #9f004f, 0 10px 25px rgba(255, 0, 127, 0.45);
-      transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+      background: linear-gradient(135deg, #ff0077, #ff5400);
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      border-radius: 1rem;
+      box-shadow: 
+        0 6px 0 #900040,
+        0 12px 25px rgba(255, 0, 119, 0.5),
+        inset 0 1px 1px rgba(255, 255, 255, 0.6);
+      transition: all 0.12s cubic-bezier(0.3, 0, 0.2, 1);
+      text-shadow: 0 2px 4px rgba(0,0,0,0.6);
+      font-family: 'Orbitron', sans-serif;
+      letter-spacing: 0.15em;
     }
     .btn-game-primary:hover {
-      filter: brightness(1.1);
+      filter: brightness(1.15);
       transform: translateY(-2px);
-      box-shadow: 0 7px 0 #9f004f, 0 14px 28px rgba(255, 0, 127, 0.55);
+      box-shadow: 0 8px 0 #900040, 0 16px 30px rgba(255, 0, 119, 0.65);
     }
     .btn-game-primary:active {
-      transform: translateY(4px);
-      box-shadow: 0 1px 0 #9f004f, 0 4px 10px rgba(255, 0, 127, 0.3);
+      transform: translateY(5px);
+      box-shadow: 0 1px 0 #900040, 0 4px 12px rgba(255, 0, 119, 0.4);
     }
 
     .btn-game-secondary {
-      background: rgba(255, 255, 255, 0.08);
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
       border: 1px solid rgba(255, 255, 255, 0.18);
-      box-shadow: 0 4px 0 rgba(0, 0, 0, 0.4);
-      transition: all 0.15s ease;
+      border-radius: 1rem;
+      box-shadow: 0 4px 0 rgba(0, 0, 0, 0.5);
+      transition: all 0.12s ease;
+      font-family: 'Rajdhani', sans-serif;
+    }
+    .btn-game-secondary:hover {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(0, 240, 255, 0.4);
+      box-shadow: 0 4px 0 rgba(0, 0, 0, 0.5), 0 0 15px rgba(0, 240, 255, 0.25);
     }
     .btn-game-secondary:active {
       transform: translateY(3px);
-      box-shadow: 0 1px 0 rgba(0, 0, 0, 0.4);
+      box-shadow: 0 1px 0 rgba(0, 0, 0, 0.5);
     }
 
-    /* Recessed Cyber Holes */
+    /* Laser Turn Indicator Pill */
+    .turn-badge {
+      font-family: 'Orbitron', sans-serif;
+      letter-spacing: 0.2em;
+      border-radius: 9999px;
+      padding: 0.35rem 1.25rem;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      font-weight: 800;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+
+    /* Cyber Bezel Board Container */
+    .board-bezel {
+      background: radial-gradient(circle at 50% 50%, #151138 0%, #0d0a27 60%, #060414 100%);
+      border: 2px solid rgba(0, 240, 255, 0.3);
+      box-shadow: 
+        0 25px 60px rgba(0, 0, 0, 0.9),
+        0 0 40px rgba(157, 0, 255, 0.25),
+        inset 0 0 25px rgba(0, 240, 255, 0.08);
+      border-radius: 2rem;
+    }
+
+    /* Recessed Hologram Board Holes */
     .board-hole {
-      box-shadow: inset 0 3px 5px rgba(0,0,0,0.9), 0 1px 1px rgba(255,255,255,0.15);
+      box-shadow: 
+        inset 0 3px 6px rgba(0,0,0,0.95),
+        0 1px 1px rgba(255,255,255,0.1);
       transition: all 0.2s ease;
     }
 
-    /* 3D Marble / Glass Pegs */
+    /* 3D Glass Sphere Pieces with Intense Corona */
     .piece {
       transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-      box-shadow: 0 4px 8px rgba(0,0,0,0.6), inset 0 2px 4px rgba(255,255,255,0.7), inset 0 -2px 4px rgba(0,0,0,0.6);
       touch-action: manipulation;
     }
     .piece.valid-move {
-      animation: targetPulse 1.2s infinite alternate;
+      animation: targetPulse 1s infinite alternate;
       cursor: pointer;
     }
-    /* Generous mobile touch hit target without distorting visual peg */
     .piece.valid-move::after {
       content: '';
       position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 44px;
-      height: 44px;
+      top: 50%; left: 50%;
+      width: 44px; height: 44px;
       transform: translate(-50%, -50%);
       border-radius: 50%;
     }
     @keyframes targetPulse {
-      0% { transform: translate(-50%, -50%) scale(1.1); filter: brightness(1.1) drop-shadow(0 0 6px #fff); }
-      100% { transform: translate(-50%, -50%) scale(1.35); filter: brightness(1.3) drop-shadow(0 0 14px #6366f1); }
+      0% { 
+        transform: translate(-50%, -50%) scale(1.1); 
+        filter: brightness(1.2) drop-shadow(0 0 8px #fff) drop-shadow(0 0 16px var(--neon-cyan)); 
+      }
+      100% { 
+        transform: translate(-50%, -50%) scale(1.4); 
+        filter: brightness(1.5) drop-shadow(0 0 14px #fff) drop-shadow(0 0 28px var(--neon-pink)); 
+      }
     }
 
-    /* 3D Dice CSS */
-    .dice-scene { width: 44px; height: 44px; perspective: 400px; margin: 0 auto; z-index: 20; }
+    /* 3D Cyber Cube Dice */
+    .dice-scene { width: 50px; height: 50px; perspective: 450px; margin: 0 auto; z-index: 20; }
     .cube {
       width: 100%; height: 100%; position: relative;
       transform-style: preserve-3d;
       transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
       transform: rotateX(-25deg) rotateY(45deg);
     }
-    .cube.rolling { animation: spin 0.6s linear infinite; }
+    .cube.rolling { animation: spin 0.5s linear infinite; }
     @keyframes spin {
       0% { transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg); }
       100% { transform: rotateX(360deg) rotateY(360deg) rotateZ(0deg); }
     }
     .face {
-      position: absolute; width: 44px; height: 44px;
-      background: #ffffff;
-      border: 1px solid #e2e8f0; border-radius: 10px;
-      display: grid; padding: 6px;
-      box-shadow: inset 0 0 10px rgba(0,0,0,0.06), 0 4px 10px rgba(0,0,0,0.3);
+      position: absolute; width: 50px; height: 50px;
+      background: linear-gradient(135deg, #ffffff, #e2e8f0);
+      border: 1px solid #cbd5e1; border-radius: 12px;
+      display: grid; padding: 7px;
+      box-shadow: inset 0 0 10px rgba(0,0,0,0.1), 0 6px 14px rgba(0,0,0,0.4);
     }
-    .face-1 { transform: rotateY(0deg) translateZ(22px); place-items: center; }
-    .face-2 { transform: rotateY(90deg) translateZ(22px); display: flex; flex-direction: column; justify-content: space-between; padding: 6px; box-sizing: border-box; }
+    .face-1 { transform: rotateY(0deg) translateZ(25px); place-items: center; }
+    .face-2 { transform: rotateY(90deg) translateZ(25px); display: flex; flex-direction: column; justify-content: space-between; padding: 7px; box-sizing: border-box; }
     .face-2 .dot:nth-child(1) { align-self: flex-start; margin: 0; }
     .face-2 .dot:nth-child(2) { align-self: flex-end; margin: 0; }
-    .face-3 { transform: rotateX(90deg) translateZ(22px); grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 1fr 1fr 1fr; }
+    .face-3 { transform: rotateX(90deg) translateZ(25px); grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 1fr 1fr 1fr; }
     .face-3 .dot:nth-child(1) { grid-area: 1/3/2/4; align-self: start; justify-self: end; }
     .face-3 .dot:nth-child(2) { grid-area: 2/2/3/3; align-self: center; justify-self: center; }
     .face-3 .dot:nth-child(3) { grid-area: 3/1/4/2; align-self: end; justify-self: start; }
-    .face-4 { transform: rotateX(-90deg) translateZ(22px); grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+    .face-4 { transform: rotateX(-90deg) translateZ(25px); grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
     .face-4 .dot { align-self: center; justify-self: center; }
-    .face-5 { transform: rotateY(-90deg) translateZ(22px); grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 1fr 1fr 1fr; }
+    .face-5 { transform: rotateY(-90deg) translateZ(25px); grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 1fr 1fr 1fr; }
     .face-5 .dot { align-self: center; justify-self: center; }
     .face-5 .dot:nth-child(1) { grid-area: 1/1/2/2; }
     .face-5 .dot:nth-child(2) { grid-area: 1/3/2/4; }
     .face-5 .dot:nth-child(3) { grid-area: 2/2/3/3; }
     .face-5 .dot:nth-child(4) { grid-area: 3/1/4/2; }
     .face-5 .dot:nth-child(5) { grid-area: 3/3/4/4; }
-    .face-6 { transform: rotateY(180deg) translateZ(22px); grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr 1fr; }
+    .face-6 { transform: rotateY(180deg) translateZ(25px); grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr 1fr; }
     .face-6 .dot { align-self: center; justify-self: center; }
     
     .dot {
-      background-color: var(--player-color, #333);
-      border-radius: 50%; width: 6px; height: 6px;
-      box-shadow: 0 0 6px var(--player-color, rgba(0,0,0,0.5));
+      background-color: var(--player-color, #111);
+      border-radius: 50%; width: 7px; height: 7px;
+      box-shadow: 0 0 8px var(--player-color, rgba(0,0,0,0.5));
       transition: background-color 0.4s ease, box-shadow 0.4s ease;
     }
     
     @keyframes floatUp {
       0% { transform: translateY(0) scale(0.5); opacity: 0; }
-      10% { transform: translateY(-50px) scale(1.5); opacity: 1; }
-      80% { transform: translateY(-70px) scale(1.5); opacity: 1; }
-      100% { transform: translateY(-100px) scale(1); opacity: 0; }
+      10% { transform: translateY(-50px) scale(1.6); opacity: 1; }
+      80% { transform: translateY(-75px) scale(1.6); opacity: 1; }
+      100% { transform: translateY(-110px) scale(1); opacity: 0; }
     }
     .emote-anim {
       animation: floatUp 2.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
     }
 
-    /* Mobile Scale & Responsive Adjustments */
+    /* Mobile Adaptive Scaling */
     .board-wrapper {
-      width: min(92vw, 400px, 58vh);
-      height: min(92vw, 400px, 58vh);
+      width: min(94vw, 420px, 58vh);
+      height: min(94vw, 420px, 58vh);
     }
 
-    @media (max-height: 700px) {
+    @media (max-height: 720px) {
       .board-wrapper {
-        width: min(88vw, 340px, 52vh);
-        height: min(88vw, 340px, 52vh);
+        width: min(90vw, 340px, 52vh);
+        height: min(90vw, 340px, 52vh);
       }
       .game-header {
         padding-top: 0.5rem !important;
@@ -188,7 +266,7 @@
       }
       .controls-bar {
         margin-top: 0.25rem !important;
-        margin-bottom: 0.75rem !important;
+        margin-bottom: 0.5rem !important;
       }
     }
 
@@ -200,6 +278,7 @@
   </style>
 </head>
 <body class="text-slate-100 min-h-screen h-[100dvh] flex flex-col overflow-hidden relative selection:bg-rose-500/30">
+  <div class="cyber-grid-bg"></div>
   <div class="bg-cyber-glow"></div>
 
   <!-- TOP NAVIGATION BAR -->
@@ -336,23 +415,30 @@
 
   <!-- GAME SCREEN -->
   <div id="game-screen" class="hidden h-full flex flex-col justify-between items-center overflow-hidden">
-    <!-- Header -->
-    <header class="game-header w-full text-center pt-5 pb-1 relative z-10 flex-shrink-0 flex items-center justify-between px-4 max-w-[440px]">
-      <button onclick="leaveRoom()" class="w-10 h-10 rounded-2xl flex items-center justify-center transition-all btn-game-secondary text-slate-300" title="Leave">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clip-rule="evenodd" /></svg>
-      </button>
-      <div>
-        <h1 class="text-2xl font-black tracking-[0.4em] uppercase game-font" style="color:#ff007f; text-shadow: 0 0 15px rgba(255,0,127,0.8);">DOSA</h1>
-        <p id="status-text" class="text-xs font-bold mt-0.5 inline-block px-4 py-1 rounded-full tracking-widest uppercase transition-all duration-300" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15); color: #e2e8f0;">Game Started</p>
+    <!-- Cyber HUD Header with Active Player Strip -->
+    <header class="game-header w-full text-center pt-3 pb-1 relative z-10 flex-shrink-0 max-w-[480px] px-3">
+      <div class="flex items-center justify-between mb-2">
+        <button onclick="leaveRoom()" class="w-9 h-9 rounded-xl flex items-center justify-center transition-all btn-game-secondary text-slate-300" title="Exit to Lobby">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clip-rule="evenodd" /></svg>
+        </button>
+        <div class="flex items-center gap-2">
+          <h1 class="text-xl font-black tracking-[0.3em] uppercase game-font" style="color:#00f0ff; text-shadow: 0 0 15px rgba(0,240,255,0.8);">DOSA</h1>
+          <span class="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-pink-500/20 text-pink-400 border border-pink-500/30">ONLINE</span>
+        </div>
+        <div id="status-turn-pill" class="turn-badge bg-white/10 text-white border border-white/20">
+          <span id="status-text">Your Turn</span>
+        </div>
       </div>
-      <div class="w-10 pointer-events-none"></div>
+
+      <!-- Player HUD Chips -->
+      <div id="hud-players-bar" class="grid grid-cols-4 gap-1.5 px-1 py-1 rounded-2xl" style="background: rgba(10, 8, 28, 0.7); border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(16px);"></div>
     </header>
 
-    <!-- Board Area with Adaptive Mobile Constraints -->
+    <!-- Board Area with Cyber Bezel -->
     <div class="board-wrapper mx-auto relative flex-shrink-0 z-10 my-auto flex items-center justify-center">
       <div id="board-container" class="absolute inset-2 sm:inset-3 transition-transform duration-700 ease-in-out">
         <!-- Surface with Cyber Bezel -->
-        <div class="absolute inset-0 rounded-3xl border border-white/20 shadow-2xl" style="background: radial-gradient(circle at 50% 50%, #151138 0%, #0d0a27 60%, #060414 100%); box-shadow: 0 20px 50px rgba(0,0,0,0.8), 0 0 35px rgba(99,102,241,0.25), inset 0 2px 4px rgba(255,255,255,0.12), inset 0 -2px 6px rgba(0,0,0,0.8);"></div>
+        <div class="board-bezel absolute inset-0"></div>
         <div id="holes" class="absolute inset-0 z-0"></div>
         <div id="pieces" class="absolute inset-0 z-10 pointer-events-auto"></div>
       </div>
@@ -388,7 +474,7 @@
 
       <button id="dice-btn" onclick="rollDice()" class="w-24 h-24 rounded-3xl flex flex-col items-center justify-center transition-all outline-none relative btn-game-primary" title="Roll Dice">
         <div class="dice-scene pointer-events-none">
-          <div class="cube" id="dice-cube" style="--player-color: #f43f5e;">
+          <div class="cube" id="dice-cube" style="--player-color: #ff0077;">
             <div class="face face-1"><div class="dot"></div></div>
             <div class="face face-2"><div class="dot"></div><div class="dot"></div></div>
             <div class="face face-3"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
@@ -500,10 +586,10 @@ function updateBoardConstants() {
 }
 
 const PLAYERS = {
-  0: { color: 'bg-[#f43f5e]', dotColor: '#f43f5e', glow: 'shadow-[0_0_15px_#f43f5e]', text: 'text-rose-500', name: 'Player 1' },
-  1: { color: 'bg-[#3b82f6]', dotColor: '#3b82f6', glow: 'shadow-[0_0_15px_#3b82f6]', text: 'text-blue-500', name: 'Player 2' },
-  2: { color: 'bg-[#eab308]', dotColor: '#eab308', glow: 'shadow-[0_0_15px_#eab308]', text: 'text-yellow-500', name: 'Player 3' },
-  3: { color: 'bg-[#22c55e]', dotColor: '#22c55e', glow: 'shadow-[0_0_15px_#22c55e]', text: 'text-green-500', name: 'Player 4' }
+  0: { color: 'bg-[#ff0077]', dotColor: '#ff0077', glow: 'shadow-[0_0_20px_#ff0077]', text: 'text-[#ff0077]', name: 'Player 1' },
+  1: { color: 'bg-[#00f0ff]', dotColor: '#00f0ff', glow: 'shadow-[0_0_20px_#00f0ff]', text: 'text-[#00f0ff]', name: 'Player 2' },
+  2: { color: 'bg-[#ffbe0b]', dotColor: '#ffbe0b', glow: 'shadow-[0_0_20px_#ffbe0b]', text: 'text-[#ffbe0b]', name: 'Player 3' },
+  3: { color: 'bg-[#00ff88]', dotColor: '#00ff88', glow: 'shadow-[0_0_20px_#00ff88]', text: 'text-[#00ff88]', name: 'Player 4' }
 };
 
 const DICE_ROTATIONS = [
@@ -682,20 +768,21 @@ socket.on('lobby_state', (state) => {
   for(let i=0; i<4; i++) {
     const btn = document.getElementById(`slot-${i}`);
     if (state.slots[i]) {
+       const col = PLAYERS[i].dotColor;
        if (state.slots[i] === socket.id) {
-         btn.innerHTML = `<button class="w-full h-full font-bold flex items-center justify-center gap-2 text-white rounded-xl transition-all" style="background: linear-gradient(135deg, rgba(255,255,255,0.2), rgba(255,255,255,0.08)); border: 1px solid rgba(255,255,255,0.3); box-shadow: 0 4px 12px rgba(0,0,0,0.3);"><div class="w-3.5 h-3.5 rounded-full ${PLAYERS[i].color} shadow-[0_0_8px_${PLAYERS[i].dotColor}]"></div> <span>${state.playerNames[i]}</span> <span class="text-[10px] font-black uppercase text-indigo-300 ml-1">(You)</span></button>`;
+         btn.innerHTML = `<button class="w-full h-full font-bold flex items-center justify-center gap-2 text-white rounded-xl transition-all" style="background: linear-gradient(135deg, ${col}26, rgba(10,8,28,0.85)); border: 1.5px solid ${col}; box-shadow: 0 0 15px ${col}44;"><div class="w-3.5 h-3.5 rounded-full ${PLAYERS[i].color} shadow-[0_0_10px_${col}]"></div> <span class="font-black">${state.playerNames[i]}</span> <span class="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-white/20 ml-1">YOU</span></button>`;
        } else if (state.slots[i] === 'bot') {
          btn.innerHTML = `
-           <div class="flex-1 h-full font-bold flex items-center justify-center gap-2 text-slate-200 rounded-l-xl" style="background: rgba(255,255,255,0.08); border-left: 1px solid rgba(255,255,255,0.15); border-top: 1px solid rgba(255,255,255,0.15); border-bottom: 1px solid rgba(255,255,255,0.15);"><div class="w-3.5 h-3.5 rounded-full ${PLAYERS[i].color} shadow-[0_0_8px_${PLAYERS[i].dotColor}]"></div> <span>${state.playerNames[i]}</span></div>
+           <div class="flex-1 h-full font-bold flex items-center justify-center gap-2 text-slate-200 rounded-l-xl" style="background: rgba(255,255,255,0.06); border-left: 1px solid rgba(255,255,255,0.15); border-top: 1px solid rgba(255,255,255,0.15); border-bottom: 1px solid rgba(255,255,255,0.15);"><div class="w-3.5 h-3.5 rounded-full ${PLAYERS[i].color} shadow-[0_0_8px_${col}]"></div> <span>${state.playerNames[i]}</span></div>
            ${isHost ? `<button onclick="removeBot(${i})" class="w-11 h-full bg-rose-500/20 hover:bg-rose-500/40 text-rose-300 font-bold flex items-center justify-center transition-all rounded-r-xl border border-rose-500/30">✕</button>` : ''}
          `;
        } else {
-         btn.innerHTML = `<div class="w-full h-full font-bold flex items-center justify-center gap-2 text-slate-400 opacity-60 cursor-not-allowed rounded-xl" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);"><div class="w-3.5 h-3.5 rounded-full ${PLAYERS[i].color}"></div> <span>${state.playerNames[i]}</span></div>`;
+         btn.innerHTML = `<div class="w-full h-full font-bold flex items-center justify-center gap-2 text-slate-300 rounded-xl" style="background: rgba(255,255,255,0.04); border: 1px solid ${col}44;"><div class="w-3.5 h-3.5 rounded-full ${PLAYERS[i].color} shadow-[0_0_8px_${col}]"></div> <span>${state.playerNames[i]}</span></div>`;
        }
     } else {
        btn.innerHTML = `
-         <button onclick="joinSlot(${i})" class="flex-1 h-full font-bold flex items-center justify-center gap-2 text-slate-300 hover:text-white transition-all rounded-l-xl" style="background: rgba(255,255,255,0.08); border-left: 1px solid rgba(255,255,255,0.15); border-top: 1px solid rgba(255,255,255,0.15); border-bottom: 1px solid rgba(255,255,255,0.15);"><div class="w-3.5 h-3.5 rounded-full ${PLAYERS[i].color}"></div> Join P${i+1}</button>
-         ${isHost ? `<button onclick="addBot(${i})" class="w-11 h-full hover:brightness-125 font-bold flex items-center justify-center transition-all text-base rounded-r-xl border border-white/15" style="background: rgba(255,255,255,0.12);" title="Add Bot">🤖</button>` : ''}
+         <button onclick="joinSlot(${i})" class="flex-1 h-full font-bold flex items-center justify-center gap-2 text-slate-300 hover:text-white transition-all rounded-l-xl" style="background: rgba(255,255,255,0.06); border-left: 1px solid rgba(255,255,255,0.12); border-top: 1px solid rgba(255,255,255,0.12); border-bottom: 1px solid rgba(255,255,255,0.12);"><div class="w-3.5 h-3.5 rounded-full ${PLAYERS[i].color} opacity-60"></div> Join P${i+1}</button>
+         ${isHost ? `<button onclick="addBot(${i})" class="w-11 h-full hover:brightness-125 font-bold flex items-center justify-center transition-all text-base rounded-r-xl border border-white/12" style="background: rgba(255,255,255,0.1);" title="Add Bot">🤖</button>` : ''}
        `;
     }
   }
@@ -1009,10 +1096,20 @@ socket.on('game_over', (finishOrder) => {
   if (Array.isArray(finishOrder) && finishOrder.length > 0) {
     finishOrder.forEach((slot, i) => {
       const name = latestPlayerNames[slot] || (latestSlots[slot] === 'bot' ? `Bot P${slot+1}` : PLAYERS[slot].name);
-      podium += `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.08);">
-        <span style="font-size:1.4rem;">${MEDALS[i]||'·'}</span>
-        <span style="font-weight:800;color:${PLAYERS[slot].dotColor};letter-spacing:0.05em;">${name}</span>
-      </div>`;
+      const col = PLAYERS[slot].dotColor;
+      const isMe = (slot === mySlot);
+      podium += `
+        <div class="flex items-center justify-between p-2.5 rounded-xl transition-all" style="background: ${col}18; border: 1px solid ${col}55; box-shadow: 0 4px 15px ${col}25;">
+          <div class="flex items-center gap-2.5">
+            <span class="text-2xl">${MEDALS[i] || '🎖️'}</span>
+            <div>
+              <div class="font-black text-sm tracking-wider" style="color: ${col};">${name}</div>
+              <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">${i === 0 ? 'Champion 👑' : `Rank #${i+1}`}</div>
+            </div>
+          </div>
+          ${isMe ? '<span class="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-white/20 text-white">YOU</span>' : ''}
+        </div>
+      `;
     });
   }
   document.getElementById('winner-name').innerHTML = podium || 'Game Over';
@@ -1159,12 +1256,41 @@ function renderPieces() {
 
 function updateUI() {
   const statusEl = document.getElementById('status-text');
+  const pillEl = document.getElementById('status-turn-pill');
   let nameStr = latestPlayerNames[currentPlayer] || `Player ${currentPlayer + 1}`;
-  let prefix = currentPlayer === mySlot ? '👉 Your Turn' : `${nameStr}'s Turn`;
-  statusEl.innerText = prefix;
-  const col = PLAYERS[currentPlayer].dotColor;
-  statusEl.style.cssText = `background: rgba(255,255,255,0.1); border: 1px solid ${col}66; color: ${col}; box-shadow: 0 0 12px ${col}44;`;
-  statusEl.className = `text-xs font-bold mt-1 inline-block px-5 py-1.5 rounded-full tracking-widest uppercase transition-all duration-300`;
+  let isMyTurn = (currentPlayer === mySlot);
+  let prefix = isMyTurn ? 'YOUR TURN' : `${nameStr.toUpperCase()}`;
+  if (statusEl) statusEl.innerText = prefix;
+  
+  const col = PLAYERS[currentPlayer]?.dotColor || '#00f0ff';
+  if (pillEl) {
+    pillEl.style.cssText = `background: ${col}22; border: 1px solid ${col}; color: ${col}; box-shadow: 0 0 15px ${col}66;`;
+  }
+
+  // Render Real-Time Cyber HUD Player Chips
+  const hudBar = document.getElementById('hud-players-bar');
+  if (hudBar) {
+    hudBar.innerHTML = '';
+    for (let p = 0; p < 4; p++) {
+      if (!activeSlots.includes(p)) continue;
+      const chip = document.createElement('div');
+      const isTurn = (p === currentPlayer);
+      const isMe = (p === mySlot);
+      const pColor = PLAYERS[p].dotColor;
+      const pName = latestPlayerNames[p] || `P${p+1}`;
+      
+      chip.className = `flex items-center gap-1.5 px-2 py-1 rounded-xl transition-all ${isTurn ? 'scale-105 z-10' : 'opacity-70'}`;
+      chip.style.cssText = isTurn 
+        ? `background: ${pColor}28; border: 1.5px solid ${pColor}; box-shadow: 0 0 12px ${pColor}55;` 
+        : `background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);`;
+      
+      chip.innerHTML = `
+        <div class="w-2.5 h-2.5 rounded-full ${PLAYERS[p].color} ${isTurn ? 'animate-ping' : ''}" style="box-shadow: 0 0 6px ${pColor};"></div>
+        <div class="text-[11px] font-bold truncate max-w-[60px] ${isTurn ? 'text-white font-black' : 'text-slate-300'}">${pName}${isMe ? ' (You)' : ''}</div>
+      `;
+      hudBar.appendChild(chip);
+    }
+  }
 
   const cube = document.getElementById('dice-cube');
   if (cube) {
