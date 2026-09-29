@@ -92,10 +92,22 @@
     .piece {
       transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
       box-shadow: 0 4px 8px rgba(0,0,0,0.6), inset 0 2px 4px rgba(255,255,255,0.7), inset 0 -2px 4px rgba(0,0,0,0.6);
+      touch-action: manipulation;
     }
     .piece.valid-move {
       animation: targetPulse 1.2s infinite alternate;
       cursor: pointer;
+    }
+    /* Generous mobile touch hit target without distorting visual peg */
+    .piece.valid-move::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 44px;
+      height: 44px;
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
     }
     @keyframes targetPulse {
       0% { transform: translate(-50%, -50%) scale(1.1); filter: brightness(1.1) drop-shadow(0 0 6px #fff); }
@@ -158,26 +170,53 @@
     .emote-anim {
       animation: floatUp 2.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
     }
+
+    /* Mobile Scale & Responsive Adjustments */
+    .board-wrapper {
+      width: min(92vw, 400px, 58vh);
+      height: min(92vw, 400px, 58vh);
+    }
+
+    @media (max-height: 700px) {
+      .board-wrapper {
+        width: min(88vw, 340px, 52vh);
+        height: min(88vw, 340px, 52vh);
+      }
+      .game-header {
+        padding-top: 0.5rem !important;
+        padding-bottom: 0.25rem !important;
+      }
+      .controls-bar {
+        margin-top: 0.25rem !important;
+        margin-bottom: 0.75rem !important;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .auth-nav-text {
+        display: none;
+      }
+    }
   </style>
 </head>
-<body class="text-slate-100 h-screen flex flex-col overflow-hidden relative selection:bg-rose-500/30">
+<body class="text-slate-100 min-h-screen h-[100dvh] flex flex-col overflow-hidden relative selection:bg-rose-500/30">
   <div class="bg-cyber-glow"></div>
 
   <!-- TOP NAVIGATION BAR -->
-  <div class="fixed top-4 right-4 z-[120] flex items-center gap-2">
+  <div class="fixed top-3 right-3 sm:top-4 sm:right-4 z-[120] flex items-center gap-1.5 sm:gap-2">
     <div id="user-logged-out-bar">
-      <button onclick="openAuthModal()" class="px-4 py-2 rounded-xl text-xs font-black tracking-wider uppercase flex items-center gap-2 transition-all hover:scale-105 active:scale-95" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); backdrop-filter: blur(12px); color: #f8fafc; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
-        🔑 <span>Login / Sign Up</span>
+      <button onclick="openAuthModal()" class="px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl text-xs font-black tracking-wider uppercase flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); backdrop-filter: blur(12px); color: #f8fafc; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+        🔑 <span class="auth-nav-text">Login / Sign Up</span>
       </button>
     </div>
-    <div id="user-logged-in-bar" class="hidden flex items-center gap-2">
-      <button onclick="openFriendsModal()" class="px-3.5 py-2 rounded-xl text-xs font-black tracking-wider uppercase flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95" style="background: rgba(99,102,241,0.2); border: 1px solid rgba(99,102,241,0.4); backdrop-filter: blur(12px); color: #a5b4fc; box-shadow: 0 4px 15px rgba(99,102,241,0.2);">
-        👥 <span id="friends-badge-count">Friends</span>
+    <div id="user-logged-in-bar" class="hidden flex items-center gap-1.5 sm:gap-2">
+      <button onclick="openFriendsModal()" class="px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs font-black tracking-wider uppercase flex items-center gap-1 transition-all hover:scale-105 active:scale-95" style="background: rgba(99,102,241,0.2); border: 1px solid rgba(99,102,241,0.4); backdrop-filter: blur(12px); color: #a5b4fc; box-shadow: 0 4px 15px rgba(99,102,241,0.2);">
+        👥 <span id="friends-badge-count" class="auth-nav-text">Friends</span>
       </button>
-      <div class="px-3.5 py-2 rounded-xl text-xs font-black tracking-wider flex items-center gap-1.5" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); backdrop-filter: blur(12px); color: #f8fafc;">
-        👤 <span id="current-username-display">User</span>
+      <div class="px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs font-black tracking-wider flex items-center gap-1 max-w-[110px] sm:max-w-none truncate" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); backdrop-filter: blur(12px); color: #f8fafc;">
+        👤 <span id="current-username-display" class="truncate">User</span>
       </div>
-      <button onclick="logoutUser()" title="Logout" class="w-8 h-8 rounded-xl flex items-center justify-center text-xs font-black transition-all hover:scale-110 active:scale-95 text-rose-400" style="background: rgba(244,63,94,0.15); border: 1px solid rgba(244,63,94,0.3);">
+      <button onclick="logoutUser()" title="Logout" class="w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center text-xs font-black transition-all hover:scale-110 active:scale-95 text-rose-400" style="background: rgba(244,63,94,0.15); border: 1px solid rgba(244,63,94,0.3);">
         🚪
       </button>
     </div>
@@ -233,32 +272,32 @@
   </div>
 
   <!-- HOME SCREEN -->
-  <div id="home-screen" class="absolute inset-0 z-[60] flex flex-col items-center justify-center p-6" style="background: radial-gradient(circle at 50% 30%, #1c1547 0%, #0d0a27 65%, #050314 100%);">
-    <h1 class="text-6xl font-black tracking-[0.3em] uppercase mb-2 text-center game-font" style="color:#ff007f; text-shadow: 0 0 30px rgba(255,0,127,0.8), 0 0 60px rgba(255,0,127,0.4);">DOSA</h1>
-    <p class="text-sm font-bold tracking-[0.5em] text-indigo-300 mb-8 uppercase game-font">Online</p>
-    <div class="w-full max-w-sm p-8 rounded-3xl text-center game-card">
+  <div id="home-screen" class="absolute inset-0 z-[60] flex flex-col items-center justify-center p-4 sm:p-6 overflow-y-auto" style="background: radial-gradient(circle at 50% 30%, #1c1547 0%, #0d0a27 65%, #050314 100%);">
+    <h1 class="text-4xl sm:text-6xl font-black tracking-[0.3em] uppercase mb-1 sm:mb-2 text-center game-font" style="color:#ff007f; text-shadow: 0 0 30px rgba(255,0,127,0.8), 0 0 60px rgba(255,0,127,0.4);">DOSA</h1>
+    <p class="text-xs sm:text-sm font-bold tracking-[0.5em] text-indigo-300 mb-5 sm:mb-8 uppercase game-font">Online</p>
+    <div class="w-full max-w-sm p-6 sm:p-8 rounded-3xl text-center game-card">
       <p class="text-xs font-bold text-indigo-300 uppercase tracking-widest mb-2">Your Nickname</p>
-      <input type="text" id="nickname-input" placeholder="e.g. Maverick" class="w-full h-12 rounded-xl px-4 text-center text-lg font-bold focus:outline-none transition-all mb-4" style="background: rgba(255,255,255,0.08); border: 2px solid rgba(255,255,255,0.15); color: #f1f5f9;" autocomplete="off" maxlength="15" />
+      <input type="text" id="nickname-input" placeholder="e.g. Maverick" class="w-full h-11 sm:h-12 rounded-xl px-4 text-center text-base sm:text-lg font-bold focus:outline-none transition-all mb-4" style="background: rgba(255,255,255,0.08); border: 2px solid rgba(255,255,255,0.15); color: #f1f5f9;" autocomplete="off" maxlength="15" />
       
       <p class="text-xs font-bold text-indigo-300 uppercase tracking-widest mb-2">Enter Room Code</p>
-      <input type="text" id="room-code-input" placeholder="e.g. DOSA" class="w-full h-12 rounded-xl px-4 text-center text-lg font-bold uppercase tracking-widest focus:outline-none transition-all mb-6" style="background: rgba(255,255,255,0.08); border: 2px solid rgba(255,255,255,0.15); color: #f1f5f9;" autocomplete="off" maxlength="8" />
+      <input type="text" id="room-code-input" placeholder="e.g. DOSA" class="w-full h-11 sm:h-12 rounded-xl px-4 text-center text-base sm:text-lg font-bold uppercase tracking-widest focus:outline-none transition-all mb-5 sm:mb-6" style="background: rgba(255,255,255,0.08); border: 2px solid rgba(255,255,255,0.15); color: #f1f5f9;" autocomplete="off" maxlength="8" />
       
-      <button onclick="joinRoom()" class="w-full py-4 rounded-xl font-black tracking-widest uppercase btn-game-primary text-white">Join Session</button>
-      <p class="text-xs text-indigo-300/60 mt-5 font-medium">Create a room or join a friend's.</p>
+      <button onclick="joinRoom()" class="w-full py-3.5 sm:py-4 rounded-xl font-black tracking-widest uppercase btn-game-primary text-white text-sm sm:text-base">Join Session</button>
+      <p class="text-[11px] sm:text-xs text-indigo-300/60 mt-4 sm:mt-5 font-medium">Create a room or join a friend's.</p>
     </div>
     
     <!-- Open Lobbies Container -->
-    <div id="open-rooms-container" class="w-full max-w-sm mt-6 p-6 rounded-3xl text-center game-card hidden">
+    <div id="open-rooms-container" class="w-full max-w-sm mt-4 sm:mt-6 p-5 sm:p-6 rounded-3xl text-center game-card hidden">
       <p class="text-xs font-bold text-indigo-300 uppercase tracking-widest mb-3 text-center">Live Games & Lobbies</p>
-      <div id="open-rooms-list" class="flex flex-col gap-3 max-h-48 overflow-y-auto pr-1"></div>
+      <div id="open-rooms-list" class="flex flex-col gap-2.5 max-h-40 sm:max-h-48 overflow-y-auto pr-1"></div>
     </div>
   </div>
 
   <!-- LOBBY SCREEN -->
-  <div id="lobby-screen" class="hidden absolute inset-0 z-50 flex flex-col items-center justify-center p-6" style="background: radial-gradient(circle at 50% 30%, #1c1547 0%, #0d0a27 65%, #050314 100%);">
-    <h1 class="text-5xl font-black tracking-[0.3em] uppercase mb-1 text-center game-font" style="color:#ff007f; text-shadow: 0 0 20px rgba(255,0,127,0.7);">DOSA</h1>
-    <p class="text-xs font-bold tracking-[0.5em] text-indigo-300 mb-8 uppercase game-font">Online</p>
-    <div class="w-full max-w-sm p-6 rounded-3xl game-card">
+  <div id="lobby-screen" class="hidden absolute inset-0 z-50 flex flex-col items-center justify-center p-4 sm:p-6 overflow-y-auto" style="background: radial-gradient(circle at 50% 30%, #1c1547 0%, #0d0a27 65%, #050314 100%);">
+    <h1 class="text-3xl sm:text-5xl font-black tracking-[0.3em] uppercase mb-1 text-center game-font" style="color:#ff007f; text-shadow: 0 0 20px rgba(255,0,127,0.7);">DOSA</h1>
+    <p class="text-[11px] sm:text-xs font-bold tracking-[0.5em] text-indigo-300 mb-5 sm:mb-8 uppercase game-font">Online</p>
+    <div class="w-full max-w-sm p-5 sm:p-6 rounded-3xl game-card">
       <div class="mb-5 text-center">
         <h2 class="text-xl font-black text-white tracking-tight game-font" id="lobby-room-code">Room: ----</h2>
         <p class="text-xs font-bold text-indigo-300 uppercase tracking-widest mt-1">Select Your Player</p>
@@ -296,22 +335,22 @@
   </div>
 
   <!-- GAME SCREEN -->
-  <div id="game-screen" class="hidden h-full flex-col">
+  <div id="game-screen" class="hidden h-full flex flex-col justify-between items-center overflow-hidden">
     <!-- Header -->
-    <header class="text-center pt-6 pb-2 relative z-10 flex-shrink-0 flex items-center justify-between px-5">
-      <button onclick="leaveRoom()" class="w-10 h-10 rounded-full flex items-center justify-center transition-all" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15); color: #94a3b8;" title="Leave">
+    <header class="game-header w-full text-center pt-5 pb-1 relative z-10 flex-shrink-0 flex items-center justify-between px-4 max-w-[440px]">
+      <button onclick="leaveRoom()" class="w-10 h-10 rounded-2xl flex items-center justify-center transition-all btn-game-secondary text-slate-300" title="Leave">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clip-rule="evenodd" /></svg>
       </button>
       <div>
-        <h1 class="text-2xl font-black tracking-[0.4em] uppercase" style="color:#ff007f; text-shadow: 0 0 15px rgba(255,0,127,0.8);">DOSA</h1>
-        <p id="status-text" class="text-xs font-bold mt-1 inline-block px-5 py-1.5 rounded-full tracking-widest uppercase transition-all duration-300" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15); color: #e2e8f0;">Game Started</p>
+        <h1 class="text-2xl font-black tracking-[0.4em] uppercase game-font" style="color:#ff007f; text-shadow: 0 0 15px rgba(255,0,127,0.8);">DOSA</h1>
+        <p id="status-text" class="text-xs font-bold mt-0.5 inline-block px-4 py-1 rounded-full tracking-widest uppercase transition-all duration-300" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15); color: #e2e8f0;">Game Started</p>
       </div>
       <div class="w-10 pointer-events-none"></div>
     </header>
 
-    <!-- Board Area -->
-    <div class="w-full max-w-[420px] mx-auto relative aspect-square flex-shrink-0 z-10">
-      <div id="board-container" class="absolute inset-4 transition-transform duration-700 ease-in-out">
+    <!-- Board Area with Adaptive Mobile Constraints -->
+    <div class="board-wrapper mx-auto relative flex-shrink-0 z-10 my-auto flex items-center justify-center">
+      <div id="board-container" class="absolute inset-2 sm:inset-3 transition-transform duration-700 ease-in-out">
         <!-- Surface with Cyber Bezel -->
         <div class="absolute inset-0 rounded-3xl border border-white/20 shadow-2xl" style="background: radial-gradient(circle at 50% 50%, #151138 0%, #0d0a27 60%, #060414 100%); box-shadow: 0 20px 50px rgba(0,0,0,0.8), 0 0 35px rgba(99,102,241,0.25), inset 0 2px 4px rgba(255,255,255,0.12), inset 0 -2px 6px rgba(0,0,0,0.8);"></div>
         <div id="holes" class="absolute inset-0 z-0"></div>
@@ -320,7 +359,7 @@
     </div>
 
     <!-- Bottom UI Controls -->
-    <div class="flex-1 w-full max-w-[420px] mx-auto mt-2 mb-6 px-4 flex justify-between items-center relative z-10">
+    <div class="controls-bar w-full max-w-[420px] mx-auto mt-1 mb-5 px-6 flex justify-between items-center relative z-10 flex-shrink-0">
       
       <!-- Emote Button with Tap-to-Toggle & Scrollable Menu -->
       <div class="relative" id="emote-container">
@@ -1011,8 +1050,9 @@ function initBoard(keepState = false) {
       border = 'rgba(255,255,255,0.16)';
       shadow = 'inset 0 2px 5px rgba(0,0,0,0.9), 0 1px 1px rgba(255,255,255,0.08)';
     }
+    const holeSizePct = (0.78 / GRID_SIZE) * 100;
     el.className = `absolute rounded-full board-hole`;
-    el.style.cssText = `left:${(x + OFFSET + 0.5) * (100 / GRID_SIZE)}%; top:${(y + OFFSET + 0.5) * (100 / GRID_SIZE)}%; width:4.2%; height:4.2%; transform:translate(-50%,-50%); background:${bg}; border: 1px solid ${border}; box-shadow: ${shadow};`;
+    el.style.cssText = `left:${(x + OFFSET + 0.5) * (100 / GRID_SIZE)}%; top:${(y + OFFSET + 0.5) * (100 / GRID_SIZE)}%; width:${holeSizePct}%; height:${holeSizePct}%; transform:translate(-50%,-50%); background:${bg}; border: 1px solid ${border}; box-shadow: ${shadow};`;
     holesEl.appendChild(el);
   }
 
@@ -1070,7 +1110,8 @@ function initBoard(keepState = false) {
       el.id = `piece-${id}`;
       el.className = `piece absolute rounded-full z-10`;
       const dotCol = PLAYERS[p].dotColor;
-      el.style.cssText = `width:3.2%; height:3.2%; transform:translate(-50%,-50%); background: radial-gradient(circle at 35% 35%, #ffffff 0%, ${dotCol} 55%, #050510 110%); box-shadow: 0 4px 8px rgba(0,0,0,0.7), 0 0 12px ${dotCol}88, inset 0 1px 2px rgba(255,255,255,0.8); border: 1px solid rgba(255,255,255,0.4);`;
+      const pieceSizePct = (0.65 / GRID_SIZE) * 100;
+      el.style.cssText = `width:${pieceSizePct}%; height:${pieceSizePct}%; transform:translate(-50%,-50%); background: radial-gradient(circle at 35% 35%, #ffffff 0%, ${dotCol} 55%, #050510 110%); box-shadow: 0 4px 8px rgba(0,0,0,0.7), 0 0 12px ${dotCol}88, inset 0 1px 2px rgba(255,255,255,0.8); border: 1px solid rgba(255,255,255,0.4);`;
       piecesContainer.appendChild(el);
     }
   }
