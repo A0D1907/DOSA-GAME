@@ -923,7 +923,25 @@ async function handleAuthSubmit(e) {
     });
     const data = await res.json();
     if (!res.ok) {
-      if (errEl) errEl.innerText = data.error || 'Authentication failed';
+      if (errEl) {
+        errEl.innerText = data.error || 'Authentication failed';
+        if (data.alreadyExistsWithPassword) {
+          errEl.className = 'text-xs text-amber-300 min-h-[16px] text-center font-medium';
+          setTimeout(() => {
+            switchAuthTab('login');
+            const passInput = document.getElementById('auth-password');
+            if (passInput) passInput.value = password;
+            const uInput = document.getElementById('auth-username');
+            if (uInput) uInput.value = username;
+            if (errEl) {
+              errEl.className = 'text-xs text-emerald-400 min-h-[16px] text-center font-medium';
+              errEl.innerText = 'Account found! Click Sign In to enter.';
+            }
+          }, 1500);
+        } else {
+          errEl.className = 'text-xs text-rose-400 min-h-[16px] text-center font-medium';
+        }
+      }
       return;
     }
 
@@ -1318,6 +1336,7 @@ function acceptFriendInvite(roomId) {
 
 // =============== NETWORK HANDLERS ===============
 socket.on('connect', () => {
+  updateConnectionBanner(false);
   if (currentPlayerIdentity) {
     socket.emit('register_identity', currentPlayerIdentity);
   }
@@ -2452,18 +2471,30 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 });
 
+let reconnectDebounceTimer = null;
+
 function updateConnectionBanner(isDisconnected) {
-  let banner = document.getElementById('connection-status-banner');
+  clearTimeout(reconnectDebounceTimer);
   if (isDisconnected) {
-    if (!banner) {
-      banner = document.createElement('div');
-      banner.id = 'connection-status-banner';
-      banner.className = 'fixed top-3 left-1/2 -translate-x-1/2 z-[250] px-4 py-1.5 rounded-full text-xs font-medium text-amber-200 bg-zinc-900/90 border border-amber-500/30 backdrop-blur-md shadow-xl flex items-center gap-2';
-      banner.innerHTML = '<span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span> Reconnecting...';
-      document.body.appendChild(banner);
+    // Only display banner if disconnected continuously for more than 1500ms
+    // Prevents random blips, WebSocket transport upgrades, and momentary visibility changes
+    reconnectDebounceTimer = setTimeout(() => {
+      if (!socket.connected) {
+        let banner = document.getElementById('connection-status-banner');
+        if (!banner) {
+          banner = document.createElement('div');
+          banner.id = 'connection-status-banner';
+          banner.className = 'fixed top-3 left-1/2 -translate-x-1/2 z-[250] px-4 py-1.5 rounded-full text-xs font-medium text-amber-200 bg-zinc-900/90 border border-amber-500/30 backdrop-blur-md shadow-xl flex items-center gap-2 pointer-events-none transition-all duration-200';
+          banner.innerHTML = '<span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span> Reconnecting...';
+          document.body.appendChild(banner);
+        }
+      }
+    }, 1500);
+  } else {
+    const banner = document.getElementById('connection-status-banner');
+    if (banner) {
+      banner.remove();
     }
-  } else if (banner) {
-    banner.remove();
   }
 }
 
@@ -2477,6 +2508,7 @@ document.addEventListener("visibilitychange", () => {
       updateConnectionBanner(true);
       socket.connect();
     } else {
+      updateConnectionBanner(false);
       const code = getSession('dosaRoom');
       const slot = getSession('dosaSlot');
       const name = getSession('dosaName');

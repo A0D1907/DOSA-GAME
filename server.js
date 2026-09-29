@@ -19,22 +19,45 @@ app.use(express.static(__dirname));
 app.post('/api/register', (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) return res.status(400).json({ error: 'Missing username or password' });
-  bcrypt.hash(password, 10, (err, hash) => {
+  
+  db.get("SELECT * FROM users WHERE username = ?", [username], (err, row) => {
     if (err) return res.status(500).json({ error: 'Server error' });
-    db.run("INSERT INTO users (username, password) VALUES (?, ?)", [username, hash], function(err) {
-      if (err) return res.status(400).json({ error: 'Username taken' });
-      res.json({ id: this.lastID, username });
+    
+    if (row) {
+      bcrypt.compare(password, row.password, (cmpErr, isMatch) => {
+        if (isMatch) {
+          return res.status(400).json({
+            error: 'An account with this username and password already exists. Please sign in instead!',
+            alreadyExistsWithPassword: true
+          });
+        } else {
+          return res.status(400).json({
+            error: 'Username is already taken. Please choose another username.'
+          });
+        }
+      });
+      return;
+    }
+
+    bcrypt.hash(password, 10, (hashErr, hash) => {
+      if (hashErr) return res.status(500).json({ error: 'Server error' });
+      db.run("INSERT INTO users (username, password) VALUES (?, ?)", [username, hash], function(insertErr) {
+        if (insertErr) return res.status(400).json({ error: 'Username taken' });
+        res.json({ id: this.lastID, username });
+      });
     });
   });
 });
 
 app.post('/api/login', (req, res) => {
   const { username, password } = req.body;
+  if (!username || !password) return res.status(400).json({ error: 'Missing username or password' });
   db.get("SELECT * FROM users WHERE username = ?", [username], (err, row) => {
-    if (err || !row) return res.status(400).json({ error: 'Invalid username or password' });
-    bcrypt.compare(password, row.password, (err, result) => {
+    if (err) return res.status(500).json({ error: 'Server error' });
+    if (!row) return res.status(400).json({ error: 'No account found with this username. Please register first!' });
+    bcrypt.compare(password, row.password, (cmpErr, result) => {
       if (result) res.json({ id: row.id, username: row.username });
-      else res.status(400).json({ error: 'Invalid username or password' });
+      else res.status(400).json({ error: 'Incorrect password for this account.' });
     });
   });
 });
