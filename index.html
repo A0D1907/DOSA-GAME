@@ -18,13 +18,13 @@
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
     
     :root {
-      --bg-main: #09090b;
-      --card-bg: #121215;
-      --card-border: rgba(255, 255, 255, 0.08);
-      --p1: #f43f5e;
-      --p2: #38bdf8;
-      --p3: #fbbf24;
-      --p4: #34d399;
+      --bg-main: #0d1117;
+      --card-bg: #161b22;
+      --card-border: rgba(255, 255, 255, 0.1);
+      --p1: #ef4444;
+      --p2: #3b82f6;
+      --p3: #f59e0b;
+      --p4: #22c55e;
     }
 
     * {
@@ -37,55 +37,55 @@
       overscroll-behavior: none;
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background: var(--bg-main);
-      color: #fafafa;
+      color: #e6edf3;
       min-height: 100vh;
       overflow: hidden;
       font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
     }
 
     .modern-card {
-      background: #121215;
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: #161b22;
+      border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: 1.25rem;
       box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.8), 0 0 1px 1px rgba(255, 255, 255, 0.05);
     }
 
     .btn-modern-primary {
       background: #ffffff;
-      color: #09090b;
+      color: #0d1117;
       font-weight: 600;
       border-radius: 0.75rem;
       transition: all 0.15s ease;
       box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
     }
     .btn-modern-primary:hover:not(:disabled) {
-      background: #e4e4e7;
+      background: #d0d7de;
       transform: translateY(-1px);
     }
     .btn-modern-primary:active:not(:disabled) {
       transform: translateY(1px);
-      background: #d4d4d8;
+      background: #8b949e;
     }
 
     .btn-modern-secondary {
-      background: #18181b;
-      color: #e4e4e7;
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: #21262d;
+      color: #e6edf3;
+      border: 1px solid rgba(255, 255, 255, 0.15);
       border-radius: 0.75rem;
       font-weight: 500;
       transition: all 0.15s ease;
     }
     .btn-modern-secondary:hover:not(:disabled) {
-      background: #27272a;
-      border-color: rgba(255, 255, 255, 0.2);
+      background: #30363d;
+      border-color: rgba(255, 255, 255, 0.25);
     }
     .btn-modern-secondary:active:not(:disabled) {
       transform: translateY(1px);
     }
 
     .board-bezel {
-      background: #101013;
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: #0d1117;
+      border: 1px solid rgba(255, 255, 255, 0.12);
       box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.6), 0 20px 40px rgba(0, 0, 0, 0.7);
       border-radius: 1.75rem;
     }
@@ -545,17 +545,18 @@
         </div>
       </div>
 
-      <button id="dice-btn" onclick="rollDice()" class="w-20 h-20 rounded-2xl flex flex-col items-center justify-center transition-all bg-white hover:bg-zinc-200 active:scale-95 shadow-md" title="Roll Dice">
+      <button id="dice-btn" onclick="rollDice()" class="w-20 h-20 rounded-2xl flex flex-col items-center justify-center transition-all bg-white hover:bg-zinc-200 active:scale-95 shadow-md" title="Roll Dice" disabled>
         <div class="dice-scene pointer-events-none">
           <div class="cube" id="dice-cube" style="--player-color: #f43f5e;">
             <div class="face face-1"><div class="dot"></div></div>
             <div class="face face-2"><div class="dot"></div><div class="dot"></div></div>
-            <div class="face face-3"><div class="dot"></div><div class="dot"></div></div>
-            <div class="face face-4"><div class="dot"></div><div class="dot"></div></div>
+            <div class="face face-3"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+            <div class="face face-4"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
             <div class="face face-5"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
             <div class="face face-6"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
           </div>
         </div>
+        <span id="dice-label" class="text-[10px] font-bold text-zinc-500 mt-1 uppercase tracking-wider">Roll</span>
       </button>
 
       <button onclick="openDiceStatsModal()" class="w-14 h-14 rounded-2xl flex flex-col items-center justify-center text-xs font-medium btn-modern-secondary gap-0.5" title="Cube Statistics">
@@ -660,17 +661,17 @@ function updateBoardConstants() {
 }
 
 const PLAYERS = {
-  0: { color: 'bg-rose-500', dotColor: '#f43f5e', text: 'text-rose-400', name: 'Player 1' },
-  1: { color: 'bg-sky-400', dotColor: '#38bdf8', text: 'text-sky-400', name: 'Player 2' },
-  2: { color: 'bg-amber-400', dotColor: '#fbbf24', text: 'text-amber-400', name: 'Player 3' },
-  3: { color: 'bg-emerald-400', dotColor: '#34d399', text: 'text-emerald-400', name: 'Player 4' }
+  0: { color: 'bg-red-500', dotColor: '#ef4444', text: 'text-red-400', name: 'Player 1' },
+  1: { color: 'bg-blue-500', dotColor: '#3b82f6', text: 'text-blue-400', name: 'Player 2' },
+  2: { color: 'bg-amber-500', dotColor: '#f59e0b', text: 'text-amber-400', name: 'Player 3' },
+  3: { color: 'bg-green-500', dotColor: '#22c55e', text: 'text-green-400', name: 'Player 4' }
 };
 
 const CUBE_FACE_ANGLES = [
   { x: 0, y: 0 },       // Face 1: Front
   { x: 0, y: -90 },     // Face 2: Right
-  { x: -90, y: 0 },     // Face 3: Top
-  { x: 90, y: 0 },      // Face 4: Bottom
+  { x: 90, y: 0 },      // Face 3: Top (was -90, swapped with face 4)
+  { x: -90, y: 0 },     // Face 4: Bottom (was 90, swapped with face 3)
   { x: 0, y: 90 },      // Face 5: Left
   { x: 0, y: 180 }      // Face 6: Back
 ];
@@ -783,6 +784,7 @@ let isHost = false;
 let latestSlots = [];
 let latestPlayerNames = ['', '', '', ''];
 let visualMap = {0: 0, 1: 1, 2: 2, 3: 3};
+let isSpectating = false;
 
 // =============== GAME STATE ===============
 let pieces = [];
@@ -1343,11 +1345,18 @@ socket.on('connect', () => {
   const code = getSession('dosaRoom');
   const slot = getSession('dosaSlot');
   const name = getSession('dosaName');
+  const isSpectateSession = getSession('dosaSpectate') === 'true';
   
   if (code && slot !== null) {
+    isSpectating = false;
     socket.emit('reclaim_slot', { roomId: code, slot: parseInt(slot), playerName: name || ('Player ' + (parseInt(slot) + 1)) });
     setTimeout(() => socket.emit('request_sync'), 300);
+  } else if (code && isSpectateSession) {
+    isSpectating = true;
+    socket.emit('join_room', { roomId: code, playerName: 'Spectator', spectate: true });
+    setTimeout(() => socket.emit('request_sync'), 300);
   } else if (code) {
+    isSpectating = false;
     socket.emit('join_room', code); 
     setTimeout(() => socket.emit('request_sync'), 300); 
   }
@@ -1428,10 +1437,14 @@ socket.on('lobby_state', (state) => {
 
   isHost = (state.host === socket.id || state.slots.find(s => s !== null && s !== 'bot') === socket.id);
 
+  // Spectator mode: in a playing game but not assigned to a slot
+  isSpectating = (state.gameState === 'playing' && mySlot === null);
+
   if (state.gameState === 'playing') {
     document.getElementById('home-screen').classList.add('hidden');
     document.getElementById('lobby-screen').classList.add('hidden');
     document.getElementById('game-screen').classList.remove('hidden');
+    document.getElementById('game-screen').classList.add('flex');
     socket.emit('request_sync');
     return;
   }
@@ -1573,6 +1586,7 @@ function copyRoomInvite() {
 }
 
 function quickMatchVsAI() {
+  isSpectating = false;
   const name = document.getElementById('nickname-input')?.value.trim() || 'Player 1';
   const code = 'SOLO' + Math.floor(100 + Math.random() * 900);
   saveSession('dosaRoom', code);
@@ -1588,6 +1602,7 @@ function quickMatchVsAI() {
 }
 
 function joinRoom() {
+  isSpectating = false;
   const code = document.getElementById('room-code-input').value.toUpperCase().trim();
   const name = document.getElementById('nickname-input')?.value.trim() || 'Player';
   if (code.length > 0) {
@@ -1641,6 +1656,7 @@ function resetSession() {
 }
 
 function returnToLobby() {
+  isSpectating = false;
   if (botTurnTimer) { clearTimeout(botTurnTimer); botTurnTimer = null; }
   socket.emit('return_to_lobby');
   document.getElementById('victory-screen')?.classList.add('hidden');
@@ -1652,10 +1668,12 @@ function returnToLobby() {
 }
 
 function leaveRoom() {
+  isSpectating = false;
   if (botTurnTimer) { clearTimeout(botTurnTimer); botTurnTimer = null; }
   socket.emit('leave_room');
   clearSession('dosaRoom');
   clearSession('dosaSlot');
+  clearSession('dosaSpectate');
   document.getElementById('game-screen')?.classList.add('hidden');
   document.getElementById('game-screen')?.classList.remove('flex');
   document.getElementById('lobby-screen')?.classList.add('hidden');
@@ -2126,6 +2144,7 @@ function updateUI() {
   let nameStr = latestPlayerNames[currentPlayer] || ('Player ' + (currentPlayer + 1));
   let isMyTurn = (currentPlayer === mySlot);
   let prefix = isMyTurn ? 'Your Turn' : (nameStr + "'s Turn");
+  if (isSpectating) prefix = 'Spectating: ' + nameStr + "'s Turn";
   if (statusEl) statusEl.innerText = prefix;
   
   const col = PLAYERS[currentPlayer]?.dotColor || '#38bdf8';
@@ -2146,25 +2165,52 @@ function updateUI() {
       
       chip.className = `flex items-center gap-1.5 px-2 py-1 rounded-lg transition-all ` + (isTurn ? 'bg-zinc-800 border border-zinc-700' : 'opacity-60');
       
+      let label = pName;
+      if (isMe) label += ' (You)';
+      if (isSpectating) label += ' 👁️';
+      
       chip.innerHTML = `
         <div class="w-2 h-2 rounded-full ${PLAYERS[p].color}"></div>
-        <div class="text-[10px] font-medium truncate max-w-[55px] ${isTurn ? 'text-white font-semibold' : 'text-zinc-400'}">${pName}${isMe ? ' (You)' : ''}</div>
+        <div class="text-[10px] font-medium truncate max-w-[55px] ${isTurn ? 'text-white font-semibold' : 'text-zinc-400'}">${label}</div>
       `;
       hudBar.appendChild(chip);
     }
   }
 
   const cube = document.getElementById('dice-cube');
+  const diceBtn = document.getElementById('dice-btn');
+  const diceLabel = document.getElementById('dice-label');
+  const isMyTurnToRoll = (currentPlayer === mySlot) && !diceRolled && !isAnimating && !isSpectating;
+  const isBotTurn = isHost && latestSlots[currentPlayer] === 'bot';
+
   if (cube) {
     cube.style.setProperty('--player-color', PLAYERS[currentPlayer]?.dotColor || '#f43f5e');
-    if (isHost && latestSlots[currentPlayer] === 'bot' && !diceRolled && !isAnimating) {
+    
+    if (isBotTurn && !diceRolled && !isAnimating) {
       if (botTurnTimer) clearTimeout(botTurnTimer);
       botTurnTimer = setTimeout(() => rollDice(true), 750);
     }
+    
     if (!diceRolled && !isAnimating) {
       cube.style.transition = 'transform 0.4s ease-out';
-      cube.style.transform = `rotateX(${cubeAngleX}deg) rotateY(${cubeAngleY}deg)`;
+      cube.style.transform = `rotateX(-25deg) rotateY(45deg)`;
     }
+  }
+  
+  if (diceBtn) {
+    if (isSpectating) {
+      diceBtn.style.display = 'none';
+    } else {
+      diceBtn.style.display = 'flex';
+      diceBtn.disabled = !isMyTurnToRoll;
+      diceBtn.style.opacity = isMyTurnToRoll ? '1' : '0.5';
+      diceBtn.style.cursor = isMyTurnToRoll ? 'pointer' : 'not-allowed';
+    }
+  }
+  
+  if (diceLabel) {
+    diceLabel.innerText = diceRolled ? ('Rolled: ' + diceValue) : 'Roll';
+    diceLabel.style.color = diceRolled ? '#38bdf8' : '#71717a';
   }
 
   if (isHost && pieces && pieces.length > 0) {
@@ -2431,14 +2477,12 @@ socket.on('open_rooms', (roomsList) => {
   container.classList.remove('hidden');
   activeRooms.forEach(room => {
     const el = document.createElement('div');
-    el.className = 'flex flex-col gap-1 p-2.5 rounded-xl text-left transition-all hover:bg-zinc-800 bg-zinc-900 border border-zinc-800 cursor-pointer';
-    el.onclick = () => {
-      document.getElementById('room-code-input').value = room.roomId;
-      joinRoom();
-    };
+    el.className = 'flex flex-col gap-1 p-2.5 rounded-xl text-left transition-all hover:bg-zinc-800 bg-zinc-900 border border-zinc-800';
     
     const statusText = room.gameState === 'lobby' ? 'In Lobby' : 'Playing';
     const statusColor = room.gameState === 'lobby' ? 'text-emerald-400' : 'text-sky-400';
+    const canJoin = room.gameState === 'lobby' && room.totalCount < 4;
+    const canSpectate = room.gameState === 'playing';
     
     el.innerHTML = `
       <div class="flex justify-between items-center">
@@ -2451,10 +2495,42 @@ socket.on('open_rooms', (roomsList) => {
       <div class="text-[10px] text-zinc-500 truncate">
         ${room.playerNames.join(', ')}
       </div>
+      <div class="flex gap-1.5 mt-1.5 pt-1.5 border-t border-zinc-800">
+        ${canJoin ? `
+          <button onclick="event.stopPropagation(); joinRoomDirect('${room.roomId}')" class="flex-1 py-1.5 rounded-lg text-[10px] font-semibold btn-modern-primary">Join</button>
+        ` : ''}
+        ${canSpectate ? `
+          <button onclick="event.stopPropagation(); spectateRoom('${room.roomId}')" class="flex-1 py-1.5 rounded-lg text-[10px] font-medium btn-modern-secondary">Spectate</button>
+        ` : ''}
+        ${!canJoin && !canSpectate ? `
+          <span class="flex-1 py-1.5 rounded-lg text-[10px] text-center text-zinc-500 bg-zinc-800">Full</span>
+        ` : ''}
+      </div>
     `;
     listEl.appendChild(el);
   });
 });
+
+function joinRoomDirect(roomId) {
+  const name = document.getElementById('nickname-input')?.value.trim() || 'Player';
+  saveSession('dosaRoom', roomId);
+  saveSession('dosaName', name);
+  socket.emit('join_room', { roomId, playerName: name });
+  document.getElementById('home-screen').classList.add('hidden');
+  document.getElementById('lobby-screen').classList.remove('hidden');
+}
+
+function spectateRoom(roomId) {
+  isSpectating = true;
+  saveSession('dosaRoom', roomId);
+  saveSession('dosaSpectate', 'true');
+  socket.emit('join_room', { roomId, playerName: 'Spectator', spectate: true });
+  document.getElementById('home-screen').classList.add('hidden');
+  document.getElementById('lobby-screen').classList.add('hidden');
+  document.getElementById('game-screen')?.classList.remove('hidden');
+  document.getElementById('game-screen')?.classList.add('flex');
+  document.getElementById('main-nav-bar')?.classList.add('hidden');
+}
 
 document.addEventListener("DOMContentLoaded", () => {
   initPlayerIdentity();

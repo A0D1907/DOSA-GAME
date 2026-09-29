@@ -11,6 +11,21 @@ const db = new sqlite3.Database(path.join(__dirname, 'database.sqlite'));
 db.serialize(() => {
   db.run("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE, password TEXT)");
   db.run("CREATE TABLE IF NOT EXISTS friends (user_id INTEGER, friend_id INTEGER, PRIMARY KEY(user_id, friend_id))");
+  
+  // New tables for player identities and friendships (persistent across deploys)
+  db.run(`CREATE TABLE IF NOT EXISTS player_identities (
+    id TEXT PRIMARY KEY,
+    username TEXT NOT NULL,
+    tag TEXT NOT NULL,
+    last_seen INTEGER NOT NULL,
+    is_registered INTEGER DEFAULT 0,
+    user_id INTEGER REFERENCES users(id)
+  )`);
+  db.run(`CREATE TABLE IF NOT EXISTS player_friends (
+    player_id TEXT NOT NULL,
+    friend_id TEXT NOT NULL,
+    PRIMARY KEY(player_id, friend_id)
+  )`);
 });
 
 app.use(express.json());
@@ -62,30 +77,10 @@ app.post('/api/login', (req, res) => {
   });
 });
 
-const fs = require('fs');
-
-// Persistent JSON store for players and friendships so redeploys never wipe accounts
-const STORE_PATH = path.join(__dirname, 'players_store.json');
-let playerStore = { players: {}, friends: {} }; // players: id -> { id, username, tag, lastSeen }, friends: id -> [friendIds]
-
-try {
-  if (fs.existsSync(STORE_PATH)) {
-    playerStore = JSON.parse(fs.readFileSync(STORE_PATH, 'utf8'));
-  }
-} catch (e) {
-  console.log('Using fresh playerStore');
-}
-
-function persistStore() {
-  try {
-    fs.writeFileSync(STORE_PATH, JSON.stringify(playerStore, null, 2));
-  } catch (e) {}
-}
-
 const activeSockets = {}; // socket.id -> { id, username, tag }
 const userToSocket = {}; // id -> socket.id
 
-// Register or get player identity
+// Register or get player identity - now uses SQLite
 app.post('/api/player/sync', (req, res) => {
   let { id, username, tag } = req.body;
   if (!id) {
@@ -97,11 +92,16 @@ app.post('/api/player/sync', (req, res) => {
     tag = `${username}#${code}`;
   }
 
-  playerStore.players[id] = { id, username, tag, lastSeen: Date.now() };
-  if (!playerStore.friends[id]) playerStore.friends[id] = [];
-  persistStore();
-
-  res.json({ id, username, tag });
+  const isRegistered = id.startsWith('u_');
+  const userId = isRegistered ? id.replace('u_', '') : null;
+  
+db.run(`INSERT OR REPLACE INTO player_identities (id, username, tag, last_seen, is_registered, user_id) 
+            VALUES (?, ?, ?, ?, ?, ?)`,
+      [id, username, tag, Date.now(), isRegistered ? 1 : 0, userId],
+      (err) => {
+        if (err) return res.status(500).json({ error: 'Server error' });
+        res.json({ id, username, tag });
+      });
 });
 
 // Get currently online players for effortless 1-click adding
@@ -120,20 +120,22 @@ app.get('/api/online-players', (req, res) => {
 
 app.get('/api/friends/:userId', (req, res) => {
   const userId = req.params.userId;
-  const friendIds = playerStore.friends[userId] || [];
   
-  const list = friendIds.map(fId => {
-    const p = playerStore.players[fId] || { id: fId, username: 'Friend', tag: `#${fId.slice(-4)}` };
-    const isOnline = !!userToSocket[fId];
-    return {
-      id: p.id,
-      username: p.username,
-      tag: p.tag,
-      isOnline
-    };
-  });
-
-  res.json(list);
+  db.all(`SELECT pf.friend_id, pi.username, pi.tag 
+          FROM player_friends pf
+          JOIN player_identities pi ON pf.friend_id = pi.id
+          WHERE pf.player_id = ? AND pf.friend_id != ?`, 
+    [userId, userId], (err, rows) => {
+      if (err) return res.status(500).json({ error: 'Server error' });
+      
+      const list = (rows || []).map(row => ({
+        id: row.friend_id,
+        username: row.username,
+        tag: row.tag,
+        isOnline: !!userToSocket[row.friend_id]
+      }));
+      res.json(list);
+    });
 });
 
 app.post('/api/friends', (req, res) => {
@@ -142,70 +144,76 @@ app.post('/api/friends', (req, res) => {
   
   const q = query.trim().toLowerCase();
   
-  // 1. Check known players store
-  let target = Object.values(playerStore.players).find(p => 
-    p.id !== userId && (
-      p.tag.toLowerCase() === q ||
-      p.username.toLowerCase() === q ||
-      p.tag.toLowerCase().startsWith(q)
-    )
-  );
-
-  // 2. Check active online sockets
-  if (!target) {
-    target = Object.values(activeSockets).find(p => 
-      p.id !== userId && (
-        p.tag.toLowerCase() === q ||
-        p.username.toLowerCase() === q ||
-        p.tag.toLowerCase().startsWith(q)
-      )
-    );
-  }
-
-  // 3. Fallback: Check SQLite
-  if (!target) {
-    return db.get("SELECT id, username FROM users WHERE LOWER(TRIM(username)) = LOWER(?)", [q], (err, row) => {
-      if (err || !row) {
-        return res.status(404).json({ error: `Player "${query}" not found. Ensure they entered a nickname or are online.` });
+  // 1. Check known players in SQLite
+  db.get(`SELECT id, username, tag FROM player_identities 
+          WHERE id != ? AND (LOWER(tag) = ? OR LOWER(username) = ? OR LOWER(tag) LIKE ?)`,
+    [userId, q, q, q + '%'], (err, target) => {
+      if (err) return res.status(500).json({ error: 'Server error' });
+      
+      // 2. Check active online sockets
+      if (!target) {
+        target = Object.values(activeSockets).find(p => 
+          p.id !== userId && (
+            p.tag.toLowerCase() === q ||
+            p.username.toLowerCase() === q ||
+            p.tag.toLowerCase().startsWith(q)
+          )
+        );
       }
-      const targetId = 'usr_' + row.id;
-      const targetTag = `${row.username}#${row.id}`;
-      playerStore.players[targetId] = { id: targetId, username: row.username, tag: targetTag, lastSeen: Date.now() };
-      completeFriendAdd(userId, targetId, row.username, targetTag, res);
-    });
-  }
 
-  completeFriendAdd(userId, target.id, target.username, target.tag, res);
+      // 3. Fallback: Check registered users in SQLite
+      if (!target) {
+        return db.get("SELECT id, username FROM users WHERE LOWER(TRIM(username)) = LOWER(?)", [q], (err, row) => {
+          if (err || !row) {
+            return res.status(404).json({ error: `Player "${query}" not found. Ensure they entered a nickname or are online.` });
+          }
+          const targetId = 'usr_' + row.id;
+          const targetTag = `${row.username}#${row.id}`;
+          // Upsert into player_identities
+          db.run(`INSERT OR REPLACE INTO player_identities (id, username, tag, last_seen, is_registered, user_id) 
+                  VALUES (?, ?, ?, ?, 1, ?)`,
+            [targetId, row.username, targetTag, Date.now(), row.id],
+            (err) => {
+              if (err) return res.status(500).json({ error: 'Server error' });
+              completeFriendAdd(userId, targetId, row.username, targetTag, res);
+            });
+        });
+      }
+
+      completeFriendAdd(userId, target.id, target.username, target.tag, res);
+    });
 });
 
 function completeFriendAdd(u1, u2, friendName, friendTag, res) {
   if (u1 === u2) return res.status(400).json({ error: 'You cannot add yourself' });
-  if (!playerStore.friends[u1]) playerStore.friends[u1] = [];
-  if (!playerStore.friends[u2]) playerStore.friends[u2] = [];
 
-  if (playerStore.friends[u1].includes(u2)) {
-    return res.status(400).json({ error: 'Already friends' });
-  }
-
-  playerStore.friends[u1].push(u2);
-  playerStore.friends[u2].push(u1);
-  persistStore();
-
-  io.emit('friends_updated');
-  res.json({ id: u2, username: friendName, tag: friendTag });
+  // Ensure both players exist in player_identities
+  db.get(`SELECT id FROM player_identities WHERE id = ?`, [u2], (err, row) => {
+    if (err) return res.status(500).json({ error: 'Server error' });
+    if (!row) {
+      return res.status(404).json({ error: 'Player not found' });
+    }
+    
+    // Add friendship both ways
+    db.run(`INSERT OR IGNORE INTO player_friends (player_id, friend_id) VALUES (?, ?)`, [u1, u2], (err) => {
+      if (err) return res.status(500).json({ error: 'Server error' });
+      db.run(`INSERT OR IGNORE INTO player_friends (player_id, friend_id) VALUES (?, ?)`, [u2, u1], (err) => {
+        if (err) return res.status(500).json({ error: 'Server error' });
+        io.emit('friends_updated');
+        res.json({ id: u2, username: friendName, tag: friendTag });
+      });
+    });
+  });
 }
 
 app.delete('/api/friends', (req, res) => {
   const { userId, friendId } = req.body;
-  if (playerStore.friends[userId]) {
-    playerStore.friends[userId] = playerStore.friends[userId].filter(id => id !== friendId);
-  }
-  if (playerStore.friends[friendId]) {
-    playerStore.friends[friendId] = playerStore.friends[friendId].filter(id => id !== userId);
-  }
-  persistStore();
-  io.emit('friends_updated');
-  res.json({ success: true });
+  db.run(`DELETE FROM player_friends WHERE (player_id = ? AND friend_id = ?) OR (player_id = ? AND friend_id = ?)`,
+    [userId, friendId, friendId, userId], (err) => {
+      if (err) return res.status(500).json({ error: 'Server error' });
+      io.emit('friends_updated');
+      res.json({ success: true });
+    });
 });
 
 app.get('/', (req, res) => {
@@ -310,9 +318,15 @@ io.on('connection', (socket) => {
     const username = (player.username || 'Player').trim();
     const tag = player.tag || `${username}#${id.slice(-4)}`;
 
-    playerStore.players[id] = { id, username, tag, lastSeen: Date.now() };
-    if (!playerStore.friends[id]) playerStore.friends[id] = [];
-    persistStore();
+    const isRegistered = id.startsWith('u_');
+    const userId = isRegistered ? id.replace('u_', '') : null;
+    
+    db.run(`INSERT OR REPLACE INTO player_identities (id, username, tag, last_seen, is_registered, user_id) 
+            VALUES (?, ?, ?, ?, ?, ?)`,
+      [id, username, tag, Date.now(), isRegistered ? 1 : 0, userId],
+      (err) => {
+        if (err) console.error('register_identity error:', err);
+      });
 
     activeSockets[socket.id] = { id, username, tag };
     userToSocket[id] = socket.id;
@@ -348,17 +362,19 @@ io.on('connection', (socket) => {
   socket.on('join_room', (data) => {
     const roomId = (typeof data === 'object' && data !== null) ? data.roomId : data;
     const playerName = (typeof data === 'object' && data !== null && data.playerName) ? data.playerName : null;
+    const isSpectate = (typeof data === 'object' && data !== null && data.spectate === true);
     
     Array.from(socket.rooms).forEach(r => {
       if(r !== socket.id) socket.leave(r);
     });
     socket.join(roomId);
     socket.roomId = roomId;
+    socket.isSpectate = isSpectate;
     
     const state = getRoomState(roomId);
 
-    // Auto-claim first empty slot if player is not currently in a slot in lobby
-    if (state.gameState === 'lobby') {
+    // Auto-claim first empty slot if player is not currently in a slot in lobby (not for spectators)
+    if (state.gameState === 'lobby' && !isSpectate) {
       const existingSlot = state.slots.indexOf(socket.id);
       if (existingSlot === -1) {
         const freeSlot = state.slots.findIndex(s => s === null);
@@ -664,6 +680,7 @@ io.on('connection', (socket) => {
     }
     socket.leave(socket.roomId);
     socket.roomId = null;
+    socket.isSpectate = false;
     broadcastOpenRooms();
   });
 
