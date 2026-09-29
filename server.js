@@ -389,6 +389,16 @@ io.on('connection', (socket) => {
     state.host = firstHuman || socket.id;
 
     io.to(roomId).emit('lobby_state', { ...state, socketId: socket.id, roomId });
+    
+    // If game is already in progress, send current game state to the new spectator/player
+    if (state.gameState === 'playing' && state.boardState) {
+      io.to(socket.id).emit('game_started', state);
+      // Also send board state for immediate rendering
+      setTimeout(() => {
+        io.to(socket.id).emit('sync_data', state.boardState);
+      }, 100);
+    }
+    
     broadcastOpenRooms();
   });
 

@@ -545,9 +545,9 @@
         </div>
       </div>
 
-      <button id="dice-btn" onclick="rollDice()" class="w-20 h-20 rounded-2xl flex flex-col items-center justify-center transition-all bg-white hover:bg-zinc-200 active:scale-95 shadow-md" title="Roll Dice" disabled>
+      <button id="dice-btn" onclick="rollDice()" class="w-20 h-20 rounded-2xl flex items-center justify-center transition-all bg-white hover:bg-zinc-200 active:scale-95 shadow-md" title="Roll Dice" disabled>
         <div class="dice-scene pointer-events-none">
-          <div class="cube" id="dice-cube" style="--player-color: #f43f5e;">
+          <div class="cube" id="dice-cube" style="--player-color: #ef4444;">
             <div class="face face-1"><div class="dot"></div></div>
             <div class="face face-2"><div class="dot"></div><div class="dot"></div></div>
             <div class="face face-3"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
@@ -556,7 +556,6 @@
             <div class="face face-6"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
           </div>
         </div>
-        <span id="dice-label" class="text-[10px] font-bold text-zinc-500 mt-1 uppercase tracking-wider">Roll</span>
       </button>
 
       <button onclick="openDiceStatsModal()" class="w-14 h-14 rounded-2xl flex flex-col items-center justify-center text-xs font-medium btn-modern-secondary gap-0.5" title="Cube Statistics">
@@ -2179,12 +2178,11 @@ function updateUI() {
 
   const cube = document.getElementById('dice-cube');
   const diceBtn = document.getElementById('dice-btn');
-  const diceLabel = document.getElementById('dice-label');
   const isMyTurnToRoll = (currentPlayer === mySlot) && !diceRolled && !isAnimating && !isSpectating;
   const isBotTurn = isHost && latestSlots[currentPlayer] === 'bot';
 
   if (cube) {
-    cube.style.setProperty('--player-color', PLAYERS[currentPlayer]?.dotColor || '#f43f5e');
+    cube.style.setProperty('--player-color', PLAYERS[currentPlayer]?.dotColor || '#ef4444');
     
     if (isBotTurn && !diceRolled && !isAnimating) {
       if (botTurnTimer) clearTimeout(botTurnTimer);
@@ -2206,11 +2204,6 @@ function updateUI() {
       diceBtn.style.opacity = isMyTurnToRoll ? '1' : '0.5';
       diceBtn.style.cursor = isMyTurnToRoll ? 'pointer' : 'not-allowed';
     }
-  }
-  
-  if (diceLabel) {
-    diceLabel.innerText = diceRolled ? ('Rolled: ' + diceValue) : 'Roll';
-    diceLabel.style.color = diceRolled ? '#38bdf8' : '#71717a';
   }
 
   if (isHost && pieces && pieces.length > 0) {
