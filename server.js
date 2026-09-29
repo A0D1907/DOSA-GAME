@@ -1,11 +1,70 @@
-// server.js
 const express = require('express');
 const app = express();
 const http = require('http').Server(app);
 const io = require('socket.io')(http);
 const path = require('path');
+const sqlite3 = require('sqlite3').verbose();
+const bcrypt = require('bcrypt');
 
+const db = new sqlite3.Database(path.join(__dirname, 'database.sqlite'));
+
+db.serialize(() => {
+  db.run("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE, password TEXT)");
+  db.run("CREATE TABLE IF NOT EXISTS friends (user_id INTEGER, friend_id INTEGER, PRIMARY KEY(user_id, friend_id))");
+});
+
+app.use(express.json());
 app.use(express.static(__dirname));
+
+app.post('/api/register', (req, res) => {
+  const { username, password } = req.body;
+  if (!username || !password) return res.status(400).json({ error: 'Missing username or password' });
+  bcrypt.hash(password, 10, (err, hash) => {
+    if (err) return res.status(500).json({ error: 'Server error' });
+    db.run("INSERT INTO users (username, password) VALUES (?, ?)", [username, hash], function(err) {
+      if (err) return res.status(400).json({ error: 'Username taken' });
+      res.json({ id: this.lastID, username });
+    });
+  });
+});
+
+app.post('/api/login', (req, res) => {
+  const { username, password } = req.body;
+  db.get("SELECT * FROM users WHERE username = ?", [username], (err, row) => {
+    if (err || !row) return res.status(400).json({ error: 'Invalid username or password' });
+    bcrypt.compare(password, row.password, (err, result) => {
+      if (result) res.json({ id: row.id, username: row.username });
+      else res.status(400).json({ error: 'Invalid username or password' });
+    });
+  });
+});
+
+app.get('/api/friends/:userId', (req, res) => {
+  const userId = req.params.userId;
+  db.all("SELECT u.id, u.username FROM users u JOIN friends f ON u.id = f.friend_id WHERE f.user_id = ?", [userId], (err, rows) => {
+    if (err) return res.status(500).json({ error: 'Server error' });
+    res.json(rows || []);
+  });
+});
+
+app.post('/api/friends', (req, res) => {
+  const { userId, friendUsername } = req.body;
+  db.get("SELECT id FROM users WHERE username = ?", [friendUsername], (err, row) => {
+    if (err || !row) return res.status(404).json({ error: 'User not found' });
+    db.run("INSERT INTO friends (user_id, friend_id) VALUES (?, ?)", [userId, row.id], function(err) {
+      if (err) return res.status(400).json({ error: 'Already friends' });
+      res.json({ id: row.id, username: friendUsername });
+    });
+  });
+});
+
+app.delete('/api/friends', (req, res) => {
+  const { userId, friendId } = req.body;
+  db.run("DELETE FROM friends WHERE user_id = ? AND friend_id = ?", [userId, friendId], function(err) {
+    if (err) return res.status(500).json({ error: 'Server error' });
+    res.json({ success: true });
+  });
+});
 
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
@@ -20,7 +79,8 @@ function getRoomState(roomId) {
       slots: [null, null, null, null],
       playerNames: ['', '', '', ''],
       gameState: 'lobby', // 'lobby' | 'playing' | 'finished'
-      gameSettings: { pegsPerPlayer: 4 }
+      gameSettings: { pegsPerPlayer: 4 },
+      offlineSlots: [false, false, false, false]
     };
   }
   return rooms[roomId];
@@ -212,6 +272,7 @@ io.on('connection', (socket) => {
     const state = getRoomState(data.roomId);
     if (state.gameState === 'playing') {
       state.slots[data.slot] = socket.id;
+      state.offlineSlots[data.slot] = false;
       if (data.playerName) {
         state.playerNames[data.slot] = data.playerName;
       } else if (!state.playerNames[data.slot]) {
@@ -220,6 +281,7 @@ io.on('connection', (socket) => {
       socket.roomId = data.roomId;
       socket.join(data.roomId);
       socket.emit('lobby_state', { ...state, roomId: data.roomId });
+      io.to(data.roomId).emit('player_reconnected', data.slot);
       broadcastOpenRooms();
     }
   });
@@ -229,11 +291,12 @@ io.on('connection', (socket) => {
     const state = getRoomState(socket.roomId);
     const oldSlot = state.slots.indexOf(socket.id);
     if (oldSlot !== -1) {
-      state.slots[oldSlot] = null;
-      state.playerNames[oldSlot] = '';
       if (state.gameState === 'lobby') {
+        state.slots[oldSlot] = null;
+        state.playerNames[oldSlot] = '';
         io.to(socket.roomId).emit('lobby_state', { ...state, roomId: socket.roomId });
       } else {
+        state.offlineSlots[oldSlot] = true;
         io.to(socket.roomId).emit('player_disconnected', oldSlot);
       }
     }
@@ -268,17 +331,18 @@ io.on('connection', (socket) => {
     const state = getRoomState(socket.roomId);
     const oldSlot = state.slots.indexOf(socket.id);
     if (oldSlot !== -1) {
-      state.slots[oldSlot] = null;
-      state.playerNames[oldSlot] = '';
       if (state.gameState === 'lobby') {
+        state.slots[oldSlot] = null;
+        state.playerNames[oldSlot] = '';
         io.to(socket.roomId).emit('lobby_state', { ...state, roomId: socket.roomId });
       } else {
+        state.offlineSlots[oldSlot] = true;
         io.to(socket.roomId).emit('player_disconnected', oldSlot);
       }
     }
     
     // Cleanup empty rooms (rooms with no human players left)
-    const humanCount = state.slots.filter(s => s !== null && s !== 'bot').length;
+    const humanCount = state.slots.filter((s, i) => s !== null && s !== 'bot' && !state.offlineSlots[i]).length;
     if (humanCount === 0) {
       delete rooms[socket.roomId];
       console.log(`Deleted empty room: ${socket.roomId}`);

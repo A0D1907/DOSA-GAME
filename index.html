@@ -79,6 +79,75 @@
 </head>
 <body class="bg-slate-50 text-slate-900 h-screen flex flex-col overflow-hidden relative selection:bg-rose-500/30">
 
+  <!-- TOP NAVIGATION BAR -->
+  <div class="fixed top-4 right-4 z-[120] flex items-center gap-2">
+    <div id="user-logged-out-bar">
+      <button onclick="openAuthModal()" class="px-4 py-2 rounded-xl text-xs font-black tracking-wider uppercase flex items-center gap-2 transition-all hover:scale-105 active:scale-95" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); backdrop-filter: blur(12px); color: #f8fafc; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+        🔑 <span>Login / Sign Up</span>
+      </button>
+    </div>
+    <div id="user-logged-in-bar" class="hidden flex items-center gap-2">
+      <button onclick="openFriendsModal()" class="px-3.5 py-2 rounded-xl text-xs font-black tracking-wider uppercase flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95" style="background: rgba(99,102,241,0.2); border: 1px solid rgba(99,102,241,0.4); backdrop-filter: blur(12px); color: #a5b4fc; box-shadow: 0 4px 15px rgba(99,102,241,0.2);">
+        👥 <span id="friends-badge-count">Friends</span>
+      </button>
+      <div class="px-3.5 py-2 rounded-xl text-xs font-black tracking-wider flex items-center gap-1.5" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); backdrop-filter: blur(12px); color: #f8fafc;">
+        👤 <span id="current-username-display">User</span>
+      </div>
+      <button onclick="logoutUser()" title="Logout" class="w-8 h-8 rounded-xl flex items-center justify-center text-xs font-black transition-all hover:scale-110 active:scale-95 text-rose-400" style="background: rgba(244,63,94,0.15); border: 1px solid rgba(244,63,94,0.3);">
+        🚪
+      </button>
+    </div>
+  </div>
+
+  <!-- AUTH MODAL -->
+  <div id="auth-modal" class="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md hidden transition-all duration-300">
+    <div class="w-full max-w-sm p-6 rounded-3xl relative" style="background: rgba(18, 14, 45, 0.95); border: 1px solid rgba(255,255,255,0.15); box-shadow: 0 25px 50px rgba(0,0,0,0.6);">
+      <button onclick="closeAuthModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-all">✕</button>
+      <div class="flex gap-2 mb-5 p-1 rounded-xl" style="background: rgba(255,255,255,0.05);">
+        <button id="auth-tab-login" onclick="switchAuthTab('login')" class="flex-1 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all" style="background: linear-gradient(135deg, #ff007f, #ff6b35); color:white;">Sign In</button>
+        <button id="auth-tab-register" onclick="switchAuthTab('register')" class="flex-1 py-2 rounded-lg text-xs font-black uppercase tracking-wider text-slate-400 hover:text-white transition-all">Sign Up</button>
+      </div>
+
+      <div class="flex flex-col gap-3">
+        <div>
+          <label class="text-[11px] font-bold text-indigo-300 uppercase tracking-widest block mb-1">Username</label>
+          <input type="text" id="auth-username-input" placeholder="Enter username" class="w-full h-11 rounded-xl px-3 text-sm font-bold focus:outline-none transition-all" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color:#f1f5f9;" maxlength="20" />
+        </div>
+        <div>
+          <label class="text-[11px] font-bold text-indigo-300 uppercase tracking-widest block mb-1">Password</label>
+          <input type="password" id="auth-password-input" placeholder="••••••••" class="w-full h-11 rounded-xl px-3 text-sm font-bold focus:outline-none transition-all" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color:#f1f5f9;" maxlength="30" />
+        </div>
+        <div id="auth-error-msg" class="text-xs font-bold text-rose-400 min-h-[16px] text-center"></div>
+        <button id="auth-submit-btn" onclick="submitAuth()" class="w-full py-3.5 rounded-xl font-black tracking-widest uppercase transition-all hover:scale-[1.02] active:scale-[0.98] mt-1" style="background: linear-gradient(135deg, #ff007f, #ff6b35); color: white; box-shadow: 0 4px 20px rgba(255,0,127,0.4);">Sign In</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FRIENDS MODAL -->
+  <div id="friends-modal" class="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md hidden transition-all duration-300">
+    <div class="w-full max-w-sm p-6 rounded-3xl relative" style="background: rgba(18, 14, 45, 0.95); border: 1px solid rgba(255,255,255,0.15); box-shadow: 0 25px 50px rgba(0,0,0,0.6);">
+      <button onclick="closeFriendsModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-all">✕</button>
+      <h3 class="text-lg font-black text-white tracking-wide flex items-center gap-2 mb-4">
+        👥 <span>Friends</span>
+      </h3>
+      
+      <!-- Add Friend Input -->
+      <div class="flex gap-2 mb-3">
+        <input type="text" id="add-friend-input" placeholder="Friend's username" class="flex-1 h-10 rounded-xl px-3 text-xs font-bold focus:outline-none" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color:#f1f5f9;" maxlength="20" />
+        <button onclick="addFriendAction()" class="px-4 h-10 rounded-xl text-xs font-black uppercase tracking-wider" style="background: linear-gradient(135deg,#6366f1,#8b5cf6); color:white;">Add</button>
+      </div>
+      <div id="friend-status-msg" class="text-[11px] font-bold text-center min-h-[16px] mb-2 text-indigo-300"></div>
+
+      <!-- Friends List -->
+      <div class="border-t border-white/10 pt-3">
+        <p class="text-[10px] font-bold text-indigo-300 uppercase tracking-widest mb-2">Your Friend List</p>
+        <div id="friends-list-container" class="flex flex-col gap-2 max-h-56 overflow-y-auto pr-1">
+          <p class="text-xs text-slate-400 text-center py-4">No friends added yet.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- HOME SCREEN -->
   <div id="home-screen" class="absolute inset-0 z-[60] flex flex-col items-center justify-center p-6" style="background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);">
     <h1 class="text-6xl font-black tracking-[0.3em] uppercase mb-2 text-center" style="color:#ff007f; text-shadow: 0 0 30px rgba(255,0,127,0.8), 0 0 60px rgba(255,0,127,0.4);">DOSA</h1>
@@ -170,17 +239,28 @@
     <div class="flex-1 w-full max-w-[420px] mx-auto mt-2 mb-6 px-4 flex justify-between items-center relative z-10">
       
       <!-- Emote Button -->
-      <div class="relative group">
-        <button class="w-16 h-16 rounded-full flex items-center justify-center active:scale-95 transition-all outline-none text-2xl" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); backdrop-filter: blur(10px);">
+      <!-- Emote Button with Tap-to-Toggle & Scrollable Menu -->
+      <div class="relative" id="emote-container">
+        <button id="emote-toggle-btn" onclick="toggleEmoteMenu(event)" class="w-16 h-16 rounded-full flex items-center justify-center active:scale-95 transition-all outline-none text-2xl" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); backdrop-filter: blur(10px);">
           💬
         </button>
-        <div class="absolute bottom-full mb-3 left-0 p-2 rounded-[2rem] flex-col gap-1 hidden group-hover:flex group-focus-within:flex z-50" style="background: rgba(15,12,41,0.9); border: 1px solid rgba(255,255,255,0.15); backdrop-filter: blur(20px); box-shadow: 0 20px 40px rgba(0,0,0,0.5);">
-          <button onclick="sendEmote('😂')" class="w-12 h-12 rounded-full text-2xl transition-all hover:scale-125">😂</button>
-          <button onclick="sendEmote('😡')" class="w-12 h-12 rounded-full text-2xl transition-all hover:scale-125">😡</button>
-          <button onclick="sendEmote('😭')" class="w-12 h-12 rounded-full text-2xl transition-all hover:scale-125">😭</button>
-          <button onclick="sendEmote('💀')" class="w-12 h-12 rounded-full text-2xl transition-all hover:scale-125">💀</button>
-          <button onclick="sendEmote('🐦')" class="w-12 h-12 rounded-full text-2xl transition-all hover:scale-125">🐦</button>
-          <button onclick="sendEmote('💧')" class="w-12 h-12 rounded-full text-2xl transition-all hover:scale-125">💧</button>
+        <div id="emote-picker" class="absolute bottom-full mb-3 left-0 p-2 rounded-[2rem] flex flex-col gap-1 hidden z-50 overflow-y-auto max-h-[260px] no-scrollbar" style="background: rgba(15,12,41,0.92); border: 1px solid rgba(255,255,255,0.2); backdrop-filter: blur(20px); box-shadow: 0 20px 40px rgba(0,0,0,0.6);">
+          <button onclick="sendEmote('😂')" class="w-11 h-11 flex items-center justify-center rounded-full text-2xl transition-all hover:scale-125 active:scale-90">😂</button>
+          <button onclick="sendEmote('🔥')" class="w-11 h-11 flex items-center justify-center rounded-full text-2xl transition-all hover:scale-125 active:scale-90">🔥</button>
+          <button onclick="sendEmote('👑')" class="w-11 h-11 flex items-center justify-center rounded-full text-2xl transition-all hover:scale-125 active:scale-90">👑</button>
+          <button onclick="sendEmote('😎')" class="w-11 h-11 flex items-center justify-center rounded-full text-2xl transition-all hover:scale-125 active:scale-90">😎</button>
+          <button onclick="sendEmote('💀')" class="w-11 h-11 flex items-center justify-center rounded-full text-2xl transition-all hover:scale-125 active:scale-90">💀</button>
+          <button onclick="sendEmote('😭')" class="w-11 h-11 flex items-center justify-center rounded-full text-2xl transition-all hover:scale-125 active:scale-90">😭</button>
+          <button onclick="sendEmote('😡')" class="w-11 h-11 flex items-center justify-center rounded-full text-2xl transition-all hover:scale-125 active:scale-90">😡</button>
+          <button onclick="sendEmote('🎯')" class="w-11 h-11 flex items-center justify-center rounded-full text-2xl transition-all hover:scale-125 active:scale-90">🎯</button>
+          <button onclick="sendEmote('🚀')" class="w-11 h-11 flex items-center justify-center rounded-full text-2xl transition-all hover:scale-125 active:scale-90">🚀</button>
+          <button onclick="sendEmote('👏')" class="w-11 h-11 flex items-center justify-center rounded-full text-2xl transition-all hover:scale-125 active:scale-90">👏</button>
+          <button onclick="sendEmote('🤡')" class="w-11 h-11 flex items-center justify-center rounded-full text-2xl transition-all hover:scale-125 active:scale-90">🤡</button>
+          <button onclick="sendEmote('🎲')" class="w-11 h-11 flex items-center justify-center rounded-full text-2xl transition-all hover:scale-125 active:scale-90">🎲</button>
+          <button onclick="sendEmote('😮')" class="w-11 h-11 flex items-center justify-center rounded-full text-2xl transition-all hover:scale-125 active:scale-90">😮</button>
+          <button onclick="sendEmote('🍀')" class="w-11 h-11 flex items-center justify-center rounded-full text-2xl transition-all hover:scale-125 active:scale-90">🍀</button>
+          <button onclick="sendEmote('🐦')" class="w-11 h-11 flex items-center justify-center rounded-full text-2xl transition-all hover:scale-125 active:scale-90">🐦</button>
+          <button onclick="sendEmote('💧')" class="w-11 h-11 flex items-center justify-center rounded-full text-2xl transition-all hover:scale-125 active:scale-90">💧</button>
         </div>
       </div>
 
@@ -330,20 +410,21 @@ let diceRolled = false;
 let validMoves = [];
 let isAnimating = false;
 let finishedPlayers = []; // tracks finish order (slot indices)
+let jailMissCounter = {0: 0, 1: 0, 2: 0, 3: 0};
 
 // =============== NETWORK HANDLERS ===============
 socket.on('connect', () => {
   const code = sessionStorage.getItem('dosaRoom');
   const slot = sessionStorage.getItem('dosaSlot');
+  const name = sessionStorage.getItem('dosaName');
   const gameHidden = document.getElementById('game-screen')?.classList.contains('hidden');
   
-  if (code && !gameHidden) {
+  if (code && slot !== null) {
+    socket.emit('reclaim_slot', { roomId: code, slot: parseInt(slot), playerName: name || `Player ${parseInt(slot) + 1}` });
+    setTimeout(() => socket.emit('request_sync'), 500);
+  } else if (code && !gameHidden) {
     socket.emit('join_room', code); 
     setTimeout(() => socket.emit('request_sync'), 500); 
-  } else if (code && slot !== null) {
-    const name = sessionStorage.getItem('dosaName') || `Player ${parseInt(slot) + 1}`;
-    socket.emit('reclaim_slot', { roomId: code, slot: parseInt(slot), playerName: name });
-    setTimeout(() => socket.emit('request_sync'), 500);
   }
 });
 
@@ -550,6 +631,7 @@ socket.on('game_started', (data) => {
 
 socket.on('dice_rolled', (data) => {
   isAnimating = true;
+  playDiceSound();
   const cube = document.getElementById('dice-cube');
   cube.classList.add('rolling');
   cube.style.transform = ''; 
@@ -557,6 +639,7 @@ socket.on('dice_rolled', (data) => {
   setTimeout(() => {
     cube.classList.remove('rolling');
     diceValue = data.value;
+    if (diceValue === 6) jailMissCounter[currentPlayer] = 0;
     cube.style.transform = DICE_ROTATIONS[diceValue - 1];
     
     diceRolled = true;
@@ -583,48 +666,52 @@ socket.on('dice_rolled', (data) => {
         renderPieces();
         if (isHost && latestSlots[currentPlayer] === 'bot') {
           setTimeout(() => {
-            // Weighted scoring bot: all factors considered simultaneously
+            // Weighted scoring bot: balanced, smart, human-like
             function scoreBotMove(m) {
               let score = 0;
-              // Capture enemy: highest value but weighed against other factors
+              // Personality jitter (±20) so bot doesn't make identical moves every turn
+              score += (Math.random() * 40 - 20);
+
+              // Capture enemy: reduced from 150 to 95 so bot isn't ruthlessly obsessed
               if (m.action === 'move' || m.action === 'leave_jail') {
                 const hasEnemy = pieces.some(p =>
                   p.player !== currentPlayer && p.state === 'perimeter' && p.pos === m.target
                 );
-                if (hasEnemy) score += 150;
+                if (hasEnemy) score += 95;
               }
               // Advance toward home: reward distance traveled
               if (m.action === 'move') {
                 const start = visualMap[currentPlayer] * (pegsCountGlobal === 2 ? 8 : 16) + (pegsCountGlobal === 2 ? 2 : 4);
                 const totalLen = pegsCountGlobal === 2 ? 32 : 64;
                 const dist = (m.piece.pos - start + totalLen) % totalLen;
-                score += dist; // 0-62 or 0-30
-                // Penalize moving piece that is very far back (prefer advancing front pieces)
-                if (dist > (pegsCountGlobal === 2 ? 25 : 50)) score += 30;
+                score += dist * 0.9;
+                if (dist > (pegsCountGlobal === 2 ? 25 : 50)) score += 25;
               }
               // Entering home is very good
-              if (m.action === 'home') score += 120 + (m.target * 10);
-              // Getting out of jail is good but not at all costs
-              if (m.action === 'leave_jail') score += 60;
-              // Avoid dangerous squares (occupied by enemies that could capture us next turn)
+              if (m.action === 'home') score += 110 + (m.target * 10);
+              // Getting out of jail is good
+              if (m.action === 'leave_jail') score += 65;
+              // Avoid dangerous squares
               if (m.action === 'move') {
                 const totalLen = pegsCountGlobal === 2 ? 32 : 64;
                 const inDanger = pieces.some(p =>
                   p.player !== currentPlayer && p.state === 'perimeter' &&
                   (p.pos + 1) % totalLen === m.target
                 );
-                if (inDanger) score -= 30;
+                if (inDanger) score -= 25;
               }
               return score;
             }
 
-            let bestMove = validMoves[0];
-            let bestScore = -Infinity;
-            for (let m of validMoves) {
-              const s = scoreBotMove(m);
-              if (s > bestScore) { bestScore = s; bestMove = m; }
+            const scoredMoves = validMoves.map(m => ({ move: m, score: scoreBotMove(m) }));
+            scoredMoves.sort((a, b) => b.score - a.score);
+
+            // 20% chance to pick the 2nd best move if within 40 points
+            let chosen = scoredMoves[0].move;
+            if (scoredMoves.length > 1 && Math.random() < 0.20 && (scoredMoves[0].score - scoredMoves[1].score < 40)) {
+              chosen = scoredMoves[1].move;
             }
-            selectMove(bestMove);
+            selectMove(chosen);
           }, 800);
         }
       }
@@ -660,6 +747,12 @@ socket.on('move_executed', (data) => {
         }, 500);
       }
     });
+  }
+
+  if (captured) {
+    playCaptureSound();
+  } else if (action === 'home') {
+    playSafeSound();
   }
   
   // If current player is a bot, let them emote depending on their action!
@@ -715,6 +808,7 @@ socket.on('turn_passed', () => {
 
 socket.on('player_ranked', (data) => {
   const { playerSlot, rank, finishOrder } = data;
+  playVictorySound();
   finishedPlayers = finishOrder;
   const rankEmoji = ['🥇','🥈','🥉','4️⃣'][rank - 1] || `#${rank}`;
   const name = latestPlayerNames[playerSlot] || (latestSlots[playerSlot] === 'bot' ? `Bot P${playerSlot+1}` : PLAYERS[playerSlot].name);
@@ -907,12 +1001,108 @@ function updateUI() {
   }
 }
 
+// =============== WEB AUDIO SYNTHESIZERS ===============
+let audioCtx = null;
+function getAudioContext() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+  return audioCtx;
+}
+
+function playDiceSound() {
+  try {
+    const ctx = getAudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(140, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(380, ctx.currentTime + 0.08);
+    osc.frequency.exponentialRampToValueAtTime(180, ctx.currentTime + 0.16);
+    gain.gain.setValueAtTime(0.25, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.18);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.18);
+  } catch(e) {}
+}
+
+function playCaptureSound() {
+  try {
+    const ctx = getAudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(320, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(60, ctx.currentTime + 0.22);
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 0.22);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.22);
+  } catch(e) {}
+}
+
+function playSafeSound() {
+  try {
+    const ctx = getAudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+    osc.frequency.setValueAtTime(880, ctx.currentTime + 0.08);
+    gain.gain.setValueAtTime(0.2, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.28);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.28);
+  } catch(e) {}
+}
+
+function playVictorySound() {
+  try {
+    const ctx = getAudioContext();
+    const notes = [261.63, 329.63, 392.00, 523.25];
+    notes.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.12);
+      gain.gain.setValueAtTime(0.25, ctx.currentTime + idx * 0.12);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + idx * 0.12 + 0.35);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(ctx.currentTime + idx * 0.12);
+      osc.stop(ctx.currentTime + idx * 0.12 + 0.35);
+    });
+  } catch(e) {}
+}
+
+function toggleEmoteMenu(e) {
+  if (e) e.stopPropagation();
+  const picker = document.getElementById('emote-picker');
+  if (picker) picker.classList.toggle('hidden');
+}
+
+document.addEventListener('click', (e) => {
+  const container = document.getElementById('emote-container');
+  const picker = document.getElementById('emote-picker');
+  if (picker && container && !container.contains(e.target)) {
+    picker.classList.add('hidden');
+  }
+});
+
 // =============== INTERACTION LOGIC ===============
 function sendEmote(emoji) {
   if (mySlot === null) return;
   socket.emit('send_emote', emoji);
-  // Unfocus the button to close the menu
-  document.activeElement.blur();
+  document.getElementById('emote-picker')?.classList.add('hidden');
 }
 
 // Sound map for special emotes
@@ -956,14 +1146,47 @@ socket.on('receive_emote', (data) => {
   setTimeout(() => wrapper.remove(), 2000);
 });
 
+function getWeightedDiceRoll(player) {
+  const hasPiecesInJail = pieces.some(p => p.player === player && p.state === 'jail');
+  let weight6 = 1.6; // Base ~24.2% chance for 6
+  if (hasPiecesInJail) {
+    const misses = jailMissCounter[player] || 0;
+    if (misses >= 3) {
+      weight6 = 3.5; // ~41% chance if stuck for 3+ turns
+    } else if (misses >= 2) {
+      weight6 = 2.4; // ~32% chance
+    }
+  }
+
+  // Weights for [1, 2, 3, 4, 5, 6]
+  const weights = [1, 1, 1, 1, 1, weight6];
+  const totalWeight = weights.reduce((a, b) => a + b, 0);
+  let random = Math.random() * totalWeight;
+
+  for (let i = 0; i < weights.length; i++) {
+    if (random < weights[i]) {
+      const rolled = i + 1;
+      if (rolled === 6) {
+        jailMissCounter[player] = 0;
+      } else if (hasPiecesInJail) {
+        jailMissCounter[player] = (jailMissCounter[player] || 0) + 1;
+      }
+      return rolled;
+    }
+    random -= weights[i];
+  }
+  return 6;
+}
+
 function rollDice(isBotAuto = false) {
   if (isAnimating || diceRolled) return;
   if (currentPlayer !== mySlot) {
     if (!isHost || latestSlots[currentPlayer] !== 'bot' || !isBotAuto) return;
   }
-  const val = Math.floor(Math.random() * 6) + 1;
+  const val = getWeightedDiceRoll(currentPlayer);
   socket.emit('roll_dice', { player: currentPlayer, value: val });
 }
+
 
 function selectMove(moveObj) {
   socket.emit('execute_move', { pieceId: moveObj.piece.id, action: moveObj.action, target: moveObj.target });
@@ -1082,11 +1305,256 @@ socket.on('open_rooms', (roomsList) => {
   });
 });
 
+// =============== AUTH & FRIENDS MANAGEMENT ===============
+let currentUser = null;
+let currentAuthMode = 'login'; // 'login' | 'register'
+
+function initAuthUI() {
+  try {
+    const stored = localStorage.getItem('dosaUser');
+    if (stored) {
+      currentUser = JSON.parse(stored);
+      updateAuthUI();
+      loadFriendsList();
+    }
+  } catch(e) {}
+}
+
+function updateAuthUI() {
+  const loggedOutBar = document.getElementById('user-logged-out-bar');
+  const loggedInBar = document.getElementById('user-logged-in-bar');
+  const usernameDisplay = document.getElementById('current-username-display');
+  const nicknameInput = document.getElementById('nickname-input');
+
+  if (currentUser) {
+    if (loggedOutBar) loggedOutBar.classList.add('hidden');
+    if (loggedInBar) loggedInBar.classList.remove('hidden');
+    if (usernameDisplay) usernameDisplay.innerText = currentUser.username;
+    if (nicknameInput && !nicknameInput.value) {
+      nicknameInput.value = currentUser.username;
+      sessionStorage.setItem('dosaName', currentUser.username);
+    }
+  } else {
+    if (loggedOutBar) loggedOutBar.classList.remove('hidden');
+    if (loggedInBar) loggedInBar.classList.add('hidden');
+  }
+}
+
+function openAuthModal() {
+  document.getElementById('auth-modal')?.classList.remove('hidden');
+  const err = document.getElementById('auth-error-msg');
+  if (err) err.innerText = '';
+}
+
+function closeAuthModal() {
+  document.getElementById('auth-modal')?.classList.add('hidden');
+}
+
+function switchAuthTab(mode) {
+  currentAuthMode = mode;
+  const loginTab = document.getElementById('auth-tab-login');
+  const regTab = document.getElementById('auth-tab-register');
+  const submitBtn = document.getElementById('auth-submit-btn');
+  const errMsg = document.getElementById('auth-error-msg');
+  if (errMsg) errMsg.innerText = '';
+
+  if (mode === 'login') {
+    loginTab.style.background = 'linear-gradient(135deg, #ff007f, #ff6b35)';
+    loginTab.style.color = 'white';
+    regTab.style.background = 'transparent';
+    regTab.style.color = '#94a3b8';
+    submitBtn.innerText = 'Sign In';
+  } else {
+    regTab.style.background = 'linear-gradient(135deg, #ff007f, #ff6b35)';
+    regTab.style.color = 'white';
+    loginTab.style.background = 'transparent';
+    loginTab.style.color = '#94a3b8';
+    submitBtn.innerText = 'Create Account';
+  }
+}
+
+async function submitAuth() {
+  const username = document.getElementById('auth-username-input')?.value.trim();
+  const password = document.getElementById('auth-password-input')?.value.trim();
+  const errMsg = document.getElementById('auth-error-msg');
+  if (!username || !password) {
+    errMsg.innerText = 'Please enter both username and password';
+    return;
+  }
+
+  const endpoint = currentAuthMode === 'login' ? '/api/login' : '/api/register';
+  try {
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      errMsg.innerText = data.error || 'Authentication failed';
+      return;
+    }
+    currentUser = { id: data.id, username: data.username };
+    localStorage.setItem('dosaUser', JSON.stringify(currentUser));
+    updateAuthUI();
+    closeAuthModal();
+    loadFriendsList();
+  } catch(e) {
+    errMsg.innerText = 'Network error. Please try again.';
+  }
+}
+
+function logoutUser() {
+  currentUser = null;
+  localStorage.removeItem('dosaUser');
+  updateAuthUI();
+}
+
+function openFriendsModal() {
+  if (!currentUser) return openAuthModal();
+  document.getElementById('friends-modal')?.classList.remove('hidden');
+  const msg = document.getElementById('friend-status-msg');
+  if (msg) msg.innerText = '';
+  loadFriendsList();
+}
+
+function closeFriendsModal() {
+  document.getElementById('friends-modal')?.classList.add('hidden');
+}
+
+async function loadFriendsList() {
+  if (!currentUser) return;
+  const container = document.getElementById('friends-list-container');
+  try {
+    const res = await fetch(`/api/friends/${currentUser.id}`);
+    const friends = await res.json();
+    if (!Array.isArray(friends) || friends.length === 0) {
+      container.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">No friends added yet.</p>';
+      return;
+    }
+    container.innerHTML = '';
+    friends.forEach(f => {
+      const row = document.createElement('div');
+      row.className = 'flex items-center justify-between p-2 rounded-xl border border-white/10 bg-white/5';
+      row.innerHTML = `
+        <div class="flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]"></span>
+          <span class="text-xs font-bold text-white">${f.username}</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <button onclick="inviteFriend('${f.username}')" class="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/40">Invite</button>
+          <button onclick="removeFriendAction(${f.id})" class="text-slate-400 hover:text-rose-400 p-1 text-xs">✕</button>
+        </div>
+      `;
+      container.appendChild(row);
+    });
+  } catch(e) {
+    container.innerHTML = '<p class="text-xs text-rose-400 text-center py-2">Error loading friends.</p>';
+  }
+}
+
+async function addFriendAction() {
+  if (!currentUser) return;
+  const input = document.getElementById('add-friend-input');
+  const msg = document.getElementById('friend-status-msg');
+  const friendUsername = input.value.trim();
+  if (!friendUsername) return;
+
+  try {
+    const res = await fetch('/api/friends', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: currentUser.id, friendUsername })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      msg.className = 'text-[11px] font-bold text-center min-h-[16px] mb-2 text-rose-400';
+      msg.innerText = data.error || 'Failed to add friend';
+      return;
+    }
+    msg.className = 'text-[11px] font-bold text-center min-h-[16px] mb-2 text-emerald-400';
+    msg.innerText = `Added ${friendUsername}!`;
+    input.value = '';
+    loadFriendsList();
+  } catch(e) {
+    msg.className = 'text-[11px] font-bold text-center min-h-[16px] mb-2 text-rose-400';
+    msg.innerText = 'Network error';
+  }
+}
+
+async function removeFriendAction(friendId) {
+  if (!currentUser) return;
+  try {
+    await fetch('/api/friends', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: currentUser.id, friendId })
+    });
+    loadFriendsList();
+  } catch(e) {}
+}
+
+function inviteFriend(friendUsername) {
+  const code = sessionStorage.getItem('dosaRoom');
+  if (code) {
+    navigator.clipboard?.writeText(`${window.location.origin}/?room=${code}`);
+    alert(`Copied invite link for Room ${code}! Send it to ${friendUsername}`);
+  } else {
+    alert("Join or create a room first to invite your friend!");
+  }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
+  initAuthUI();
   const savedName = sessionStorage.getItem('dosaName');
   if (savedName) {
     const input = document.getElementById('nickname-input');
     if (input) input.value = savedName;
+  }
+  const urlParams = new URLSearchParams(window.location.search);
+  const roomParam = urlParams.get('room');
+  if (roomParam) {
+    const roomInput = document.getElementById('room-code-input');
+    if (roomInput) roomInput.value = roomParam.toUpperCase();
+  }
+});
+
+// Connection Status Banner
+function updateConnectionBanner(isDisconnected) {
+  let banner = document.getElementById('connection-status-banner');
+  if (isDisconnected) {
+    if (!banner) {
+      banner = document.createElement('div');
+      banner.id = 'connection-status-banner';
+      banner.className = 'fixed top-3 left-1/2 -translate-x-1/2 z-[250] px-4 py-2 rounded-full text-xs font-bold text-amber-200 tracking-wide flex items-center gap-2 border border-amber-500/30 backdrop-blur-md shadow-2xl transition-all duration-300';
+      banner.style.background = 'rgba(30, 20, 10, 0.88)';
+      banner.innerHTML = '<span class="inline-block w-2 h-2 rounded-full bg-amber-400 animate-ping"></span> ⚡ Reconnecting...';
+      document.body.appendChild(banner);
+    }
+  } else if (banner) {
+    banner.remove();
+  }
+}
+
+socket.on('disconnect', () => {
+  updateConnectionBanner(true);
+});
+
+// Force socket reconnection on mobile visibility change
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") {
+    if (!socket.connected) {
+      updateConnectionBanner(true);
+      socket.connect();
+    } else {
+      const code = sessionStorage.getItem('dosaRoom');
+      const slot = sessionStorage.getItem('dosaSlot');
+      const name = sessionStorage.getItem('dosaName');
+      if (code && slot !== null) {
+        socket.emit('reclaim_slot', { roomId: code, slot: parseInt(slot), playerName: name || `Player ${parseInt(slot) + 1}` });
+      }
+      setTimeout(() => socket.emit("request_sync"), 300);
+    }
   }
 });
 </script>
