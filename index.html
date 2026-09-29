@@ -937,6 +937,7 @@ let isSpectating = false;
 // =============== GAME STATE ===============
 let pieces = [];
 let currentPlayer = 0;
+let currentTurnId = 0;
 let diceValue = null;
 let diceRolled = false;
 let validMoves = [];
@@ -1547,7 +1548,7 @@ socket.on('sync_requested', (requesterSocketId) => {
   if (pieces && pieces.length > 0) {
     socket.emit('send_sync', {
       targetSocket: requesterSocketId,
-      state: { pieces, currentPlayer, activeSlots, pegsCountGlobal, visualMap, slots: latestSlots, playerNames: latestPlayerNames }
+      state: { pieces, currentPlayer, turnId: currentTurnId, activeSlots, pegsCountGlobal, visualMap, slots: latestSlots, playerNames: latestPlayerNames }
     });
   }
 });
@@ -1561,6 +1562,7 @@ socket.on('sync_data', (state) => {
 
     pieces = state.pieces;
     currentPlayer = state.currentPlayer;
+    if (typeof state.turnId === 'number') currentTurnId = state.turnId;
     activeSlots = state.activeSlots;
     pegsCountGlobal = state.pegsCountGlobal;
     visualMap = state.visualMap;
@@ -1910,6 +1912,7 @@ socket.on('game_started', (data) => {
   document.getElementById('game-screen')?.classList.remove('hidden');
   document.getElementById('game-screen')?.classList.add('flex');
   pegsCountGlobal = data.gameSettings.pegsPerPlayer;
+  if (typeof data.turnId === 'number') currentTurnId = data.turnId;
   latestSlots = data.slots;
   if (data.playerNames) latestPlayerNames = data.playerNames;
   activeSlots = data.slots.map((s, i) => s ? i : null).filter(i => i !== null);
@@ -1943,10 +1946,12 @@ socket.on('dice_rolled', (data) => {
   if (typeof data.player === 'number') {
     currentPlayer = data.player;
   }
+  const rollTurnId = (data && typeof data.turnId === 'number') ? data.turnId : null;
+  if (rollTurnId !== null) currentTurnId = rollTurnId;
 
   isAnimating = true;
   playDiceSound();
-  
+
   diceValue = data.value;
   // Track failed jail-break attempts for the mercy rule (all clients stay in sync)
   if (typeof data.player === 'number') {
@@ -1965,6 +1970,12 @@ socket.on('dice_rolled', (data) => {
   }
   
   setTimeout(() => {
+    // Turn moved on while the dice animation played (watchdog/refresh race):
+    // drop this stale roll instead of acting on the wrong turn.
+    if (rollTurnId !== null && rollTurnId !== currentTurnId) {
+      isAnimating = false;
+      return;
+    }
     diceRolled = true;
     isAnimating = false;
 
@@ -1983,7 +1994,7 @@ socket.on('dice_rolled', (data) => {
           consecutiveNoMovesOn6++;
           if (consecutiveNoMovesOn6 > 1) {
             consecutiveNoMovesOn6 = 0;
-            botTurnTimer = setTimeout(() => socket.emit('next_turn'), 800);
+            botTurnTimer = setTimeout(() => socket.emit('next_turn', { turnId: currentTurnId }), 800);
           } else {
             botTurnTimer = setTimeout(() => {
               diceRolled = false;
@@ -1994,7 +2005,7 @@ socket.on('dice_rolled', (data) => {
           }
         } else {
           consecutiveNoMovesOn6 = 0;
-          botTurnTimer = setTimeout(() => socket.emit('next_turn'), 700);
+          botTurnTimer = setTimeout(() => socket.emit('next_turn', { turnId: currentTurnId }), 700);
         }
       } else {
         consecutiveNoMovesOn6 = 0;
@@ -2111,7 +2122,9 @@ socket.on('move_executed', (data) => {
   if (inHome.length === pegsCountGlobal && !finishedPlayers.includes(currentPlayer)) {
     finishedPlayers.push(currentPlayer);
     if (currentPlayer === mySlot || (isHost && latestSlots[currentPlayer] === 'bot')) {
-      const reg = getRegisteredUser();
+      // Only credit the leaderboard when a registered human finishes THEIR OWN slot;
+      // bot finishes reported by the host carry no account.
+      const reg = (currentPlayer === mySlot) ? getRegisteredUser() : null;
       socket.emit('player_finished', { slot: currentPlayer, userId: reg ? reg.id : null, username: reg ? reg.username : null });
     }
     return;
@@ -2123,7 +2136,7 @@ socket.on('move_executed', (data) => {
       updateUI();
     } else {
       if (botTurnTimer) clearTimeout(botTurnTimer);
-      botTurnTimer = setTimeout(() => socket.emit('next_turn'), 600);
+      botTurnTimer = setTimeout(() => socket.emit('next_turn', { turnId: currentTurnId }), 600);
     }
   }
 });
@@ -2143,6 +2156,7 @@ socket.on('turn_passed', (data) => {
       currentPlayer = (currentPlayer + 1) % 4;
     } while ((!activeSlots.includes(currentPlayer) || finishedPlayers.includes(currentPlayer)) && activeSlots.length > 0);
   }
+  if (data && typeof data.turnId === 'number') currentTurnId = data.turnId;
 
   diceRolled = false;
   validMoves = [];
@@ -2177,7 +2191,7 @@ socket.on('player_ranked', (data) => {
   
   if (currentPlayer === mySlot || (isHost && latestSlots[currentPlayer] === 'bot')) {
     if (botTurnTimer) clearTimeout(botTurnTimer);
-    botTurnTimer = setTimeout(() => socket.emit('next_turn'), 600);
+    botTurnTimer = setTimeout(() => socket.emit('next_turn', { turnId: currentTurnId }), 600);
   }
 });
 
@@ -2434,7 +2448,7 @@ function updateUI() {
   }
 
   if (isHost && pieces && pieces.length > 0) {
-    socket.emit('update_board_state', { pieces, currentPlayer, activeSlots, pegsCountGlobal, visualMap, slots: latestSlots, playerNames: latestPlayerNames });
+    socket.emit('update_board_state', { pieces, currentPlayer, turnId: currentTurnId, activeSlots, pegsCountGlobal, visualMap, slots: latestSlots, playerNames: latestPlayerNames });
   }
 }
 
@@ -2650,7 +2664,7 @@ function selectMove(moveObj) {
     clearTimeout(botTurnTimer);
     botTurnTimer = null;
   }
-  socket.emit('execute_move', { pieceId: moveObj.piece.id, action: moveObj.action, target: moveObj.target });
+  socket.emit('execute_move', { pieceId: moveObj.piece.id, action: moveObj.action, target: moveObj.target, turnId: currentTurnId });
 }
 
 function calculateValidMoves() {

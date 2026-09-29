@@ -387,7 +387,11 @@ function getRoomState(roomId) {
       lastTurnAdvance: 0,
       diceRolled: false,
       diceValue: null,
-      moveExecutedThisTurn: false
+      moveExecutedThisTurn: false,
+      finishOrder: [],
+      finishMeta: [],
+      boardState: null,
+      endedAt: null
     };
   }
   return rooms[roomId];
@@ -549,6 +553,26 @@ io.on('connection', (socket) => {
     const playerName = (typeof data === 'object' && data !== null && data.playerName) ? data.playerName : null;
     const isSpectate = (typeof data === 'object' && data !== null && data.spectate === true);
     
+    // Free any ghost seat this socket still holds in OTHER rooms (joining
+    // a new room without leaving first must not leave a phantom player behind).
+    Object.keys(rooms).forEach((otherId) => {
+      if (otherId === roomId) return;
+      const other = rooms[otherId];
+      const idx = other.slots.indexOf(socket.id);
+      if (idx !== -1) {
+        if (other.gameState === 'lobby' || other.gameState === 'finished') {
+          other.slots[idx] = null;
+          other.playerNames[idx] = '';
+          other.offlineSlots[idx] = false;
+          io.to(otherId).emit('lobby_state', { ...other, roomId: otherId });
+        } else {
+          other.offlineSlots[idx] = true;
+          io.to(otherId).emit('player_disconnected', idx);
+          migrateHost(otherId);
+        }
+      }
+    });
+
     Array.from(socket.rooms).forEach(r => {
       if(r !== socket.id) socket.leave(r);
     });
@@ -668,6 +692,11 @@ io.on('connection', (socket) => {
     if (hasHuman && totalPlayers >= 2) {
       state.gameState = 'playing';
       state.finishOrder = []; // reset finish rankings
+      state.finishMeta = [];
+      state.boardState = null;
+      state.offlineSlots = [false, false, false, false];
+      state.moveExecutedThisTurn = false;
+      state.endedAt = null;
       const firstActive = state.slots.findIndex(s => s !== null);
       state.currentPlayer = firstActive !== -1 ? firstActive : 0;
       state.turnId = 1;
@@ -739,6 +768,11 @@ io.on('connection', (socket) => {
     const curSeat = state.slots[state.currentPlayer];
     const botTurn = curSeat === 'bot' || state.offlineSlots[state.currentPlayer];
     if (socket.id !== curSeat && !(botTurn && socket.id === state.host)) return;
+    // Drop moves computed for an older turn (stale bot timers / animation races).
+    if (moveObj && typeof moveObj.turnId === 'number' && moveObj.turnId !== state.turnId) {
+      console.warn(`[Server] Rejected stale execute_move (turn ${moveObj.turnId} vs ${state.turnId}) in room ${socket.roomId}`);
+      return;
+    }
 
     // Strictly enforce exactly ONE move per dice roll
     if (!state.diceRolled || state.moveExecutedThisTurn) {
@@ -764,10 +798,13 @@ io.on('connection', (socket) => {
     io.to(socket.roomId).emit('move_executed', moveObj);
   });
   
-  socket.on('next_turn', () => {
+  socket.on('next_turn', (data) => {
     if (!socket.roomId) return;
     const state = getRoomState(socket.roomId);
     if (state.gameState !== 'playing') return;
+
+    // Drop stale turn-advance timers from a previous turn.
+    if (data && typeof data.turnId === 'number' && data.turnId !== state.turnId) return;
 
     // Debounce rapid duplicate next_turn calls (min 350ms between turns)
     const now = Date.now();
@@ -816,9 +853,8 @@ io.on('connection', (socket) => {
 
   socket.on('return_to_lobby', () => {
     if (!socket.roomId) return;
+    resetRoomToLobby(socket.roomId);
     const state = getRoomState(socket.roomId);
-    clearRoomTurnTimer(socket.roomId);
-    state.gameState = 'lobby';
     io.to(socket.roomId).emit('lobby_state', { ...state, roomId: socket.roomId });
     broadcastOpenRooms();
   });
@@ -846,11 +882,10 @@ io.on('connection', (socket) => {
 
   socket.on('reset_session', () => {
     if (!socket.roomId) return;
-    clearRoomTurnTimer(socket.roomId);
     const state = getRoomState(socket.roomId);
     state.slots = [null, null, null, null];
     state.playerNames = ['', '', '', ''];
-    state.gameState = 'lobby';
+    resetRoomToLobby(socket.roomId);
     io.to(socket.roomId).emit('lobby_state', { ...state, roomId: socket.roomId });
     broadcastOpenRooms();
   });
@@ -885,6 +920,10 @@ io.on('connection', (socket) => {
     socket.roomId = data.roomId;
     socket.join(data.roomId);
     socket.isSpectate = false;
+
+    // Recompute host: a reclaimed socket id may be the host's new identity.
+    const reclaimFirstHuman = state.slots.find(s => s !== null && s !== 'bot');
+    state.host = reclaimFirstHuman || socket.id;
 
     // Directly send current state to the recovering player
     socket.emit('lobby_state', { ...state, roomId: data.roomId });
