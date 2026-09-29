@@ -93,6 +93,12 @@ if (process.env.DATABASE_URL) {
       player_id TEXT NOT NULL,
       friend_id TEXT NOT NULL,
       PRIMARY KEY(player_id, friend_id)
+    )`,
+    `CREATE TABLE IF NOT EXISTS leaderboard (
+      user_id INTEGER PRIMARY KEY,
+      username TEXT NOT NULL,
+      wins INTEGER NOT NULL DEFAULT 0,
+      games INTEGER NOT NULL DEFAULT 0
     )`
   ];
   (async () => {
@@ -135,6 +141,12 @@ if (process.env.DATABASE_URL) {
       player_id TEXT NOT NULL,
       friend_id TEXT NOT NULL,
       PRIMARY KEY(player_id, friend_id)
+    )`);
+    sqlite.run(`CREATE TABLE IF NOT EXISTS leaderboard (
+      user_id INTEGER PRIMARY KEY,
+      username TEXT NOT NULL,
+      wins INTEGER NOT NULL DEFAULT 0,
+      games INTEGER NOT NULL DEFAULT 0
     )`);
   });
 
@@ -319,6 +331,27 @@ function completeFriendAdd(u1, u2, friendName, friendTag, res) {
   });
 }
 
+// Leaderboard: registered users only. Standard UPSERT works on both Postgres and modern SQLite.
+function recordBoardResult(userId, username, isWin) {
+  const uid = parseInt(userId, 10);
+  if (!uid || !username) return;
+  const w = isWin ? 1 : 0;
+  db.run(`INSERT INTO leaderboard (user_id, username, wins, games) VALUES (?, ?, ?, 1)
+          ON CONFLICT (user_id) DO UPDATE SET username=excluded.username,
+          wins=leaderboard.wins+excluded.wins, games=leaderboard.games+1`,
+    [uid, String(username).trim().slice(0, 24), w],
+    (err) => { if (err) console.error('leaderboard write error:', err.message); });
+}
+
+app.get('/api/leaderboard', (req, res) => {
+  db.all(`SELECT user_id AS id, username, wins, games FROM leaderboard
+          ORDER BY wins DESC, games ASC LIMIT 50`,
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: 'Server error' });
+      res.json(rows || []);
+    });
+});
+
 app.delete('/api/friends', (req, res) => {
   const { userId, friendId } = req.body;
   db.run(`DELETE FROM player_friends WHERE (player_id = ? AND friend_id = ?) OR (player_id = ? AND friend_id = ?)`,
@@ -366,6 +399,41 @@ function clearRoomTurnTimer(roomId) {
     clearTimeout(room.turnWatchdog);
     room.turnWatchdog = null;
   }
+}
+
+// A finished game goes back to being a fresh lobby (seats kept for rematch)
+// so late rejoiners never land in a dead, unplayable room.
+function resetRoomToLobby(roomId) {
+  const state = rooms[roomId];
+  if (!state) return;
+  clearRoomTurnTimer(roomId);
+  if (state.cleanupTimer) {
+    clearTimeout(state.cleanupTimer);
+    state.cleanupTimer = null;
+  }
+  state.gameState = 'lobby';
+  state.finishOrder = [];
+  state.finishMeta = [];
+  state.boardState = null;
+  state.offlineSlots = [false, false, false, false];
+  state.currentPlayer = 0;
+  state.turnId = 0;
+  state.diceRolled = false;
+  state.diceValue = null;
+  state.moveExecutedThisTurn = false;
+  state.endedAt = null;
+}
+
+// Elect a new host (first live human) and tell the room, so bot turns and
+// board sync keep working after the previous host drops.
+function migrateHost(roomId) {
+  const state = rooms[roomId];
+  if (!state) return;
+  const liveHuman = state.slots.find((s, i) =>
+    s !== null && s !== 'bot' && !state.offlineSlots[i] && io.sockets.sockets.get(s));
+  const anyHuman = state.slots.find((s) => s !== null && s !== 'bot');
+  state.host = liveHuman || anyHuman || null;
+  io.to(roomId).emit('host_migrated', { host: state.host });
 }
 
 function advanceRoomTurn(roomId, forcedByWatchdog = false) {
@@ -421,7 +489,7 @@ function broadcastOpenRooms() {
       totalCount,
       playerNames: room.playerNames.filter(n => n !== '')
     };
-  }).filter(r => r.humanCount > 0);
+  }).filter(r => r.humanCount > 0 && (r.gameState === 'lobby' || r.gameState === 'playing'));
   io.emit('open_rooms', list);
 }
 
@@ -488,7 +556,13 @@ io.on('connection', (socket) => {
     socket.roomId = roomId;
     socket.isSpectate = isSpectate;
     
-    const state = getRoomState(roomId);
+    let state = getRoomState(roomId);
+
+    // Rejoining an ended game starts a fresh lobby instead of a dead room
+    if (state.gameState === 'finished') {
+      resetRoomToLobby(roomId);
+      state = getRoomState(roomId);
+    }
 
     // Auto-claim first empty slot if player is not currently in a slot in lobby (not for spectators)
     if (state.gameState === 'lobby' && !isSpectate) {
@@ -625,6 +699,12 @@ io.on('connection', (socket) => {
     const state = getRoomState(socket.roomId);
     if (state.gameState !== 'playing') return;
 
+    // Only the seated player (or the host rolling for a bot/offline seat) may roll.
+    // Stale/phantom rolls from anyone else are ignored so one client can't jam the turn flow.
+    const curSeat = state.slots[state.currentPlayer];
+    const botTurn = curSeat === 'bot' || state.offlineSlots[state.currentPlayer];
+    if (socket.id !== curSeat && !(botTurn && socket.id === state.host)) return;
+
     state.diceRolled = true;
     state.diceValue = data.value;
     state.moveExecutedThisTurn = false;
@@ -654,6 +734,11 @@ io.on('connection', (socket) => {
     if (!socket.roomId) return;
     const state = getRoomState(socket.roomId);
     if (state.gameState !== 'playing') return;
+
+    // Only the seated player (or the host moving for a bot/offline seat) may move.
+    const curSeat = state.slots[state.currentPlayer];
+    const botTurn = curSeat === 'bot' || state.offlineSlots[state.currentPlayer];
+    if (socket.id !== curSeat && !(botTurn && socket.id === state.host)) return;
 
     // Strictly enforce exactly ONE move per dice roll
     if (!state.diceRolled || state.moveExecutedThisTurn) {
@@ -693,25 +778,37 @@ io.on('connection', (socket) => {
     advanceRoomTurn(socket.roomId);
   });
 
-  socket.on('player_finished', (playerSlot) => {
+  socket.on('player_finished', (data) => {
     if (!socket.roomId) return;
     const state = getRoomState(socket.roomId);
     if (state.gameState !== 'playing') return;
+    // Accept legacy slot number or { slot, userId, username } from registered players
+    const playerSlot = (typeof data === 'object' && data !== null) ? data.slot : data;
+    const finUserId = (typeof data === 'object' && data !== null) ? data.userId : null;
+    const finUsername = (typeof data === 'object' && data !== null) ? data.username : null;
+    if (typeof playerSlot !== 'number') return;
     if (!state.finishOrder) state.finishOrder = [];
+    if (!state.finishMeta) state.finishMeta = [];
     if (!state.finishOrder.includes(playerSlot)) {
       state.finishOrder.push(playerSlot);
+      state.finishMeta.push({ slot: playerSlot, userId: finUserId, username: finUsername });
     }
     const rank = state.finishOrder.length;
     // Broadcast that this player finished with their rank
     io.to(socket.roomId).emit('player_ranked', { playerSlot, rank, finishOrder: state.finishOrder });
-    
+
     // Count how many unfinished players remain
     const totalActive = state.slots.filter(s => s !== null).length;
     const unfinished = totalActive - state.finishOrder.length;
     if (unfinished <= 1) {
       // Game is truly over
       state.gameState = 'finished';
+      state.endedAt = Date.now();
       clearRoomTurnTimer(socket.roomId);
+      // Persist leaderboard results for registered finishers
+      (state.finishMeta || []).forEach((m, idx) => {
+        if (m && m.userId) recordBoardResult(m.userId, m.username, idx === 0);
+      });
       io.to(socket.roomId).emit('game_over', state.finishOrder);
     }
     broadcastOpenRooms();
@@ -760,6 +857,9 @@ io.on('connection', (socket) => {
 
   socket.on('reclaim_slot', (data) => {
     if (!data || !data.roomId || typeof data.slot !== 'number' || data.slot < 0 || data.slot > 3) return;
+    if (getRoomState(data.roomId).gameState === 'finished') {
+      resetRoomToLobby(data.roomId);
+    }
     const state = getRoomState(data.roomId);
     if (state.cleanupTimer) {
       clearTimeout(state.cleanupTimer);
@@ -801,13 +901,15 @@ io.on('connection', (socket) => {
     const state = getRoomState(socket.roomId);
     const oldSlot = state.slots.indexOf(socket.id);
     if (oldSlot !== -1) {
-      if (state.gameState === 'lobby') {
+      if (state.gameState === 'lobby' || state.gameState === 'finished') {
         state.slots[oldSlot] = null;
         state.playerNames[oldSlot] = '';
+        state.offlineSlots[oldSlot] = false;
         io.to(socket.roomId).emit('lobby_state', { ...state, roomId: socket.roomId });
       } else {
         state.offlineSlots[oldSlot] = true;
         io.to(socket.roomId).emit('player_disconnected', oldSlot);
+        migrateHost(socket.roomId);
       }
     }
     socket.leave(socket.roomId);
@@ -861,9 +963,10 @@ io.on('connection', (socket) => {
     const state = getRoomState(socket.roomId);
     const oldSlot = state.slots.indexOf(socket.id);
     if (oldSlot !== -1) {
-      if (state.gameState === 'lobby') {
+      if (state.gameState === 'lobby' || state.gameState === 'finished') {
         state.slots[oldSlot] = null;
         state.playerNames[oldSlot] = '';
+        state.offlineSlots[oldSlot] = false;
         io.to(socket.roomId).emit('lobby_state', { ...state, roomId: socket.roomId });
 
         // Lobby empty cleanup
@@ -875,6 +978,7 @@ io.on('connection', (socket) => {
       } else {
         state.offlineSlots[oldSlot] = true;
         io.to(socket.roomId).emit('player_disconnected', oldSlot);
+        migrateHost(socket.roomId);
 
         // Active game: DO NOT delete room immediately! Give 5 minutes grace period
         const onlineHumans = state.slots.filter((s, i) => s !== null && s !== 'bot' && !state.offlineSlots[i]).length;

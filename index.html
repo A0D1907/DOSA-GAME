@@ -293,7 +293,7 @@
       100% { transform: scale(1) translateY(0); opacity: 1; }
     }
     .animate-pop { animation: popIn 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.2) both; }
-    #auth-modal > div, #friends-modal > div, #exit-confirm-modal > div, #dice-stats-modal > div, #victory-screen > div {
+    #auth-modal > div, #friends-modal > div, #exit-confirm-modal > div, #leaderboard-modal > div, #victory-screen > div {
       animation: popIn 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
     }
     #status-turn-pill {
@@ -488,37 +488,19 @@
     </div>
   </div>
 
-  <!-- DICE REAL STATISTICS MODAL -->
-  <div id="dice-stats-modal" class="fixed inset-0 z-[180] flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm hidden transition-all duration-200">
+  <!-- LEADERBOARD MODAL (registered players only) -->
+  <div id="leaderboard-modal" class="fixed inset-0 z-[180] flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm hidden transition-all duration-200">
     <div class="w-full max-w-sm p-6 rounded-2xl modern-card border border-[rgba(139,92,246,0.4)] shadow-2xl relative">
-      <button onclick="closeDiceStatsModal()" class="absolute top-4 right-4 w-7 h-7 rounded-lg flex items-center justify-center text-[#b9b3d9] hover:text-white hover:bg-[#241a52] transition-all">✕</button>
-      
+      <button onclick="closeLeaderboardModal()" class="absolute top-4 right-4 w-7 h-7 rounded-lg flex items-center justify-center text-[#b9b3d9] hover:text-white hover:bg-[#241a52] transition-all">✕</button>
+
       <div class="flex items-center gap-2 mb-1">
-        <span class="text-xl">🎲</span>
-        <h3 class="text-sm font-bold text-white uppercase tracking-wider">Cube Statistics</h3>
+        <span class="text-xl">🏆</span>
+        <h3 class="text-sm font-bold text-white uppercase tracking-wider">Leaderboard</h3>
       </div>
-      <p class="text-xs text-[#b9b3d9] mb-4">True random 6-sided die. Expected fair probability: 16.7% per face.</p>
-      
-      <div class="grid grid-cols-2 gap-2 mb-4 p-3 rounded-xl bg-[#171233]/80 border border-[rgba(139,92,246,0.4)] text-center">
-        <div>
-          <div class="text-[10px] uppercase font-semibold text-[#8f89b3]">Total Rolls</div>
-          <div id="stats-total-rolls" class="text-lg font-mono font-bold text-white">0</div>
-        </div>
-        <div>
-          <div class="text-[10px] uppercase font-semibold text-[#8f89b3]">Average Roll</div>
-          <div id="stats-avg-roll" class="text-lg font-mono font-bold text-emerald-400">3.50</div>
-        </div>
-      </div>
+      <p class="text-xs text-[#b9b3d9] mb-4">Ranked players only — wins from finished matches.</p>
 
-      <div id="stats-bars-container" class="space-y-2 mb-4">
-        <!-- 6 distribution bars dynamically populated -->
-      </div>
-
-      <div>
-        <div class="text-[10px] uppercase font-semibold text-[#8f89b3] mb-1.5">Recent Rolls (Newest First)</div>
-        <div id="stats-recent-rolls" class="flex gap-1.5 overflow-x-auto py-1">
-          <span class="text-xs text-[#8f89b3] italic">No rolls yet</span>
-        </div>
+      <div id="leaderboard-list" class="flex flex-col gap-1.5 max-h-72 overflow-y-auto">
+        <p class="text-xs text-[#8f89b3] text-center py-4">Loading…</p>
       </div>
     </div>
   </div>
@@ -690,9 +672,9 @@
         </div>
 
         <div class="flex items-center gap-1.5">
-          <button onclick="openDiceStatsModal()" class="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-[#171233] border border-[rgba(139,92,246,0.4)] text-xs font-semibold text-[#efeaff] hover:text-white hover:bg-[#241a52] hover:border-[rgba(0,229,255,0.35)] transition-all shadow-sm" title="Cube Statistics">
-            <span>🎲</span>
-            <span class="hidden sm:inline">Stats</span>
+          <button onclick="openLeaderboardModal()" class="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-[#171233] border border-[rgba(139,92,246,0.4)] text-xs font-semibold text-[#efeaff] hover:text-white hover:bg-[#241a52] hover:border-[rgba(0,229,255,0.35)] transition-all shadow-sm" title="Leaderboard">
+            <span>🏆</span>
+            <span class="hidden sm:inline">Top</span>
           </button>
           <button onclick="openFriendsModal()" class="w-8 h-8 rounded-xl flex items-center justify-center btn-modern-secondary text-xs" title="Friends">
             👥
@@ -745,9 +727,9 @@
         </div>
       </button>
 
-      <button onclick="openDiceStatsModal()" class="w-14 h-14 rounded-2xl flex flex-col items-center justify-center text-xs font-medium btn-modern-secondary gap-0.5" title="Cube Statistics">
-        <span class="text-lg">📊</span>
-        <span class="text-[9px] text-[#b9b3d9]">Stats</span>
+      <button onclick="openLeaderboardModal()" class="w-14 h-14 rounded-2xl flex flex-col items-center justify-center text-xs font-medium btn-modern-secondary gap-0.5" title="Leaderboard">
+        <span class="text-lg">🏆</span>
+        <span class="text-[9px] text-[#b9b3d9]">Top</span>
       </button>
     </div>
   </div>
@@ -876,77 +858,57 @@ let cubeAngleY = 45;
 let botTurnTimer = null;
 let consecutiveNoMovesOn6 = 0;
 
-// =============== DICE REAL STATISTICS ===============
-let diceStatistics = {
-  totalRolls: 0,
-  counts: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 },
-  history: []
-};
-
-function recordDiceRoll(val) {
-  if (val >= 1 && val <= 6) {
-    diceStatistics.totalRolls++;
-    diceStatistics.counts[val]++;
-    diceStatistics.history.unshift(val);
-    if (diceStatistics.history.length > 16) diceStatistics.history.pop();
-    updateDiceStatsUI();
-  }
+// =============== LEADERBOARD (registered players) ===============
+function openLeaderboardModal() {
+  document.getElementById('leaderboard-modal')?.classList.remove('hidden');
+  loadLeaderboard();
 }
 
-function openDiceStatsModal() {
-  updateDiceStatsUI();
-  document.getElementById('dice-stats-modal')?.classList.remove('hidden');
+function closeLeaderboardModal() {
+  document.getElementById('leaderboard-modal')?.classList.add('hidden');
 }
 
-function closeDiceStatsModal() {
-  document.getElementById('dice-stats-modal')?.classList.add('hidden');
-}
-
-function updateDiceStatsUI() {
-  const totalEl = document.getElementById('stats-total-rolls');
-  const avgEl = document.getElementById('stats-avg-roll');
-  const barsEl = document.getElementById('stats-bars-container');
-  const recentEl = document.getElementById('stats-recent-rolls');
-  if (!totalEl || !barsEl) return;
-
-  totalEl.innerText = diceStatistics.totalRolls;
-
-  let sum = 0;
-  for (let i = 1; i <= 6; i++) {
-    sum += i * diceStatistics.counts[i];
-  }
-  const avg = diceStatistics.totalRolls > 0 ? (sum / diceStatistics.totalRolls).toFixed(2) : '3.50';
-  avgEl.innerText = avg;
-
-  let html = '';
-  for (let i = 1; i <= 6; i++) {
-    const count = diceStatistics.counts[i];
-    const pct = diceStatistics.totalRolls > 0 ? ((count / diceStatistics.totalRolls) * 100).toFixed(1) : '16.7';
-    const barWidth = diceStatistics.totalRolls > 0 ? Math.min(100, Math.max(3, (count / diceStatistics.totalRolls) * 100 * 2.2)) : 16.7;
-    html += `
-      <div class="flex items-center gap-2.5 text-xs">
-        <span class="text-sm w-4 font-mono font-bold text-[#efeaff] text-center">${i}</span>
-        <div class="flex-1 h-3 rounded-full bg-[#241a52]/90 overflow-hidden relative border border-[rgba(0,229,255,0.35)]/50">
-          <div class="h-full transition-all duration-300 rounded-full" style="width: ${barWidth}%; background: linear-gradient(90deg, #ff2d78, #8b5cf6, #00e5ff); box-shadow: 0 0 10px rgba(139,92,246,0.7);"></div>
-        </div>
-        <div class="w-20 text-right font-mono text-[11px] text-[#efeaff]">
-          <span class="font-bold">${count}</span>
-          <span class="text-[#8f89b3] text-[10px] ml-1">(${pct}%)</span>
-        </div>
-      </div>
-    `;
-  }
-  barsEl.innerHTML = html;
-
-  if (recentEl) {
-    if (diceStatistics.history.length === 0) {
-      recentEl.innerHTML = '<span class="text-xs text-[#8f89b3] italic">No rolls yet</span>';
-    } else {
-      recentEl.innerHTML = diceStatistics.history.map((val, idx) => `
-        <span class="px-2 py-1 rounded-lg font-mono font-bold text-xs ${idx === 0 ? 'bg-white text-zinc-950 shadow-sm' : 'bg-[#241a52] text-[#efeaff] border border-[rgba(0,229,255,0.35)]'}">${val}</span>
-      `).join('');
+async function loadLeaderboard() {
+  const list = document.getElementById('leaderboard-list');
+  if (!list) return;
+  list.innerHTML = '<p class="text-xs text-[#8f89b3] text-center py-4">Loading…</p>';
+  try {
+    const res = await fetch('/api/leaderboard');
+    const rows = await res.json();
+    if (!Array.isArray(rows) || rows.length === 0) {
+      list.innerHTML = '<p class="text-xs text-[#8f89b3] text-center py-4">No ranked players yet.<br>Log in and finish a match to enter the board!</p>';
+      return;
     }
+    const medals = ['🥇', '🥈', '🥉'];
+    const me = getRegisteredUser();
+    list.innerHTML = '';
+    rows.forEach((r, i) => {
+      const winRate = r.games > 0 ? Math.round((r.wins / r.games) * 100) : 0;
+      const isMe = me && String(me.id) === String(r.id);
+      const row = document.createElement('div');
+      row.className = 'flex items-center justify-between p-2.5 rounded-xl bg-[#171233] border ' +
+        (isMe ? 'border-[rgba(255,176,32,0.6)]' : 'border-[rgba(139,92,246,0.4)]');
+      row.innerHTML = `
+        <div class="flex items-center gap-2.5 truncate">
+          <span class="text-lg w-7 text-center flex-shrink-0">${medals[i] || ('#' + (i + 1))}</span>
+          <div class="truncate">
+            <div class="text-xs font-bold text-white truncate">${escapeHtml(r.username)}${isMe ? ' <span class="text-[9px] px-1.5 py-0.5 rounded bg-white text-zinc-950 font-bold">YOU</span>' : ''}</div>
+            <div class="text-[10px] text-[#8f89b3]">${r.games} games • ${winRate}% win</div>
+          </div>
+        </div>
+        <div class="text-sm font-mono font-bold text-[#ffb020] flex-shrink-0">${r.wins}👑</div>
+      `;
+      list.appendChild(row);
+    });
+  } catch (e) {
+    list.innerHTML = '<p class="text-xs text-rose-400 text-center py-4">Could not load leaderboard.</p>';
   }
+}
+
+function escapeHtml(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
 }
 
 function confirmExitGame() {
@@ -1562,6 +1524,25 @@ socket.on('connect', () => {
   tryAutoRejoin('connect');
 });
 
+socket.on('host_migrated', (data) => {
+  if (!data) return;
+  isHost = (data.host === socket.id);
+  updateUI();
+});
+
+function getRegisteredUser() {
+  if (currentPlayerIdentity && typeof currentPlayerIdentity.id === 'string' && currentPlayerIdentity.id.startsWith('u_')) {
+    const uid = parseInt(currentPlayerIdentity.id.slice(2), 10);
+    if (!Number.isNaN(uid)) return { id: uid, username: currentPlayerIdentity.username };
+  }
+  try {
+    const raw = localStorage.getItem('dosaUser');
+    const u = raw ? JSON.parse(raw) : null;
+    if (u && u.id) return { id: parseInt(u.id, 10), username: u.username || currentPlayerIdentity?.username };
+  } catch (e) {}
+  return null;
+}
+
 socket.on('sync_requested', (requesterSocketId) => {
   if (pieces && pieces.length > 0) {
     socket.emit('send_sync', {
@@ -1604,7 +1585,8 @@ socket.on('sync_data', (state) => {
     diceRolled = false;
     isAnimating = false;
     validMoves = [];
-    
+    jailStuck = { 0: 0, 1: 0, 2: 0, 3: 0 };
+
     initBoard(true);
     updateUI();
     renderPieces();
@@ -1648,6 +1630,21 @@ socket.on('lobby_state', (state) => {
     document.getElementById('game-screen').classList.remove('hidden');
     document.getElementById('game-screen').classList.add('flex');
     socket.emit('request_sync');
+    return;
+  }
+
+  if (state.gameState === 'finished') {
+    // Stale ended game (e.g. restored session): drop it and go home
+    clearSession('dosaRoom');
+    clearSession('dosaSlot');
+    clearSession('dosaSpectate');
+    isSpectating = false;
+    document.getElementById('game-screen')?.classList.add('hidden');
+    document.getElementById('game-screen')?.classList.remove('flex');
+    document.getElementById('lobby-screen')?.classList.add('hidden');
+    document.getElementById('victory-screen')?.classList.add('hidden');
+    document.getElementById('home-screen')?.classList.remove('hidden');
+    document.getElementById('main-nav-bar')?.classList.remove('hidden');
     return;
   }
 
@@ -1905,6 +1902,7 @@ socket.on('game_started', (data) => {
   validMoves = [];
   finishedPlayers = [];
   consecutiveNoMovesOn6 = 0;
+  jailStuck = { 0: 0, 1: 0, 2: 0, 3: 0 };
   document.getElementById('main-nav-bar')?.classList.add('hidden'); // HIDE OVERLAPPING HEADER
   document.getElementById('spectator-banner')?.remove();
   document.getElementById('lobby-screen')?.classList.add('hidden');
@@ -1950,7 +1948,12 @@ socket.on('dice_rolled', (data) => {
   playDiceSound();
   
   diceValue = data.value;
-  recordDiceRoll(diceValue);
+  // Track failed jail-break attempts for the mercy rule (all clients stay in sync)
+  if (typeof data.player === 'number') {
+    if (diceValue !== 6 && !playerHasRookOut(data.player)) {
+      jailStuck[data.player] = Math.min((jailStuck[data.player] || 0) + 1, 6);
+    }
+  }
 
   const cube = document.getElementById('dice-cube');
   if (cube) {
@@ -2059,6 +2062,9 @@ socket.on('move_executed', (data) => {
   } else if (action === 'home') {
     piece.state = 'home'; piece.pos = target;
   }
+
+  // Mercy pity resets as soon as any rook is out of jail
+  if (playerHasRookOut(piece.player)) jailStuck[piece.player] = 0;
   
   let captured = false;
   const movingPlayer = piece.player;
@@ -2105,7 +2111,8 @@ socket.on('move_executed', (data) => {
   if (inHome.length === pegsCountGlobal && !finishedPlayers.includes(currentPlayer)) {
     finishedPlayers.push(currentPlayer);
     if (currentPlayer === mySlot || (isHost && latestSlots[currentPlayer] === 'bot')) {
-      socket.emit('player_finished', currentPlayer);
+      const reg = getRegisteredUser();
+      socket.emit('player_finished', { slot: currentPlayer, userId: reg ? reg.id : null, username: reg ? reg.username : null });
     }
     return;
   }
@@ -2588,14 +2595,38 @@ socket.on('receive_emote', (data) => {
   setTimeout(() => wrapper.remove(), 2200);
 });
 
-// Real statistics: fair 1/6 probability distribution using crypto PRNG
-function getFairDiceRoll() {
+// True uniform 1-6 via crypto PRNG with rejection sampling (no modulo bias),
+// plus a "mercy" pity: a player with all rooks stuck in jail gets a growing
+// bonus chance at a 6 for each failed jail-break roll (resets once a rook exits).
+let jailStuck = { 0: 0, 1: 0, 2: 0, 3: 0 };
+
+function uniformDie() {
   if (window.crypto && window.crypto.getRandomValues) {
     const arr = new Uint32Array(1);
-    window.crypto.getRandomValues(arr);
+    do {
+      window.crypto.getRandomValues(arr);
+    } while (arr[0] >= 4294967292); // 2^32 - (2^32 % 6): reject the biased tail
     return (arr[0] % 6) + 1;
   }
   return Math.floor(Math.random() * 6) + 1;
+}
+
+function playerHasRookOut(player) {
+  return pieces.some(p => p.player === player && p.state !== 'jail');
+}
+
+function getFairDiceRoll(player) {
+  const v = uniformDie();
+  if (v === 6) return 6;
+  // Mercy only applies while ALL of this player's rooks are still in jail
+  if (typeof player !== 'number' || playerHasRookOut(player)) return v;
+  const pity = Math.min(jailStuck[player] || 0, 6);
+  if (pity <= 0) return v;
+  // +8% per failed attempt, capped at +35%: long jail streaks get relief,
+  // but a 6 is never guaranteed, keeping the die honest.
+  const mercyP = Math.min(0.08 * pity, 0.35);
+  if (Math.random() < mercyP) return 6;
+  return v;
 }
 
 function rollDice(isBotAuto = false) {
@@ -2604,7 +2635,7 @@ function rollDice(isBotAuto = false) {
     if (!isHost || latestSlots[currentPlayer] !== 'bot' || !isBotAuto) return;
   }
   animStartTime = Date.now();
-  const val = getFairDiceRoll();
+  const val = getFairDiceRoll(currentPlayer);
   socket.emit('roll_dice', { player: currentPlayer, value: val });
 }
 
