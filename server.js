@@ -6,7 +6,27 @@ const path = require('path');
 const sqlite3 = require('sqlite3').verbose();
 const bcrypt = require('bcrypt');
 
-const db = new sqlite3.Database(path.join(__dirname, 'database.sqlite'));
+// Global error handlers to prevent crashes
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+});
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+const dbPath = path.join(__dirname, 'database.sqlite');
+const db = new sqlite3.Database(dbPath, (err) => {
+  if (err) {
+    console.error('Failed to connect to database:', err);
+  } else {
+    console.log('Connected to SQLite database:', dbPath);
+  }
+});
+
+// Enable WAL mode for better concurrency on ephemeral filesystems
+db.run('PRAGMA journal_mode=WAL;', (err) => {
+  if (err) console.warn('Could not enable WAL mode:', err.message);
+});
 
 db.serialize(() => {
   db.run("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE, password TEXT)");
