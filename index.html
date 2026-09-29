@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#ff007f">
+  <meta name="theme-color" content="#08090f">
   <title>DOSA Online</title>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon.png">
@@ -18,39 +18,41 @@
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap');
     
     :root {
-      --bg-dark: #070614;
-      --board-bg: #0e0c24;
+      --bg-dark: #08090f;
+      --panel-bg: rgba(15, 20, 32, 0.88);
+      --panel-border: rgba(255, 255, 255, 0.08);
       --neon-cyan: #00f0ff;
-      --neon-pink: #ff0077;
-      --neon-purple: #9d00ff;
-      --neon-gold: #ffbe0b;
-      --neon-green: #00ff88;
+      --neon-pink: #ff2a5f;
+      --neon-gold: #ffb703;
+      --neon-green: #00f59b;
+      --p1: #ff2a5f;
+      --p2: #00f0ff;
+      --p3: #ffb703;
+      --p4: #00f59b;
     }
 
     * {
       box-sizing: border-box;
       -webkit-tap-highlight-color: transparent;
+      user-select: none;
     }
 
     body {
       overscroll-behavior: none;
       font-family: 'Rajdhani', sans-serif;
-      background: #060412;
+      background: #08090f;
       color: #f1f5f9;
       min-height: 100vh;
       overflow: hidden;
     }
 
-    /* Animated Cyber Grid Matrix Background */
+    /* Subtle Technical Micro-Dot Grid */
     .cyber-grid-bg {
       position: absolute;
       inset: 0;
       background-image: 
-        linear-gradient(to right, rgba(0, 240, 255, 0.05) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(255, 0, 119, 0.05) 1px, transparent 1px);
-      background-size: 32px 32px;
-      perspective: 500px;
-      transform-origin: center bottom;
+        radial-gradient(rgba(0, 240, 255, 0.08) 1px, transparent 1px);
+      background-size: 24px 24px;
       pointer-events: none;
       z-index: 0;
     }
@@ -59,8 +61,8 @@
       position: absolute;
       inset: 0;
       background: 
-        radial-gradient(ellipse 80% 50% at 50% -10%, rgba(157, 0, 255, 0.28) 0%, transparent 70%),
-        radial-gradient(ellipse 60% 40% at 50% 110%, rgba(0, 240, 255, 0.2) 0%, transparent 60%);
+        radial-gradient(ellipse 70% 45% at 50% 0%, rgba(0, 240, 255, 0.07) 0%, transparent 70%),
+        radial-gradient(ellipse 60% 40% at 50% 100%, rgba(14, 165, 233, 0.05) 0%, transparent 60%);
       pointer-events: none;
       z-index: 0;
     }
@@ -68,76 +70,74 @@
     .game-font { font-family: 'Orbitron', monospace; font-weight: 900; }
     .hud-font { font-family: 'Orbitron', sans-serif; }
 
-    /* AAA Holographic Glass Cards */
+    /* High-End Dark Glass Panels */
     .game-card {
-      background: linear-gradient(135deg, rgba(20, 16, 48, 0.88), rgba(10, 8, 28, 0.94));
-      border: 1px solid rgba(0, 240, 255, 0.25);
+      background: linear-gradient(145deg, rgba(16, 22, 36, 0.92), rgba(9, 12, 22, 0.96));
+      border: 1px solid rgba(255, 255, 255, 0.1);
       backdrop-filter: blur(24px);
       border-radius: 1.5rem;
       box-shadow: 
-        0 20px 50px rgba(0, 0, 0, 0.85),
-        0 0 30px rgba(157, 0, 255, 0.2),
-        inset 0 1px 0 rgba(255, 255, 255, 0.15),
-        inset 0 -1px 0 rgba(0, 240, 255, 0.2);
+        0 25px 50px -12px rgba(0, 0, 0, 0.85),
+        0 0 35px rgba(0, 240, 255, 0.08),
+        inset 0 1px 0 rgba(255, 255, 255, 0.12);
       position: relative;
     }
 
     .game-card::before {
       content: '';
       position: absolute;
-      top: 0; left: 15%; right: 15%; height: 1px;
-      background: linear-gradient(90deg, transparent, #00f0ff, transparent);
-      box-shadow: 0 0 10px #00f0ff;
+      top: 0; left: 20%; right: 20%; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(0, 240, 255, 0.8), transparent);
     }
 
-    /* High-Impact Video Game Buttons */
+    /* Video Game Primary Action Button */
     .btn-game-primary {
-      background: linear-gradient(135deg, #ff0077, #ff5400);
+      background: linear-gradient(135deg, #00f0ff, #0066ff);
       border: 1px solid rgba(255, 255, 255, 0.4);
       border-radius: 1rem;
       box-shadow: 
-        0 6px 0 #900040,
-        0 12px 25px rgba(255, 0, 119, 0.5),
+        0 5px 0 #003db3,
+        0 12px 25px rgba(0, 102, 255, 0.45),
         inset 0 1px 1px rgba(255, 255, 255, 0.6);
       transition: all 0.12s cubic-bezier(0.3, 0, 0.2, 1);
-      text-shadow: 0 2px 4px rgba(0,0,0,0.6);
+      text-shadow: 0 1px 3px rgba(0,0,0,0.6);
       font-family: 'Orbitron', sans-serif;
-      letter-spacing: 0.15em;
+      letter-spacing: 0.12em;
     }
-    .btn-game-primary:hover {
-      filter: brightness(1.15);
+    .btn-game-primary:hover:not(:disabled) {
+      filter: brightness(1.12);
       transform: translateY(-2px);
-      box-shadow: 0 8px 0 #900040, 0 16px 30px rgba(255, 0, 119, 0.65);
+      box-shadow: 0 7px 0 #003db3, 0 16px 30px rgba(0, 102, 255, 0.6);
     }
-    .btn-game-primary:active {
-      transform: translateY(5px);
-      box-shadow: 0 1px 0 #900040, 0 4px 12px rgba(255, 0, 119, 0.4);
+    .btn-game-primary:active:not(:disabled) {
+      transform: translateY(4px);
+      box-shadow: 0 1px 0 #003db3, 0 4px 12px rgba(0, 102, 255, 0.3);
     }
 
     .btn-game-secondary {
-      background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
-      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
       border-radius: 1rem;
-      box-shadow: 0 4px 0 rgba(0, 0, 0, 0.5);
+      box-shadow: 0 3px 0 rgba(0, 0, 0, 0.4);
       transition: all 0.12s ease;
       font-family: 'Rajdhani', sans-serif;
     }
     .btn-game-secondary:hover {
-      background: rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.1);
       border-color: rgba(0, 240, 255, 0.4);
-      box-shadow: 0 4px 0 rgba(0, 0, 0, 0.5), 0 0 15px rgba(0, 240, 255, 0.25);
+      box-shadow: 0 3px 0 rgba(0, 0, 0, 0.4), 0 0 15px rgba(0, 240, 255, 0.2);
     }
     .btn-game-secondary:active {
-      transform: translateY(3px);
-      box-shadow: 0 1px 0 rgba(0, 0, 0, 0.5);
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 rgba(0, 0, 0, 0.4);
     }
 
-    /* Laser Turn Indicator Pill */
+    /* Turn Indicator Badge */
     .turn-badge {
       font-family: 'Orbitron', sans-serif;
-      letter-spacing: 0.2em;
+      letter-spacing: 0.15em;
       border-radius: 9999px;
-      padding: 0.35rem 1.25rem;
+      padding: 0.35rem 1.1rem;
       text-transform: uppercase;
       font-size: 0.75rem;
       font-weight: 800;
@@ -147,48 +147,48 @@
 
     /* Cyber Bezel Board Container */
     .board-bezel {
-      background: radial-gradient(circle at 50% 50%, #151138 0%, #0d0a27 60%, #060414 100%);
-      border: 2px solid rgba(0, 240, 255, 0.3);
+      background: radial-gradient(circle at 50% 50%, #121827 0%, #0d121c 65%, #07090f 100%);
+      border: 2px solid rgba(0, 240, 255, 0.25);
       box-shadow: 
-        0 25px 60px rgba(0, 0, 0, 0.9),
-        0 0 40px rgba(157, 0, 255, 0.25),
-        inset 0 0 25px rgba(0, 240, 255, 0.08);
+        0 25px 60px rgba(0, 0, 0, 0.95),
+        0 0 30px rgba(0, 240, 255, 0.12),
+        inset 0 0 20px rgba(0, 0, 0, 0.8);
       border-radius: 2rem;
     }
 
-    /* Recessed Hologram Board Holes */
+    /* Recessed Board Holes */
     .board-hole {
       box-shadow: 
         inset 0 3px 6px rgba(0,0,0,0.95),
-        0 1px 1px rgba(255,255,255,0.1);
+        0 1px 1px rgba(255,255,255,0.06);
       transition: all 0.2s ease;
     }
 
-    /* 3D Glass Sphere Pieces with Intense Corona */
+    /* 3D Glass Sphere Pieces with Intense Specular Reflection */
     .piece {
       transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
       touch-action: manipulation;
     }
     .piece.valid-move {
-      animation: targetPulse 1s infinite alternate;
+      animation: targetPulse 0.9s infinite alternate;
       cursor: pointer;
     }
     .piece.valid-move::after {
       content: '';
       position: absolute;
       top: 50%; left: 50%;
-      width: 44px; height: 44px;
+      width: 48px; height: 48px;
       transform: translate(-50%, -50%);
       border-radius: 50%;
     }
     @keyframes targetPulse {
       0% { 
         transform: translate(-50%, -50%) scale(1.1); 
-        filter: brightness(1.2) drop-shadow(0 0 8px #fff) drop-shadow(0 0 16px var(--neon-cyan)); 
+        filter: brightness(1.2) drop-shadow(0 0 10px #fff) drop-shadow(0 0 20px var(--neon-cyan)); 
       }
       100% { 
         transform: translate(-50%, -50%) scale(1.4); 
-        filter: brightness(1.5) drop-shadow(0 0 14px #fff) drop-shadow(0 0 28px var(--neon-pink)); 
+        filter: brightness(1.5) drop-shadow(0 0 16px #fff) drop-shadow(0 0 30px #00f0ff); 
       }
     }
 
@@ -229,7 +229,7 @@
     .face-5 .dot:nth-child(3) { grid-area: 2/2/3/3; }
     .face-5 .dot:nth-child(4) { grid-area: 3/1/4/2; }
     .face-5 .dot:nth-child(5) { grid-area: 3/3/4/4; }
-    .face-6 { transform: rotateY(180deg) translateZ(25px); grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr 1fr; }
+    .face-6 { transform: rotateY(180deg) translateZ(25px); grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
     .face-6 .dot { align-self: center; justify-self: center; }
     
     .dot {
@@ -277,7 +277,7 @@
     }
   </style>
 </head>
-<body class="text-slate-100 min-h-screen h-[100dvh] flex flex-col overflow-hidden relative selection:bg-rose-500/30">
+<body class="text-slate-100 min-h-screen h-[100dvh] flex flex-col overflow-hidden relative selection:bg-cyan-500/30">
   <div class="cyber-grid-bg"></div>
   <div class="bg-cyber-glow"></div>
 
@@ -302,47 +302,47 @@
   </div>
 
   <!-- AUTH MODAL -->
-  <div id="auth-modal" class="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md hidden transition-all duration-300">
-    <div class="w-full max-w-sm p-6 rounded-3xl relative" style="background: rgba(18, 14, 45, 0.95); border: 1px solid rgba(255,255,255,0.15); box-shadow: 0 25px 50px rgba(0,0,0,0.6);">
+  <div id="auth-modal" class="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md hidden transition-all duration-300">
+    <div class="w-full max-w-sm p-6 rounded-3xl relative game-card">
       <button onclick="closeAuthModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-all">✕</button>
-      <div class="flex gap-2 mb-5 p-1 rounded-xl" style="background: rgba(255,255,255,0.05);">
-        <button id="auth-tab-login" onclick="switchAuthTab('login')" class="flex-1 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all" style="background: linear-gradient(135deg, #ff007f, #ff6b35); color:white;">Sign In</button>
-        <button id="auth-tab-register" onclick="switchAuthTab('register')" class="flex-1 py-2 rounded-lg text-xs font-black uppercase tracking-wider text-slate-400 hover:text-white transition-all">Sign Up</button>
+      <div class="flex gap-2 mb-5 p-1 rounded-xl bg-white/5 border border-white/10">
+        <button id="auth-tab-login" onclick="switchAuthTab('login')" class="flex-1 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-[0_0_12px_rgba(0,240,255,0.35)]">Sign In</button>
+        <button id="auth-tab-register" onclick="switchAuthTab('register')" class="flex-1 py-2 rounded-lg text-xs font-black uppercase tracking-wider text-slate-400 hover:text-white transition-all bg-transparent">Sign Up</button>
       </div>
 
       <div class="flex flex-col gap-3">
         <div>
-          <label class="text-[11px] font-bold text-indigo-300 uppercase tracking-widest block mb-1">Username</label>
-          <input type="text" id="auth-username-input" placeholder="Enter username" class="w-full h-11 rounded-xl px-3 text-sm font-bold focus:outline-none transition-all" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color:#f1f5f9;" maxlength="20" />
+          <label class="text-[11px] font-bold text-slate-300 uppercase tracking-widest block mb-1">Username</label>
+          <input type="text" id="auth-username-input" onkeydown="if(event.key==='Enter') submitAuth()" placeholder="Enter username" class="w-full h-11 rounded-xl px-3 text-sm font-bold focus:outline-none transition-all" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); color:#f1f5f9;" maxlength="20" />
         </div>
         <div>
-          <label class="text-[11px] font-bold text-indigo-300 uppercase tracking-widest block mb-1">Password</label>
-          <input type="password" id="auth-password-input" placeholder="••••••••" class="w-full h-11 rounded-xl px-3 text-sm font-bold focus:outline-none transition-all" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color:#f1f5f9;" maxlength="30" />
+          <label class="text-[11px] font-bold text-slate-300 uppercase tracking-widest block mb-1">Password</label>
+          <input type="password" id="auth-password-input" onkeydown="if(event.key==='Enter') submitAuth()" placeholder="••••••••" class="w-full h-11 rounded-xl px-3 text-sm font-bold focus:outline-none transition-all" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); color:#f1f5f9;" maxlength="30" />
         </div>
         <div id="auth-error-msg" class="text-xs font-bold text-rose-400 min-h-[16px] text-center"></div>
-        <button id="auth-submit-btn" onclick="submitAuth()" class="w-full py-3.5 rounded-xl font-black tracking-widest uppercase transition-all hover:scale-[1.02] active:scale-[0.98] mt-1" style="background: linear-gradient(135deg, #ff007f, #ff6b35); color: white; box-shadow: 0 4px 20px rgba(255,0,127,0.4);">Sign In</button>
+        <button id="auth-submit-btn" onclick="submitAuth()" class="w-full py-3.5 rounded-xl font-black tracking-widest uppercase transition-all btn-game-primary text-white text-xs mt-1">Sign In</button>
       </div>
     </div>
   </div>
 
   <!-- FRIENDS MODAL -->
-  <div id="friends-modal" class="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md hidden transition-all duration-300">
-    <div class="w-full max-w-sm p-6 rounded-3xl relative" style="background: rgba(18, 14, 45, 0.95); border: 1px solid rgba(255,255,255,0.15); box-shadow: 0 25px 50px rgba(0,0,0,0.6);">
+  <div id="friends-modal" class="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md hidden transition-all duration-300">
+    <div class="w-full max-w-sm p-6 rounded-3xl relative game-card">
       <button onclick="closeFriendsModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-all">✕</button>
-      <h3 class="text-lg font-black text-white tracking-wide flex items-center gap-2 mb-4">
-        👥 <span>Friends</span>
+      <h3 class="text-base font-black text-white tracking-wider flex items-center gap-2 mb-4 game-font">
+        <span>👥</span> <span>FRIENDS SYSTEM</span>
       </h3>
       
       <!-- Add Friend Input -->
       <div class="flex gap-2 mb-3">
-        <input type="text" id="add-friend-input" placeholder="Friend's username" class="flex-1 h-10 rounded-xl px-3 text-xs font-bold focus:outline-none" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color:#f1f5f9;" maxlength="20" />
-        <button onclick="addFriendAction()" class="px-4 h-10 rounded-xl text-xs font-black uppercase tracking-wider" style="background: linear-gradient(135deg,#6366f1,#8b5cf6); color:white;">Add</button>
+        <input type="text" id="add-friend-input" onkeydown="if(event.key==='Enter') addFriendAction()" placeholder="Friend's exact username" class="flex-1 h-10 rounded-xl px-3 text-xs font-bold focus:outline-none" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); color:#f1f5f9;" maxlength="20" />
+        <button onclick="addFriendAction()" class="px-4 h-10 rounded-xl text-xs font-black uppercase tracking-wider bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-[0_0_10px_rgba(0,240,255,0.3)] hover:scale-105 active:scale-95 transition-all">Add</button>
       </div>
-      <div id="friend-status-msg" class="text-[11px] font-bold text-center min-h-[16px] mb-2 text-indigo-300"></div>
+      <div id="friend-status-msg" class="text-[11px] font-bold text-center min-h-[16px] mb-2 text-cyan-300"></div>
 
       <!-- Friends List -->
       <div class="border-t border-white/10 pt-3">
-        <p class="text-[10px] font-bold text-indigo-300 uppercase tracking-widest mb-2">Your Friend List</p>
+        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2.5">Mutual Friends</p>
         <div id="friends-list-container" class="flex flex-col gap-2 max-h-56 overflow-y-auto pr-1">
           <p class="text-xs text-slate-400 text-center py-4">No friends added yet.</p>
         </div>
@@ -351,53 +351,92 @@
   </div>
 
   <!-- HOME SCREEN -->
-  <div id="home-screen" class="absolute inset-0 z-[60] flex flex-col items-center justify-center p-4 sm:p-6 overflow-y-auto" style="background: radial-gradient(circle at 50% 30%, #1c1547 0%, #0d0a27 65%, #050314 100%);">
-    <h1 class="text-4xl sm:text-6xl font-black tracking-[0.3em] uppercase mb-1 sm:mb-2 text-center game-font" style="color:#ff007f; text-shadow: 0 0 30px rgba(255,0,127,0.8), 0 0 60px rgba(255,0,127,0.4);">DOSA</h1>
-    <p class="text-xs sm:text-sm font-bold tracking-[0.5em] text-indigo-300 mb-5 sm:mb-8 uppercase game-font">Online</p>
+  <div id="home-screen" class="absolute inset-0 z-[60] flex flex-col items-center justify-center p-4 sm:p-6 overflow-y-auto" style="background: radial-gradient(circle at 50% 25%, #111827 0%, #080a10 75%);">
+    <div class="text-center mb-6">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-[10px] font-black uppercase tracking-[0.25em] mb-2">
+        <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping"></span> Real-Time Multiplayer
+      </div>
+      <h1 class="text-5xl sm:text-6xl font-black tracking-[0.25em] uppercase text-white game-font" style="text-shadow: 0 0 25px rgba(0, 240, 255, 0.6), 0 0 50px rgba(0, 102, 255, 0.3);">DOSA</h1>
+      <p class="text-xs font-bold tracking-[0.4em] text-slate-400 uppercase mt-1 game-font">Cross & Circle Arcade</p>
+    </div>
+
     <div class="w-full max-w-sm p-6 sm:p-8 rounded-3xl text-center game-card">
-      <p class="text-xs font-bold text-indigo-300 uppercase tracking-widest mb-2">Your Nickname</p>
-      <input type="text" id="nickname-input" placeholder="e.g. Maverick" class="w-full h-11 sm:h-12 rounded-xl px-4 text-center text-base sm:text-lg font-bold focus:outline-none transition-all mb-4" style="background: rgba(255,255,255,0.08); border: 2px solid rgba(255,255,255,0.15); color: #f1f5f9;" autocomplete="off" maxlength="15" />
+      <div class="mb-4 text-left">
+        <label class="text-[11px] font-bold text-slate-300 uppercase tracking-widest block mb-1.5">Player Nickname</label>
+        <input type="text" id="nickname-input" placeholder="e.g. Shadow" class="w-full h-12 rounded-xl px-4 text-center text-base font-bold focus:outline-none transition-all" style="background: rgba(255,255,255,0.06); border: 1.5px solid rgba(255,255,255,0.12); color: #f8fafc;" autocomplete="off" maxlength="15" />
+      </div>
       
-      <p class="text-xs font-bold text-indigo-300 uppercase tracking-widest mb-2">Enter Room Code</p>
-      <input type="text" id="room-code-input" placeholder="e.g. DOSA" class="w-full h-11 sm:h-12 rounded-xl px-4 text-center text-base sm:text-lg font-bold uppercase tracking-widest focus:outline-none transition-all mb-5 sm:mb-6" style="background: rgba(255,255,255,0.08); border: 2px solid rgba(255,255,255,0.15); color: #f1f5f9;" autocomplete="off" maxlength="8" />
+      <div class="mb-5 text-left">
+        <label class="text-[11px] font-bold text-slate-300 uppercase tracking-widest block mb-1.5">Room Code</label>
+        <input type="text" id="room-code-input" placeholder="e.g. DOSA" class="w-full h-12 rounded-xl px-4 text-center text-lg font-black uppercase tracking-widest focus:outline-none transition-all" style="background: rgba(255,255,255,0.06); border: 1.5px solid rgba(255,255,255,0.12); color: #00f0ff;" autocomplete="off" maxlength="8" />
+      </div>
       
-      <button onclick="joinRoom()" class="w-full py-3.5 sm:py-4 rounded-xl font-black tracking-widest uppercase btn-game-primary text-white text-sm sm:text-base">Join Session</button>
-      <p class="text-[11px] sm:text-xs text-indigo-300/60 mt-4 sm:mt-5 font-medium">Create a room or join a friend's.</p>
+      <button onclick="joinRoom()" class="w-full py-4 rounded-xl font-black tracking-widest uppercase btn-game-primary text-white text-sm mb-2.5">Join / Create Room</button>
+      <button onclick="quickMatchVsAI()" class="w-full py-3 rounded-xl font-bold tracking-wider uppercase btn-game-secondary text-cyan-300 text-xs flex items-center justify-center gap-2">
+        <span>⚡ Quick Match vs AI (Solo)</span>
+      </button>
+
+      <p class="text-[11px] text-slate-500 mt-4 font-medium">Play online with friends or challenge smart AI bots.</p>
     </div>
     
     <!-- Open Lobbies Container -->
-    <div id="open-rooms-container" class="w-full max-w-sm mt-4 sm:mt-6 p-5 sm:p-6 rounded-3xl text-center game-card hidden">
-      <p class="text-xs font-bold text-indigo-300 uppercase tracking-widest mb-3 text-center">Live Games & Lobbies</p>
-      <div id="open-rooms-list" class="flex flex-col gap-2.5 max-h-40 sm:max-h-48 overflow-y-auto pr-1"></div>
+    <div id="open-rooms-container" class="w-full max-w-sm mt-4 p-5 rounded-3xl text-center game-card hidden">
+      <p class="text-xs font-bold text-slate-300 uppercase tracking-widest mb-3 text-center">Live Matches & Lobbies</p>
+      <div id="open-rooms-list" class="flex flex-col gap-2 max-h-40 overflow-y-auto pr-1"></div>
     </div>
   </div>
 
   <!-- LOBBY SCREEN -->
-  <div id="lobby-screen" class="hidden absolute inset-0 z-50 flex flex-col items-center justify-center p-4 sm:p-6 overflow-y-auto" style="background: radial-gradient(circle at 50% 30%, #1c1547 0%, #0d0a27 65%, #050314 100%);">
-    <h1 class="text-3xl sm:text-5xl font-black tracking-[0.3em] uppercase mb-1 text-center game-font" style="color:#ff007f; text-shadow: 0 0 20px rgba(255,0,127,0.7);">DOSA</h1>
-    <p class="text-[11px] sm:text-xs font-bold tracking-[0.5em] text-indigo-300 mb-5 sm:mb-8 uppercase game-font">Online</p>
-    <div class="w-full max-w-sm p-5 sm:p-6 rounded-3xl game-card">
-      <div class="mb-5 text-center">
-        <h2 class="text-xl font-black text-white tracking-tight game-font" id="lobby-room-code">Room: ----</h2>
-        <p class="text-xs font-bold text-indigo-300 uppercase tracking-widest mt-1">Select Your Player</p>
+  <div id="lobby-screen" class="hidden absolute inset-0 z-50 flex flex-col items-center justify-center p-4 sm:p-6 overflow-y-auto" style="background: radial-gradient(circle at 50% 25%, #111827 0%, #080a10 75%);">
+    <div class="w-full max-w-md p-5 sm:p-6 rounded-3xl game-card">
+      
+      <!-- Lobby Header -->
+      <div class="mb-5 pb-4 border-b border-white/10 flex items-center justify-between">
+        <div>
+          <span class="text-[10px] font-black uppercase tracking-widest text-slate-400 block">Lobby Room</span>
+          <h2 class="text-xl font-black text-white tracking-wider game-font" id="lobby-room-code">ROOM: ----</h2>
+        </div>
+        <button onclick="copyRoomInvite()" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/20 text-cyan-300 border border-white/15 transition-all flex items-center gap-1.5" title="Copy Invite Link">
+          <span>📋</span> <span id="copy-btn-text">Copy Link</span>
+        </button>
       </div>
-      <div class="grid grid-cols-2 gap-3 mb-6">
-        <div id="slot-0" class="h-14 rounded-xl flex overflow-hidden transition-all" style="border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.05);"></div>
-        <div id="slot-1" class="h-14 rounded-xl flex overflow-hidden transition-all" style="border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.05);"></div>
-        <div id="slot-2" class="h-14 rounded-xl flex overflow-hidden transition-all" style="border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.05);"></div>
-        <div id="slot-3" class="h-14 rounded-xl flex overflow-hidden transition-all" style="border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.05);"></div>
-      </div>
-      <div class="mb-5">
-        <p class="text-xs font-bold text-indigo-300 uppercase tracking-widest mb-3 text-center">Pegs per Player</p>
-        <div class="flex gap-3">
-          <button id="btn-pegs-2" onclick="setPegs(2)" class="flex-1 py-3 rounded-xl font-bold transition-all btn-game-secondary" style="color: #94a3b8;">2 Pegs</button>
-          <button id="btn-pegs-4" onclick="setPegs(4)" class="flex-1 py-3 rounded-xl font-bold transition-all" style="background: linear-gradient(135deg,#6366f1,#8b5cf6); color: white; box-shadow: 0 4px 15px rgba(99,102,241,0.4);">4 Pegs</button>
+
+      <!-- Character Select 4 Slots Grid -->
+      <div class="mb-4">
+        <p class="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-2.5 text-center">Select Your Player Slot</p>
+        <div class="grid grid-cols-2 gap-3" id="lobby-slots-grid">
+          <div id="slot-0" class="rounded-2xl p-2.5 flex flex-col justify-between transition-all" style="background: rgba(255,255,255,0.04); border: 1.5px solid rgba(255,255,255,0.08); min-height: 104px;"></div>
+          <div id="slot-1" class="rounded-2xl p-2.5 flex flex-col justify-between transition-all" style="background: rgba(255,255,255,0.04); border: 1.5px solid rgba(255,255,255,0.08); min-height: 104px;"></div>
+          <div id="slot-2" class="rounded-2xl p-2.5 flex flex-col justify-between transition-all" style="background: rgba(255,255,255,0.04); border: 1.5px solid rgba(255,255,255,0.08); min-height: 104px;"></div>
+          <div id="slot-3" class="rounded-2xl p-2.5 flex flex-col justify-between transition-all" style="background: rgba(255,255,255,0.04); border: 1.5px solid rgba(255,255,255,0.08); min-height: 104px;"></div>
         </div>
       </div>
-      <button id="start-btn" onclick="startGame()" disabled class="w-full py-4 rounded-xl font-black tracking-widest uppercase transition-all disabled:opacity-40 disabled:cursor-not-allowed btn-game-primary text-white">Waiting for players...</button>
-      <div class="text-center mt-5 flex justify-between px-2">
-        <button onclick="leaveRoom()" class="text-xs font-bold text-indigo-300 uppercase tracking-wider hover:text-white transition-colors">🚪 Leave</button>
-        <button onclick="resetSession()" class="text-xs font-bold text-red-400 uppercase tracking-wider hover:text-red-300 transition-colors">⚠ Force Reset</button>
+
+      <!-- Mode Selector (2 Pegs vs 4 Pegs) -->
+      <div class="mb-5">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-[11px] font-black uppercase tracking-widest text-slate-400">Match Mode</span>
+          <span class="text-[10px] font-bold text-slate-500 uppercase" id="host-settings-label">Host Controls</span>
+        </div>
+        <div class="grid grid-cols-2 gap-2 p-1.5 rounded-2xl bg-white/5 border border-white/10">
+          <button id="btn-pegs-2" onclick="setPegs(2)" class="py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all text-slate-400 hover:text-white">⚡ 2 Pegs (Blitz)</button>
+          <button id="btn-pegs-4" onclick="setPegs(4)" class="py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all text-slate-400 hover:text-white">🏆 4 Pegs (Classic)</button>
+        </div>
+      </div>
+
+      <!-- Start Button Container -->
+      <div id="start-btn-container" class="mb-4">
+        <button id="start-btn" onclick="startGame()" disabled class="w-full py-4 rounded-2xl font-black tracking-widest uppercase transition-all disabled:opacity-40 disabled:cursor-not-allowed btn-game-primary text-white text-sm">Waiting for players...</button>
+      </div>
+
+      <!-- Footer Actions -->
+      <div class="flex justify-between items-center px-1 text-xs">
+        <button onclick="leaveRoom()" class="font-bold text-slate-400 uppercase tracking-wider hover:text-rose-400 transition-colors flex items-center gap-1">
+          <span>🚪</span> Exit Lobby
+        </button>
+        <button onclick="resetSession()" class="font-bold text-rose-400/70 uppercase tracking-wider hover:text-rose-400 transition-colors">
+          ⚠ Reset Room
+        </button>
       </div>
     </div>
   </div>
@@ -733,24 +772,21 @@ socket.on('lobby_state', (state) => {
     latestPlayerNames = state.playerNames;
   }
 
-  const savedSlot = getSession('dosaSlot');
+  // Determine mySlot strictly from server state
   mySlot = null;
-  for(let i=0; i<4; i++) {
+  for (let i = 0; i < 4; i++) {
     if (state.slots[i] === socket.id) {
       mySlot = i;
       break;
     }
   }
-  if (mySlot === null && savedSlot !== null) {
-    const s = parseInt(savedSlot);
-    if (!state.offlineSlots?.[s] || state.slots[s] === socket.id) {
-      mySlot = s;
-    }
-  }
   if (mySlot !== null) {
     saveSession('dosaSlot', mySlot);
+  } else {
+    clearSession('dosaSlot');
   }
-  isHost = (state.slots.find(s => s !== null && s !== 'bot') === socket.id);
+
+  isHost = (state.host === socket.id || state.slots.find(s => s !== null && s !== 'bot') === socket.id);
 
   if (state.gameState === 'playing') {
     document.getElementById('home-screen').classList.add('hidden');
@@ -764,66 +800,180 @@ socket.on('lobby_state', (state) => {
   document.getElementById('lobby-screen').classList.remove('hidden');
   document.getElementById('game-screen').classList.add('hidden');
   document.getElementById('victory-screen').classList.add('hidden');
-  document.getElementById('lobby-room-code').innerText = `Room: ${state.roomId}`;
-  for(let i=0; i<4; i++) {
-    const btn = document.getElementById(`slot-${i}`);
-    if (state.slots[i]) {
-       const col = PLAYERS[i].dotColor;
-       if (state.slots[i] === socket.id) {
-         btn.innerHTML = `<button class="w-full h-full font-bold flex items-center justify-center gap-2 text-white rounded-xl transition-all" style="background: linear-gradient(135deg, ${col}26, rgba(10,8,28,0.85)); border: 1.5px solid ${col}; box-shadow: 0 0 15px ${col}44;"><div class="w-3.5 h-3.5 rounded-full ${PLAYERS[i].color} shadow-[0_0_10px_${col}]"></div> <span class="font-black">${state.playerNames[i]}</span> <span class="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-white/20 ml-1">YOU</span></button>`;
-       } else if (state.slots[i] === 'bot') {
-         btn.innerHTML = `
-           <div class="flex-1 h-full font-bold flex items-center justify-center gap-2 text-slate-200 rounded-l-xl" style="background: rgba(255,255,255,0.06); border-left: 1px solid rgba(255,255,255,0.15); border-top: 1px solid rgba(255,255,255,0.15); border-bottom: 1px solid rgba(255,255,255,0.15);"><div class="w-3.5 h-3.5 rounded-full ${PLAYERS[i].color} shadow-[0_0_8px_${col}]"></div> <span>${state.playerNames[i]}</span></div>
-           ${isHost ? `<button onclick="removeBot(${i})" class="w-11 h-full bg-rose-500/20 hover:bg-rose-500/40 text-rose-300 font-bold flex items-center justify-center transition-all rounded-r-xl border border-rose-500/30">✕</button>` : ''}
-         `;
-       } else {
-         btn.innerHTML = `<div class="w-full h-full font-bold flex items-center justify-center gap-2 text-slate-300 rounded-xl" style="background: rgba(255,255,255,0.04); border: 1px solid ${col}44;"><div class="w-3.5 h-3.5 rounded-full ${PLAYERS[i].color} shadow-[0_0_8px_${col}]"></div> <span>${state.playerNames[i]}</span></div>`;
-       }
+  document.getElementById('lobby-room-code').innerText = `ROOM: ${state.roomId}`;
+
+  // Render 4 Player Cards
+  for (let i = 0; i < 4; i++) {
+    const slotEl = document.getElementById(`slot-${i}`);
+    if (!slotEl) continue;
+    const col = PLAYERS[i].dotColor;
+    const isMe = (state.slots[i] === socket.id);
+    const isOccupied = !!state.slots[i];
+    const isBot = (state.slots[i] === 'bot');
+    const pName = state.playerNames[i] || `Player ${i+1}`;
+
+    if (isMe) {
+      slotEl.style.cssText = `background: linear-gradient(135deg, ${col}25, rgba(16,22,36,0.95)); border: 2px solid ${col}; box-shadow: 0 0 20px ${col}44; min-height: 104px;`;
+      slotEl.innerHTML = `
+        <div class="flex items-center justify-between w-full mb-1">
+          <div class="flex items-center gap-1.5">
+            <div class="w-3 h-3 rounded-full" style="background:${col}; box-shadow:0 0 8px ${col};"></div>
+            <span class="text-[11px] font-black tracking-wider uppercase text-white">P${i+1}</span>
+          </div>
+          <span class="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">YOU</span>
+        </div>
+        <div class="text-center my-auto py-1">
+          <div class="text-sm font-black text-white truncate px-1">${pName}</div>
+        </div>
+        <div class="w-full py-1 text-center text-[10px] font-bold text-emerald-400 bg-emerald-500/10 rounded-lg">Active Slot</div>
+      `;
+    } else if (isBot) {
+      slotEl.style.cssText = `background: rgba(255,255,255,0.03); border: 1.5px solid rgba(255,255,255,0.1); min-height: 104px;`;
+      slotEl.innerHTML = `
+        <div class="flex items-center justify-between w-full mb-1">
+          <div class="flex items-center gap-1.5">
+            <div class="w-2.5 h-2.5 rounded-full" style="background:${col};"></div>
+            <span class="text-[11px] font-bold uppercase text-slate-400">P${i+1}</span>
+          </div>
+          <span class="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">BOT</span>
+        </div>
+        <div class="text-center my-auto py-1">
+          <div class="text-xs font-bold text-slate-300 truncate px-1">${pName}</div>
+        </div>
+        <div class="flex gap-1.5 w-full">
+          <button onclick="joinSlot(${i})" class="flex-1 py-1.5 rounded-lg text-[11px] font-bold bg-white/10 hover:bg-white/20 text-white transition-all">Take Slot</button>
+          ${isHost ? `<button onclick="removeBot(${i})" class="w-8 py-1.5 rounded-lg text-xs font-bold bg-rose-500/20 text-rose-300 hover:bg-rose-500/35 transition-all">✕</button>` : ''}
+        </div>
+      `;
+    } else if (isOccupied) {
+      slotEl.style.cssText = `background: rgba(255,255,255,0.03); border: 1.5px solid rgba(255,255,255,0.1); min-height: 104px;`;
+      slotEl.innerHTML = `
+        <div class="flex items-center justify-between w-full mb-1">
+          <div class="flex items-center gap-1.5">
+            <div class="w-2.5 h-2.5 rounded-full" style="background:${col};"></div>
+            <span class="text-[11px] font-bold uppercase text-slate-400">P${i+1}</span>
+          </div>
+          <span class="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">READY</span>
+        </div>
+        <div class="text-center my-auto py-1">
+          <div class="text-xs font-bold text-slate-200 truncate px-1">${pName}</div>
+        </div>
+        <div class="w-full py-1 text-center text-[10px] font-bold text-slate-400 bg-white/5 rounded-lg">Occupied</div>
+      `;
     } else {
-       btn.innerHTML = `
-         <button onclick="joinSlot(${i})" class="flex-1 h-full font-bold flex items-center justify-center gap-2 text-slate-300 hover:text-white transition-all rounded-l-xl" style="background: rgba(255,255,255,0.06); border-left: 1px solid rgba(255,255,255,0.12); border-top: 1px solid rgba(255,255,255,0.12); border-bottom: 1px solid rgba(255,255,255,0.12);"><div class="w-3.5 h-3.5 rounded-full ${PLAYERS[i].color} opacity-60"></div> Join P${i+1}</button>
-         ${isHost ? `<button onclick="addBot(${i})" class="w-11 h-full hover:brightness-125 font-bold flex items-center justify-center transition-all text-base rounded-r-xl border border-white/12" style="background: rgba(255,255,255,0.1);" title="Add Bot">🤖</button>` : ''}
-       `;
+      // Empty Slot
+      slotEl.style.cssText = `background: rgba(255,255,255,0.02); border: 1.5px dashed rgba(255,255,255,0.15); min-height: 104px;`;
+      slotEl.innerHTML = `
+        <div class="flex items-center justify-between w-full mb-1">
+          <div class="flex items-center gap-1.5">
+            <div class="w-2.5 h-2.5 rounded-full opacity-40" style="background:${col};"></div>
+            <span class="text-[11px] font-bold uppercase text-slate-500">P${i+1}</span>
+          </div>
+          <span class="text-[9px] font-bold uppercase text-slate-600">OPEN</span>
+        </div>
+        <div class="text-center my-auto py-0.5">
+          <div class="text-xs font-medium text-slate-500">Empty</div>
+        </div>
+        <div class="flex gap-1.5 w-full">
+          <button onclick="joinSlot(${i})" class="flex-1 py-1.5 rounded-lg text-[11px] font-bold transition-all bg-cyan-500/20 hover:bg-cyan-500/35 text-cyan-300 border border-cyan-500/30 active:scale-95">Claim</button>
+          ${isHost ? `<button onclick="addBot(${i})" class="px-2 py-1.5 rounded-lg text-xs font-bold bg-white/10 hover:bg-white/20 text-slate-300 border border-white/15 transition-all" title="Add Bot">🤖</button>` : ''}
+        </div>
+      `;
     }
   }
   
+  // Update Pegs Mode UI
   const pegs = state.gameSettings.pegsPerPlayer;
   const btn2 = document.getElementById('btn-pegs-2');
   const btn4 = document.getElementById('btn-pegs-4');
-  if (pegs === 2) {
-    btn2.style.cssText = "background: linear-gradient(135deg,#6366f1,#8b5cf6); color: white; border: 1px solid transparent;";
-    btn4.style.cssText = "background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #94a3b8;";
-  } else {
-    btn2.style.cssText = "background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #94a3b8;";
-    btn4.style.cssText = "background: linear-gradient(135deg,#6366f1,#8b5cf6); color: white; border: 1px solid transparent;";
+  if (btn2 && btn4) {
+    if (pegs === 2) {
+      btn2.className = "py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-[0_0_15px_rgba(0,240,255,0.35)]";
+      btn4.className = "py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all text-slate-400 hover:text-white bg-transparent";
+    } else {
+      btn2.className = "py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all text-slate-400 hover:text-white bg-transparent";
+      btn4.className = "py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-[0_0_15px_rgba(0,240,255,0.35)]";
+    }
   }
-  
-  const startBtn = document.getElementById('start-btn');
-  if (isHost && state.slots.filter(s => s !== null).length >= 2) {
-    startBtn.disabled = false;
-    startBtn.innerText = "Start Game";
-  } else {
-    startBtn.disabled = true;
-    startBtn.innerText = "Waiting for players (min 2)...";
+
+  const hostLabel = document.getElementById('host-settings-label');
+  if (hostLabel) {
+    hostLabel.innerText = isHost ? "Host Controls" : "Controlled by Host";
+  }
+
+  // Start Button Configuration
+  const startContainer = document.getElementById('start-btn-container');
+  const totalPlayers = state.slots.filter(s => s !== null).length;
+  if (startContainer) {
+    if (isHost) {
+      if (totalPlayers >= 2) {
+        startContainer.innerHTML = `<button id="start-btn" onclick="startGame()" class="w-full py-4 rounded-2xl font-black tracking-widest uppercase btn-game-primary text-white text-sm shadow-[0_0_20px_rgba(0,240,255,0.4)]">START MATCH 🚀</button>`;
+      } else {
+        startContainer.innerHTML = `
+          <div class="flex flex-col gap-2">
+            <button id="start-btn" onclick="addBotAndStart()" class="w-full py-4 rounded-2xl font-black tracking-widest uppercase btn-game-primary text-white text-xs flex items-center justify-center gap-2">
+              <span>🤖 ADD AI BOT & START MATCH</span>
+            </button>
+            <p class="text-[10px] text-center text-slate-400">At least 2 players or bots needed to start</p>
+          </div>
+        `;
+      }
+    } else {
+      startContainer.innerHTML = `<button id="start-btn" disabled class="w-full py-4 rounded-2xl font-black tracking-widest uppercase bg-white/5 border border-white/10 text-slate-500 cursor-not-allowed text-xs">WAITING FOR HOST TO START...</button>`;
+    }
   }
 });
 
+function copyRoomInvite() {
+  const code = getSession('dosaRoom');
+  if (!code) return;
+  const url = `${window.location.origin}/?room=${code}`;
+  navigator.clipboard?.writeText(url);
+  const btnText = document.getElementById('copy-btn-text');
+  if (btnText) {
+    btnText.innerText = 'Copied!';
+    setTimeout(() => { btnText.innerText = 'Copy Link'; }, 2000);
+  }
+}
+
+function quickMatchVsAI() {
+  const name = document.getElementById('nickname-input')?.value.trim() || 'Player 1';
+  const code = 'SOLO' + Math.floor(100 + Math.random() * 900);
+  saveSession('dosaRoom', code);
+  saveSession('dosaName', name);
+  socket.emit('join_room', { roomId: code, playerName: name });
+  document.getElementById('home-screen').classList.add('hidden');
+  document.getElementById('lobby-screen').classList.remove('hidden');
+  setTimeout(() => {
+    socket.emit('add_bot', 1);
+    socket.emit('add_bot', 2);
+    socket.emit('add_bot', 3);
+  }, 300);
+}
+
 function joinRoom() {
   const code = document.getElementById('room-code-input').value.toUpperCase().trim();
+  const name = document.getElementById('nickname-input')?.value.trim() || 'Player';
   if (code.length > 0) {
     saveSession('dosaRoom', code);
-    socket.emit('join_room', code);
+    saveSession('dosaName', name);
+    socket.emit('join_room', { roomId: code, playerName: name });
     document.getElementById('home-screen').classList.add('hidden');
+    document.getElementById('lobby-screen').classList.remove('hidden');
   } else {
     alert("Please enter a room code!");
   }
 }
 
 function joinSlot(slotIndex) {
-  if (mySlot !== null) return;
+  if (mySlot === slotIndex) return;
+  if (latestSlots && latestSlots[slotIndex] && latestSlots[slotIndex] !== socket.id && latestSlots[slotIndex] !== 'bot') {
+    return;
+  }
   const name = document.getElementById('nickname-input')?.value.trim() || `Player ${slotIndex + 1}`;
   saveSession('dosaSlot', slotIndex);
   saveSession('dosaName', name);
+  mySlot = slotIndex;
   socket.emit('join_slot', { slotIndex, playerName: name });
 }
 
@@ -831,14 +981,32 @@ function addBot(slotIndex) {
   socket.emit('add_bot', slotIndex);
 }
 
+function addBotAndStart() {
+  socket.emit('add_bot');
+  setTimeout(() => {
+    socket.emit('start_game');
+  }, 400);
+}
+
 function removeBot(slotIndex) {
   socket.emit('remove_bot', slotIndex);
 }
 
-function setPegs(num) { socket.emit('update_settings', { pegsPerPlayer: num }); }
-function startGame() { if(isHost) socket.emit('start_game'); }
-function resetSession() { socket.emit('reset_session'); }
-function returnToLobby() { socket.emit('return_to_lobby'); }
+function setPegs(num) {
+  socket.emit('update_settings', { pegsPerPlayer: num });
+}
+
+function startGame() {
+  if (isHost) socket.emit('start_game');
+}
+
+function resetSession() {
+  socket.emit('reset_session');
+}
+
+function returnToLobby() {
+  socket.emit('return_to_lobby');
+}
 
 function leaveRoom() {
   socket.emit('leave_room');
@@ -1666,13 +1834,13 @@ function switchAuthTab(mode) {
   if (errMsg) errMsg.innerText = '';
 
   if (mode === 'login') {
-    loginTab.style.background = 'linear-gradient(135deg, #ff007f, #ff6b35)';
+    loginTab.style.background = 'linear-gradient(135deg, #00f0ff, #0066ff)';
     loginTab.style.color = 'white';
     regTab.style.background = 'transparent';
     regTab.style.color = '#94a3b8';
     submitBtn.innerText = 'Sign In';
   } else {
-    regTab.style.background = 'linear-gradient(135deg, #ff007f, #ff6b35)';
+    regTab.style.background = 'linear-gradient(135deg, #00f0ff, #0066ff)';
     regTab.style.color = 'white';
     loginTab.style.background = 'transparent';
     loginTab.style.color = '#94a3b8';
@@ -1732,11 +1900,15 @@ function closeFriendsModal() {
 async function loadFriendsList() {
   if (!currentUser) return;
   const container = document.getElementById('friends-list-container');
+  const badge = document.getElementById('friends-badge-count');
   try {
     const res = await fetch(`/api/friends/${currentUser.id}`);
     const friends = await res.json();
+    if (badge) {
+      badge.innerText = Array.isArray(friends) && friends.length > 0 ? `Friends (${friends.length})` : 'Friends';
+    }
     if (!Array.isArray(friends) || friends.length === 0) {
-      container.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">No friends added yet.</p>';
+      container.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">No friends added yet.<br><span class="text-[10px] text-slate-500">Type a username above to connect!</span></p>';
       return;
     }
     container.innerHTML = '';
@@ -1746,11 +1918,11 @@ async function loadFriendsList() {
         ? '<span class="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]" title="Online"></span>'
         : '<span class="w-2.5 h-2.5 rounded-full bg-slate-500" title="Offline"></span>';
       const statusText = isOnline
-        ? '<span class="text-[9px] text-emerald-400 font-bold uppercase tracking-wider">Online</span>'
+        ? '<span class="text-[9px] text-emerald-400 font-black uppercase tracking-wider">Online</span>'
         : '<span class="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Offline</span>';
 
       const row = document.createElement('div');
-      row.className = 'flex items-center justify-between p-2.5 rounded-xl border border-white/10 bg-white/5';
+      row.className = 'flex items-center justify-between p-2.5 rounded-xl border border-white/10 bg-white/5 transition-all hover:bg-white/10';
       row.innerHTML = `
         <div class="flex items-center gap-2.5">
           ${statusDot}
@@ -1760,8 +1932,8 @@ async function loadFriendsList() {
           </div>
         </div>
         <div class="flex items-center gap-1.5">
-          <button onclick="inviteFriend(${f.id}, '${f.username}')" class="px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/40 hover:scale-105 active:scale-95 transition-all">Invite</button>
-          <button onclick="removeFriendAction(${f.id})" class="text-slate-400 hover:text-rose-400 p-1 text-xs">✕</button>
+          <button onclick="inviteFriend(${f.id}, '${f.username}')" class="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 hover:bg-cyan-500/40 hover:scale-105 active:scale-95 transition-all">Invite</button>
+          <button onclick="removeFriendAction(${f.id})" class="text-slate-400 hover:text-rose-400 p-1 text-xs transition-colors" title="Remove Friend">✕</button>
         </div>
       `;
       container.appendChild(row);
@@ -1771,12 +1943,22 @@ async function loadFriendsList() {
   }
 }
 
+socket.on('friends_updated', () => {
+  if (currentUser) {
+    loadFriendsList();
+  }
+});
+
 async function addFriendAction() {
   if (!currentUser) return;
   const input = document.getElementById('add-friend-input');
   const msg = document.getElementById('friend-status-msg');
   const friendUsername = input.value.trim();
-  if (!friendUsername) return;
+  if (!friendUsername) {
+    msg.className = 'text-[11px] font-bold text-center min-h-[16px] mb-2 text-amber-300';
+    msg.innerText = 'Please enter a username to add';
+    return;
+  }
 
   try {
     const res = await fetch('/api/friends', {
@@ -1791,7 +1973,7 @@ async function addFriendAction() {
       return;
     }
     msg.className = 'text-[11px] font-bold text-center min-h-[16px] mb-2 text-emerald-400';
-    msg.innerText = `Added ${friendUsername}!`;
+    msg.innerText = `Connected with ${data.username}!`;
     input.value = '';
     loadFriendsList();
   } catch(e) {
@@ -1855,7 +2037,7 @@ socket.on('receive_friend_invite', (data) => {
       </div>
     </div>
     <div class="flex items-center gap-1.5">
-      <button onclick="acceptFriendInvite('${data.roomId}')" class="px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all hover:scale-105 active:scale-95" style="background: linear-gradient(135deg, #ff007f, #ff6b35); color:white;">Join</button>
+      <button onclick="acceptFriendInvite('${data.roomId}')" class="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all btn-game-primary text-white">Join</button>
       <button onclick="document.getElementById('friend-invite-toast').remove()" class="w-7 h-7 rounded-xl flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 text-xs">✕</button>
     </div>
   `;

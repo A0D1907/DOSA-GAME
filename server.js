@@ -43,7 +43,12 @@ const onlineUsers = {}; // userId -> socket.id
 
 app.get('/api/friends/:userId', (req, res) => {
   const userId = req.params.userId;
-  db.all("SELECT u.id, u.username FROM users u JOIN friends f ON u.id = f.friend_id WHERE f.user_id = ?", [userId], (err, rows) => {
+  db.all(`
+    SELECT DISTINCT u.id, u.username 
+    FROM users u 
+    JOIN friends f ON (u.id = f.friend_id AND f.user_id = ?) OR (u.id = f.user_id AND f.friend_id = ?)
+    WHERE u.id != ?
+  `, [userId, userId, userId], (err, rows) => {
     if (err) return res.status(500).json({ error: 'Server error' });
     const friendsWithStatus = (rows || []).map(r => ({
       ...r,
@@ -55,19 +60,35 @@ app.get('/api/friends/:userId', (req, res) => {
 
 app.post('/api/friends', (req, res) => {
   const { userId, friendUsername } = req.body;
-  db.get("SELECT id FROM users WHERE username = ?", [friendUsername], (err, row) => {
-    if (err || !row) return res.status(404).json({ error: 'User not found' });
-    db.run("INSERT INTO friends (user_id, friend_id) VALUES (?, ?)", [userId, row.id], function(err) {
-      if (err) return res.status(400).json({ error: 'Already friends' });
-      res.json({ id: row.id, username: friendUsername });
+  if (!friendUsername || !userId) return res.status(400).json({ error: 'Missing parameters' });
+  
+  const cleanName = friendUsername.trim();
+  db.get("SELECT id, username FROM users WHERE LOWER(TRIM(username)) = LOWER(?)", [cleanName], (err, row) => {
+    if (err || !row) return res.status(404).json({ error: `User "${cleanName}" not found` });
+    if (row.id == userId) return res.status(400).json({ error: 'You cannot add yourself as a friend' });
+
+    db.get("SELECT * FROM friends WHERE (user_id = ? AND friend_id = ?) OR (user_id = ? AND friend_id = ?)", 
+      [userId, row.id, row.id, userId], (checkErr, existing) => {
+      if (existing) return res.status(400).json({ error: 'Already friends' });
+      
+      // Make friendship mutual so both players can find each other
+      db.run("INSERT OR IGNORE INTO friends (user_id, friend_id) VALUES (?, ?), (?, ?)", 
+        [userId, row.id, row.id, userId], function(insertErr) {
+        if (insertErr) return res.status(500).json({ error: 'Could not add friend' });
+        
+        io.emit('friends_updated');
+        res.json({ id: row.id, username: row.username });
+      });
     });
   });
 });
 
 app.delete('/api/friends', (req, res) => {
   const { userId, friendId } = req.body;
-  db.run("DELETE FROM friends WHERE user_id = ? AND friend_id = ?", [userId, friendId], function(err) {
+  db.run("DELETE FROM friends WHERE (user_id = ? AND friend_id = ?) OR (user_id = ? AND friend_id = ?)", 
+    [userId, friendId, friendId, userId], function(err) {
     if (err) return res.status(500).json({ error: 'Server error' });
+    io.emit('friends_updated');
     res.json({ success: true });
   });
 });
@@ -116,6 +137,7 @@ io.on('connection', (socket) => {
     if (userId) {
       onlineUsers[userId] = socket.id;
       socket.userId = userId;
+      io.emit('friends_updated');
     }
   });
 
@@ -133,7 +155,10 @@ io.on('connection', (socket) => {
     }
   });
   
-  socket.on('join_room', (roomId) => {
+  socket.on('join_room', (data) => {
+    const roomId = (typeof data === 'object' && data !== null) ? data.roomId : data;
+    const playerName = (typeof data === 'object' && data !== null && data.playerName) ? data.playerName : null;
+    
     Array.from(socket.rooms).forEach(r => {
       if(r !== socket.id) socket.leave(r);
     });
@@ -141,7 +166,23 @@ io.on('connection', (socket) => {
     socket.roomId = roomId;
     
     const state = getRoomState(roomId);
-    socket.emit('lobby_state', { ...state, socketId: socket.id, roomId });
+
+    // Auto-claim first empty slot if player is not currently in a slot in lobby
+    if (state.gameState === 'lobby') {
+      const existingSlot = state.slots.indexOf(socket.id);
+      if (existingSlot === -1) {
+        const freeSlot = state.slots.findIndex(s => s === null);
+        if (freeSlot !== -1) {
+          state.slots[freeSlot] = socket.id;
+          state.playerNames[freeSlot] = playerName || `Player ${freeSlot + 1}`;
+        }
+      }
+    }
+    
+    const firstHuman = state.slots.find(s => s !== null && s !== 'bot');
+    state.host = firstHuman || socket.id;
+
+    io.to(roomId).emit('lobby_state', { ...state, socketId: socket.id, roomId });
     broadcastOpenRooms();
   });
 
@@ -153,16 +194,24 @@ io.on('connection', (socket) => {
     const slotIndex = (typeof data === 'object' && data !== null) ? data.slotIndex : data;
     const name = (typeof data === 'object' && data !== null && data.playerName) ? data.playerName : `Player ${slotIndex + 1}`;
     
+    if (slotIndex < 0 || slotIndex > 3) return;
+
+    // If occupied by another human player, reject
+    if (state.slots[slotIndex] && state.slots[slotIndex] !== socket.id && state.slots[slotIndex] !== 'bot') {
+      return;
+    }
+    
     const oldSlot = state.slots.indexOf(socket.id);
-    if (oldSlot !== -1) {
+    if (oldSlot !== -1 && oldSlot !== slotIndex) {
       state.slots[oldSlot] = null;
       state.playerNames[oldSlot] = '';
     }
     
-    if (!state.slots[slotIndex]) {
-      state.slots[slotIndex] = socket.id;
-      state.playerNames[slotIndex] = name;
-    }
+    state.slots[slotIndex] = socket.id;
+    state.playerNames[slotIndex] = name;
+    
+    const firstHuman = state.slots.find(s => s !== null && s !== 'bot');
+    state.host = firstHuman || socket.id;
     
     io.to(socket.roomId).emit('lobby_state', { ...state, roomId: socket.roomId });
     broadcastOpenRooms();
@@ -180,9 +229,12 @@ io.on('connection', (socket) => {
   socket.on('add_bot', (slot) => {
     if (!socket.roomId) return;
     const state = getRoomState(socket.roomId);
-    if (state.gameState === 'lobby' && !state.slots[slot]) {
-      state.slots[slot] = 'bot';
-      state.playerNames[slot] = 'Bot 🤖';
+    if (state.gameState !== 'lobby') return;
+
+    let targetSlot = (slot !== undefined && slot !== null) ? slot : state.slots.findIndex(s => s === null);
+    if (targetSlot !== -1 && !state.slots[targetSlot]) {
+      state.slots[targetSlot] = 'bot';
+      state.playerNames[targetSlot] = `Bot P${targetSlot + 1} 🤖`;
       io.to(socket.roomId).emit('lobby_state', { ...state, roomId: socket.roomId });
       broadcastOpenRooms();
     }
@@ -370,6 +422,7 @@ io.on('connection', (socket) => {
     console.log('User disconnected:', socket.id);
     if (socket.userId && onlineUsers[socket.userId] === socket.id) {
       delete onlineUsers[socket.userId];
+      io.emit('friends_updated');
     }
     if (!socket.roomId) return;
     const state = getRoomState(socket.roomId);
