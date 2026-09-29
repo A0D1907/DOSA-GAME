@@ -355,30 +355,30 @@
     }
   </style>
 </head>
-<body class="bg-[#0a0618] text-zinc-100 min-h-screen h-[100dvh] flex flex-col overflow-hidden relative">
+<body class="bg-[#0a0618] text-[#f4f0ff] min-h-screen h-[100dvh] flex flex-col overflow-hidden relative">
 
   <!-- TOP NAVIGATION BAR -->
   <header id="main-nav-bar" class="fixed top-3 left-3 right-3 sm:top-4 sm:left-4 sm:right-4 z-[120] flex items-center justify-between pointer-events-none transition-all duration-200">
     <div class="flex items-center gap-2 pointer-events-auto">
-      <div class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-900/80 border border-zinc-800 backdrop-blur-md">
+      <div class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#171233]/80 border border-[rgba(139,92,246,0.4)] backdrop-blur-md">
         <span class="font-bold text-sm tracking-wider text-white">DOSA</span>
         <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
       </div>
     </div>
 
     <div class="flex items-center gap-2 pointer-events-auto">
-      <button id="auth-nav-btn" onclick="openAuthModal()" class="px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-zinc-900/90 border border-zinc-800 text-zinc-200 hover:bg-zinc-800 hover:text-white transition-all shadow-sm">
+      <button id="auth-nav-btn" onclick="openAuthModal()" class="px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-[#171233]/90 border border-[rgba(139,92,246,0.4)] text-[#e6defc] hover:bg-[#241a52] hover:text-white transition-all shadow-sm">
         <span id="auth-nav-icon">🔑</span>
         <span id="auth-nav-label">Log In</span>
       </button>
 
-      <button onclick="openFriendsModal()" class="px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-zinc-900/90 border border-zinc-800 text-zinc-200 hover:bg-zinc-800 hover:text-white transition-all shadow-sm">
+      <button onclick="openFriendsModal()" class="px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-[#171233]/90 border border-[rgba(139,92,246,0.4)] text-[#e6defc] hover:bg-[#241a52] hover:text-white transition-all shadow-sm">
         <span>👥</span>
         <span id="friends-badge-count">Friends</span>
       </button>
 
-      <div onclick="copyMyPlayerTag()" title="Click to copy your Player Tag" class="cursor-pointer px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-zinc-900/90 border border-zinc-800 text-zinc-300 hover:border-zinc-700 transition-all max-w-[150px] truncate shadow-sm">
-        <span class="text-zinc-500">#</span>
+      <div onclick="copyMyPlayerTag()" title="Click to copy your Player Tag" class="cursor-pointer px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-[#171233]/90 border border-[rgba(139,92,246,0.4)] text-[#efeaff] hover:border-[rgba(0,229,255,0.35)] transition-all max-w-[150px] truncate shadow-sm">
+        <span class="text-[#8f89b3]">#</span>
         <span id="nav-player-tag" class="truncate font-mono">Player</span>
       </div>
     </div>
@@ -386,8 +386,8 @@
 
   <!-- AUTH MODAL (LOG IN / SIGN UP) -->
   <div id="auth-modal" class="fixed inset-0 z-[170] flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm hidden transition-all duration-200">
-    <div class="w-full max-w-sm p-6 rounded-2xl modern-card relative flex flex-col border border-zinc-800 shadow-2xl">
-      <button onclick="closeAuthModal()" class="absolute top-4 right-4 w-8 h-8 rounded-lg flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-800 transition-all">✕</button>
+    <div class="w-full max-w-sm p-6 rounded-2xl modern-card relative flex flex-col border border-[rgba(139,92,246,0.4)] shadow-2xl">
+      <button onclick="closeAuthModal()" class="absolute top-4 right-4 w-8 h-8 rounded-lg flex items-center justify-center text-[#b9b3d9] hover:text-white hover:bg-[#241a52] transition-all">✕</button>
       
       <!-- Guest / Logged Out View -->
       <div id="auth-form-view">
@@ -395,23 +395,23 @@
           <h3 class="text-base font-bold text-white flex items-center gap-2">
             <span>🔑</span> <span id="auth-title">Sign In</span>
           </h3>
-          <p class="text-xs text-zinc-400 mt-0.5">Sign in or create an account to save your nickname and friends.</p>
+          <p class="text-xs text-[#b9b3d9] mt-0.5">Sign in or create an account to save your nickname and friends.</p>
         </div>
 
         <!-- Mode Switcher Tabs -->
-        <div class="flex gap-1.5 p-1 rounded-xl bg-zinc-900 border border-zinc-800 mb-4">
-          <button id="auth-tab-login" onclick="switchAuthTab('login')" class="flex-1 py-1.5 rounded-lg text-xs font-semibold bg-zinc-800 text-white transition-all">Sign In</button>
-          <button id="auth-tab-register" onclick="switchAuthTab('register')" class="flex-1 py-1.5 rounded-lg text-xs font-semibold text-zinc-400 hover:text-white transition-all">Register</button>
+        <div class="flex gap-1.5 p-1 rounded-xl bg-[#171233] border border-[rgba(139,92,246,0.4)] mb-4">
+          <button id="auth-tab-login" onclick="switchAuthTab('login')" class="flex-1 py-1.5 rounded-lg text-xs font-semibold bg-[#241a52] text-white transition-all">Sign In</button>
+          <button id="auth-tab-register" onclick="switchAuthTab('register')" class="flex-1 py-1.5 rounded-lg text-xs font-semibold text-[#b9b3d9] hover:text-white transition-all">Register</button>
         </div>
 
         <form onsubmit="handleAuthSubmit(event)" class="flex flex-col gap-3">
           <div>
-            <label class="text-[11px] font-semibold text-zinc-400 block mb-1">Username</label>
-            <input type="text" id="auth-username" required placeholder="Enter username" class="w-full h-10 rounded-xl px-3 text-xs bg-zinc-900 border border-zinc-800 text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-600 transition-all" maxlength="24" autocomplete="username" />
+            <label class="text-[11px] font-semibold text-[#b9b3d9] block mb-1">Username</label>
+            <input type="text" id="auth-username" required placeholder="Enter username" class="w-full h-10 rounded-xl px-3 text-xs bg-[#171233] border border-[rgba(139,92,246,0.4)] text-white placeholder-[#8f89b3] focus:outline-none focus:border-[rgba(0,229,255,0.55)] transition-all" maxlength="24" autocomplete="username" />
           </div>
           <div>
-            <label class="text-[11px] font-semibold text-zinc-400 block mb-1">Password</label>
-            <input type="password" id="auth-password" required placeholder="Enter password" class="w-full h-10 rounded-xl px-3 text-xs bg-zinc-900 border border-zinc-800 text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-600 transition-all" autocomplete="current-password" />
+            <label class="text-[11px] font-semibold text-[#b9b3d9] block mb-1">Password</label>
+            <input type="password" id="auth-password" required placeholder="Enter password" class="w-full h-10 rounded-xl px-3 text-xs bg-[#171233] border border-[rgba(139,92,246,0.4)] text-white placeholder-[#8f89b3] focus:outline-none focus:border-[rgba(0,229,255,0.55)] transition-all" autocomplete="current-password" />
           </div>
 
           <div id="auth-error-msg" class="text-xs text-rose-400 min-h-[16px] text-center font-medium"></div>
@@ -426,20 +426,20 @@
           <h3 class="text-base font-bold text-white flex items-center gap-2">
             <span>👤</span> <span>Account Profile</span>
           </h3>
-          <p class="text-xs text-zinc-400 mt-0.5">You are currently signed in.</p>
+          <p class="text-xs text-[#b9b3d9] mt-0.5">You are currently signed in.</p>
         </div>
 
-        <div class="p-4 rounded-xl bg-zinc-900/60 border border-zinc-800/80 mb-4 space-y-2">
+        <div class="p-4 rounded-xl bg-[#171233]/60 border border-[rgba(139,92,246,0.4)]/80 mb-4 space-y-2">
           <div class="flex items-center justify-between">
-            <span class="text-xs text-zinc-400">Username</span>
+            <span class="text-xs text-[#b9b3d9]">Username</span>
             <span id="auth-profile-username" class="text-xs font-bold text-white">Player</span>
           </div>
           <div class="flex items-center justify-between">
-            <span class="text-xs text-zinc-400">Player Tag</span>
+            <span class="text-xs text-[#b9b3d9]">Player Tag</span>
             <span id="auth-profile-tag" class="text-xs font-mono font-bold text-emerald-400">Player#0000</span>
           </div>
           <div class="flex items-center justify-between">
-            <span class="text-xs text-zinc-400">Status</span>
+            <span class="text-xs text-[#b9b3d9]">Status</span>
             <span class="text-xs font-medium text-emerald-400 flex items-center gap-1">
               <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Online
             </span>
@@ -456,10 +456,10 @@
 
   <!-- EXIT GAME CONFIRMATION MODAL -->
   <div id="exit-confirm-modal" class="fixed inset-0 z-[180] flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm hidden transition-all duration-200">
-    <div class="w-full max-w-xs p-6 rounded-2xl modern-card text-center border border-zinc-800 shadow-2xl">
+    <div class="w-full max-w-xs p-6 rounded-2xl modern-card text-center border border-[rgba(139,92,246,0.4)] shadow-2xl">
       <div class="text-3xl mb-2">🚪</div>
       <h3 class="text-base font-bold text-white mb-1">Exit Game?</h3>
-      <p class="text-xs text-zinc-400 mb-5">Are you sure you want to return to the menu? Your progress is saved if you reconnect.</p>
+      <p class="text-xs text-[#b9b3d9] mb-5">Are you sure you want to return to the menu? Your progress is saved if you reconnect.</p>
       <div class="flex gap-2">
         <button onclick="closeExitModal()" class="flex-1 py-2.5 rounded-xl text-xs font-semibold btn-modern-secondary">Cancel</button>
         <button onclick="executeExitGame()" class="flex-1 py-2.5 rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white transition-all shadow-sm">Exit Game</button>
@@ -469,22 +469,22 @@
 
   <!-- DICE REAL STATISTICS MODAL -->
   <div id="dice-stats-modal" class="fixed inset-0 z-[180] flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm hidden transition-all duration-200">
-    <div class="w-full max-w-sm p-6 rounded-2xl modern-card border border-zinc-800 shadow-2xl relative">
-      <button onclick="closeDiceStatsModal()" class="absolute top-4 right-4 w-7 h-7 rounded-lg flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-800 transition-all">✕</button>
+    <div class="w-full max-w-sm p-6 rounded-2xl modern-card border border-[rgba(139,92,246,0.4)] shadow-2xl relative">
+      <button onclick="closeDiceStatsModal()" class="absolute top-4 right-4 w-7 h-7 rounded-lg flex items-center justify-center text-[#b9b3d9] hover:text-white hover:bg-[#241a52] transition-all">✕</button>
       
       <div class="flex items-center gap-2 mb-1">
         <span class="text-xl">🎲</span>
         <h3 class="text-sm font-bold text-white uppercase tracking-wider">Cube Statistics</h3>
       </div>
-      <p class="text-xs text-zinc-400 mb-4">True random 6-sided die. Expected fair probability: 16.7% per face.</p>
+      <p class="text-xs text-[#b9b3d9] mb-4">True random 6-sided die. Expected fair probability: 16.7% per face.</p>
       
-      <div class="grid grid-cols-2 gap-2 mb-4 p-3 rounded-xl bg-zinc-900/80 border border-zinc-800 text-center">
+      <div class="grid grid-cols-2 gap-2 mb-4 p-3 rounded-xl bg-[#171233]/80 border border-[rgba(139,92,246,0.4)] text-center">
         <div>
-          <div class="text-[10px] uppercase font-semibold text-zinc-500">Total Rolls</div>
+          <div class="text-[10px] uppercase font-semibold text-[#8f89b3]">Total Rolls</div>
           <div id="stats-total-rolls" class="text-lg font-mono font-bold text-white">0</div>
         </div>
         <div>
-          <div class="text-[10px] uppercase font-semibold text-zinc-500">Average Roll</div>
+          <div class="text-[10px] uppercase font-semibold text-[#8f89b3]">Average Roll</div>
           <div id="stats-avg-roll" class="text-lg font-mono font-bold text-emerald-400">3.50</div>
         </div>
       </div>
@@ -494,9 +494,9 @@
       </div>
 
       <div>
-        <div class="text-[10px] uppercase font-semibold text-zinc-500 mb-1.5">Recent Rolls (Newest First)</div>
+        <div class="text-[10px] uppercase font-semibold text-[#8f89b3] mb-1.5">Recent Rolls (Newest First)</div>
         <div id="stats-recent-rolls" class="flex gap-1.5 overflow-x-auto py-1">
-          <span class="text-xs text-zinc-500 italic">No rolls yet</span>
+          <span class="text-xs text-[#8f89b3] italic">No rolls yet</span>
         </div>
       </div>
     </div>
@@ -505,35 +505,35 @@
   <!-- FRIENDS & PLAYERS MODAL -->
   <div id="friends-modal" class="fixed inset-0 z-[160] flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm hidden transition-all duration-200">
     <div class="w-full max-w-md p-6 rounded-2xl modern-card relative max-h-[90vh] flex flex-col">
-      <button onclick="closeFriendsModal()" class="absolute top-4 right-4 w-8 h-8 rounded-lg flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-800 transition-all">✕</button>
+      <button onclick="closeFriendsModal()" class="absolute top-4 right-4 w-8 h-8 rounded-lg flex items-center justify-center text-[#b9b3d9] hover:text-white hover:bg-[#241a52] transition-all">✕</button>
       
       <div class="mb-4">
         <h3 class="text-base font-bold text-white flex items-center gap-2">
           <span>👥</span> <span>Friends & Players</span>
         </h3>
-        <p class="text-xs text-zinc-400 mt-0.5">Connect, add friends, and invite each other to matches.</p>
+        <p class="text-xs text-[#b9b3d9] mt-0.5">Connect, add friends, and invite each other to matches.</p>
       </div>
 
       <div class="overflow-y-auto pr-1 flex flex-col gap-4">
-        <div class="p-3.5 rounded-xl bg-zinc-900/60 border border-zinc-800/80 flex items-center justify-between">
+        <div class="p-3.5 rounded-xl bg-[#171233]/60 border border-[rgba(139,92,246,0.4)]/80 flex items-center justify-between">
           <div>
-            <span class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider block">Your Player Tag</span>
+            <span class="text-[10px] font-semibold text-[#b9b3d9] uppercase tracking-wider block">Your Player Tag</span>
             <div id="my-tag-display" class="text-sm font-mono font-bold text-white mt-0.5">Player#0000</div>
           </div>
           <div class="flex items-center gap-2">
-            <button onclick="copyMyPlayerTag()" class="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-zinc-800 hover:bg-zinc-700 text-zinc-200 transition-all flex items-center gap-1">
+            <button onclick="copyMyPlayerTag()" class="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-[#241a52] hover:bg-[#322466] text-[#e6defc] transition-all flex items-center gap-1">
               <span>📋</span> <span id="copy-tag-text">Copy</span>
             </button>
-            <button onclick="copyRoomInviteDirect()" class="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-zinc-800 hover:bg-zinc-700 text-zinc-200 transition-all flex items-center gap-1" title="Copy game link to share">
+            <button onclick="copyRoomInviteDirect()" class="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-[#241a52] hover:bg-[#322466] text-[#e6defc] transition-all flex items-center gap-1" title="Copy game link to share">
               <span>🔗 Link</span>
             </button>
           </div>
         </div>
 
         <div>
-          <label class="text-[11px] font-semibold text-zinc-400 block mb-1.5">Add Friend by Tag or Name</label>
+          <label class="text-[11px] font-semibold text-[#b9b3d9] block mb-1.5">Add Friend by Tag or Name</label>
           <div class="flex gap-2">
-            <input type="text" id="add-friend-input" onkeydown="if(event.key==='Enter') addFriendAction()" placeholder="e.g. Alex#4821 or Alex" class="flex-1 h-10 rounded-xl px-3 text-xs bg-zinc-900 border border-zinc-800 text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-600 transition-all" maxlength="30" />
+            <input type="text" id="add-friend-input" onkeydown="if(event.key==='Enter') addFriendAction()" placeholder="e.g. Alex#4821 or Alex" class="flex-1 h-10 rounded-xl px-3 text-xs bg-[#171233] border border-[rgba(139,92,246,0.4)] text-white placeholder-[#8f89b3] focus:outline-none focus:border-[rgba(0,229,255,0.55)] transition-all" maxlength="30" />
             <button onclick="addFriendAction()" class="px-4 h-10 rounded-xl text-xs font-semibold btn-modern-primary">Add</button>
           </div>
           <div id="friend-status-msg" class="text-[11px] font-medium min-h-[16px] mt-1 text-center"></div>
@@ -541,20 +541,20 @@
 
         <div>
           <div class="flex items-center justify-between mb-2">
-            <span class="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
+            <span class="text-[11px] font-semibold text-[#b9b3d9] uppercase tracking-wider flex items-center gap-1.5">
               <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Players Online Right Now
             </span>
-            <button onclick="loadOnlinePlayers()" class="text-[10px] text-zinc-400 hover:text-white transition-colors">Refresh ↻</button>
+            <button onclick="loadOnlinePlayers()" class="text-[10px] text-[#b9b3d9] hover:text-white transition-colors">Refresh ↻</button>
           </div>
           <div id="online-players-container" class="flex flex-col gap-1.5 max-h-36 overflow-y-auto">
-            <p class="text-xs text-zinc-500 text-center py-2">Loading online players...</p>
+            <p class="text-xs text-[#8f89b3] text-center py-2">Loading online players...</p>
           </div>
         </div>
 
-        <div class="border-t border-zinc-800/80 pt-3">
-          <span class="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider block mb-2">Mutual Friends</span>
+        <div class="border-t border-[rgba(139,92,246,0.4)]/80 pt-3">
+          <span class="text-[11px] font-semibold text-[#b9b3d9] uppercase tracking-wider block mb-2">Mutual Friends</span>
           <div id="friends-list-container" class="flex flex-col gap-1.5 max-h-40 overflow-y-auto">
-            <p class="text-xs text-zinc-500 text-center py-4">No friends added yet.</p>
+            <p class="text-xs text-[#8f89b3] text-center py-4">No friends added yet.</p>
           </div>
         </div>
       </div>
@@ -562,7 +562,7 @@
   </div>
 
   <!-- HOME SCREEN -->
-  <div id="home-screen" class="absolute inset-0 z-[60] flex flex-col items-center justify-center p-4 sm:p-6 overflow-y-auto bg-[#09090b]">
+  <div id="home-screen" class="absolute inset-0 z-[60] flex flex-col items-center justify-center p-4 sm:p-6 overflow-y-auto bg-transparent">
     <div class="text-center mb-6">
       <h1 class="dosa-title text-5xl sm:text-6xl font-black mb-1">DOSA</h1>
       <p class="dosa-subtitle text-xs tracking-[0.3em] uppercase">⚡ Cross & Circle Arena ⚡</p>
@@ -570,13 +570,13 @@
 
     <div class="w-full max-w-sm p-6 sm:p-7 rounded-2xl modern-card text-center">
       <div class="mb-4 text-left">
-        <label class="text-xs font-semibold text-zinc-300 block mb-1.5">Player Nickname</label>
-        <input type="text" id="nickname-input" oninput="onNicknameChange()" placeholder="e.g. Shadow" class="w-full h-11 rounded-xl px-3.5 text-sm font-medium bg-zinc-900 border border-zinc-800 text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-600 transition-all text-center" autocomplete="off" maxlength="15" />
+        <label class="text-xs font-semibold text-[#efeaff] block mb-1.5">Player Nickname</label>
+        <input type="text" id="nickname-input" oninput="onNicknameChange()" placeholder="e.g. Shadow" class="w-full h-11 rounded-xl px-3.5 text-sm font-medium bg-[#171233] border border-[rgba(139,92,246,0.4)] text-white placeholder-[#8f89b3] focus:outline-none focus:border-[rgba(0,229,255,0.55)] transition-all text-center" autocomplete="off" maxlength="15" />
       </div>
       
       <div class="mb-5 text-left">
-        <label class="text-xs font-semibold text-zinc-300 block mb-1.5">Room Code</label>
-        <input type="text" id="room-code-input" placeholder="e.g. DOSA" class="w-full h-11 rounded-xl px-3.5 text-base font-bold uppercase tracking-wider bg-zinc-900 border border-zinc-800 text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-600 transition-all text-center" autocomplete="off" maxlength="8" />
+        <label class="text-xs font-semibold text-[#efeaff] block mb-1.5">Room Code</label>
+        <input type="text" id="room-code-input" placeholder="e.g. DOSA" class="w-full h-11 rounded-xl px-3.5 text-base font-bold uppercase tracking-wider bg-[#171233] border border-[rgba(139,92,246,0.4)] text-white placeholder-[#8f89b3] focus:outline-none focus:border-[rgba(0,229,255,0.55)] transition-all text-center" autocomplete="off" maxlength="8" />
       </div>
       
       <button onclick="joinRoom()" class="w-full py-3.5 rounded-xl font-semibold btn-modern-primary text-sm mb-2.5">Join / Create Match</button>
@@ -584,22 +584,22 @@
         <span>⚡ Quick Match vs AI (Solo)</span>
       </button>
 
-      <p class="text-[11px] text-zinc-500 mt-4">Play in real-time with friends or challenge smart bots.</p>
+      <p class="text-[11px] text-[#8f89b3] mt-4">Play in real-time with friends or challenge smart bots.</p>
     </div>
     
     <div id="open-rooms-container" class="w-full max-w-sm mt-4 p-4 rounded-2xl modern-card hidden">
-      <p class="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2.5 text-center">Active Lobbies</p>
+      <p class="text-xs font-semibold text-[#b9b3d9] uppercase tracking-wider mb-2.5 text-center">Active Lobbies</p>
       <div id="open-rooms-list" class="flex flex-col gap-1.5 max-h-36 overflow-y-auto pr-1"></div>
     </div>
   </div>
 
   <!-- LOBBY SCREEN -->
-  <div id="lobby-screen" class="hidden absolute inset-0 z-50 flex flex-col items-center justify-center p-4 sm:p-6 overflow-y-auto bg-[#09090b]">
+  <div id="lobby-screen" class="hidden absolute inset-0 z-50 flex flex-col items-center justify-center p-4 sm:p-6 overflow-y-auto bg-transparent">
     <div class="w-full max-w-md p-5 sm:p-6 rounded-2xl modern-card">
       
-      <div class="mb-5 pb-4 border-b border-zinc-800 flex items-center justify-between">
+      <div class="mb-5 pb-4 border-b border-[rgba(139,92,246,0.4)] flex items-center justify-between">
         <div>
-          <span class="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 block">Lobby Room</span>
+          <span class="text-[10px] font-semibold uppercase tracking-wider text-[#b9b3d9] block">Lobby Room</span>
           <h2 class="text-lg font-bold text-white tracking-wide" id="lobby-room-code">ROOM: ----</h2>
         </div>
         <button onclick="copyRoomInvite()" class="px-3 py-1.5 rounded-xl text-xs font-medium btn-modern-secondary flex items-center gap-1.5" title="Copy Invite Link">
@@ -608,23 +608,23 @@
       </div>
 
       <div class="mb-4">
-        <p class="text-xs font-semibold text-zinc-400 mb-2.5 text-center">Select Player Slot</p>
+        <p class="text-xs font-semibold text-[#b9b3d9] mb-2.5 text-center">Select Player Slot</p>
         <div class="grid grid-cols-2 gap-2.5" id="lobby-slots-grid">
-          <div id="slot-0" class="rounded-xl p-3 flex flex-col justify-between bg-zinc-900/60 border border-zinc-800 min-h-[96px]"></div>
-          <div id="slot-1" class="rounded-xl p-3 flex flex-col justify-between bg-zinc-900/60 border border-zinc-800 min-h-[96px]"></div>
-          <div id="slot-2" class="rounded-xl p-3 flex flex-col justify-between bg-zinc-900/60 border border-zinc-800 min-h-[96px]"></div>
-          <div id="slot-3" class="rounded-xl p-3 flex flex-col justify-between bg-zinc-900/60 border border-zinc-800 min-h-[96px]"></div>
+          <div id="slot-0" class="rounded-xl p-3 flex flex-col justify-between bg-[#171233]/60 border border-[rgba(139,92,246,0.4)] min-h-[96px]"></div>
+          <div id="slot-1" class="rounded-xl p-3 flex flex-col justify-between bg-[#171233]/60 border border-[rgba(139,92,246,0.4)] min-h-[96px]"></div>
+          <div id="slot-2" class="rounded-xl p-3 flex flex-col justify-between bg-[#171233]/60 border border-[rgba(139,92,246,0.4)] min-h-[96px]"></div>
+          <div id="slot-3" class="rounded-xl p-3 flex flex-col justify-between bg-[#171233]/60 border border-[rgba(139,92,246,0.4)] min-h-[96px]"></div>
         </div>
       </div>
 
       <div class="mb-5">
         <div class="flex items-center justify-between mb-2">
-          <span class="text-xs font-semibold text-zinc-400">Match Mode</span>
-          <span class="text-[10px] font-medium text-zinc-500 uppercase" id="host-settings-label">Host Controls</span>
+          <span class="text-xs font-semibold text-[#b9b3d9]">Match Mode</span>
+          <span class="text-[10px] font-medium text-[#8f89b3] uppercase" id="host-settings-label">Host Controls</span>
         </div>
-        <div class="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-zinc-900 border border-zinc-800">
-          <button id="btn-pegs-2" onclick="setPegs(2)" class="py-2 rounded-lg font-semibold text-xs transition-all text-zinc-400 hover:text-white">2 Pegs (Blitz)</button>
-          <button id="btn-pegs-4" onclick="setPegs(4)" class="py-2 rounded-lg font-semibold text-xs transition-all text-zinc-400 hover:text-white">4 Pegs (Classic)</button>
+        <div class="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-[#171233] border border-[rgba(139,92,246,0.4)]">
+          <button id="btn-pegs-2" onclick="setPegs(2)" class="py-2 rounded-lg font-semibold text-xs transition-all text-[#b9b3d9] hover:text-white">2 Pegs (Blitz)</button>
+          <button id="btn-pegs-4" onclick="setPegs(4)" class="py-2 rounded-lg font-semibold text-xs transition-all text-[#b9b3d9] hover:text-white">4 Pegs (Classic)</button>
         </div>
       </div>
 
@@ -633,10 +633,10 @@
       </div>
 
       <div class="flex justify-between items-center px-1 text-xs">
-        <button onclick="leaveRoom()" class="font-medium text-zinc-400 hover:text-rose-400 transition-colors flex items-center gap-1">
+        <button onclick="leaveRoom()" class="font-medium text-[#b9b3d9] hover:text-rose-400 transition-colors flex items-center gap-1">
           <span>🚪</span> Exit Lobby
         </button>
-        <button onclick="resetSession()" class="font-medium text-zinc-500 hover:text-zinc-300 transition-colors">
+        <button onclick="resetSession()" class="font-medium text-[#8f89b3] hover:text-[#efeaff] transition-colors">
           Reset Room
         </button>
       </div>
@@ -647,7 +647,7 @@
   <div id="victory-screen" class="hidden absolute inset-0 z-[60] flex flex-col items-center justify-center p-6 bg-black/80 backdrop-blur-md">
     <div class="w-full max-w-sm p-6 sm:p-8 rounded-2xl modern-card text-center">
       <div class="text-5xl mb-3">🏆</div>
-      <h2 class="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-4">Final Standings</h2>
+      <h2 class="text-xs font-bold text-[#b9b3d9] uppercase tracking-widest mb-4">Final Standings</h2>
       <div id="winner-name" class="text-left mb-6 space-y-2" style="min-height:40px;"></div>
       <button onclick="returnToLobby()" class="w-full py-3.5 mb-2.5 rounded-xl font-semibold btn-modern-primary text-sm">Play Again</button>
       <button onclick="leaveRoom()" class="w-full py-3 rounded-xl font-medium btn-modern-secondary text-xs">Leave Room</button>
@@ -658,18 +658,18 @@
   <div id="game-screen" class="hidden h-full flex flex-col justify-between items-center overflow-hidden">
     <header class="game-header w-full text-center pt-3 pb-1 relative z-20 flex-shrink-0 max-w-[500px] px-3">
       <div class="flex items-center justify-between gap-2 mb-2">
-        <button onclick="confirmExitGame()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs font-semibold text-zinc-300 hover:text-white hover:bg-zinc-800 hover:border-zinc-700 transition-all shadow-sm" title="Exit Game">
+        <button onclick="confirmExitGame()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#171233] border border-[rgba(139,92,246,0.4)] text-xs font-semibold text-[#efeaff] hover:text-white hover:bg-[#241a52] hover:border-[rgba(0,229,255,0.35)] transition-all shadow-sm" title="Exit Game">
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
           <span>Exit</span>
         </button>
 
-        <div id="status-turn-pill" class="px-3.5 py-1.5 rounded-full text-xs font-semibold border border-zinc-700 bg-zinc-900 transition-all flex items-center gap-1.5 shadow-sm">
+        <div id="status-turn-pill" class="px-3.5 py-1.5 rounded-full text-xs font-semibold border border-[rgba(0,229,255,0.35)] bg-[#171233] transition-all flex items-center gap-1.5 shadow-sm">
           <span id="status-turn-dot" class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
           <span id="status-text">Your Turn</span>
         </div>
 
         <div class="flex items-center gap-1.5">
-          <button onclick="openDiceStatsModal()" class="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs font-semibold text-zinc-300 hover:text-white hover:bg-zinc-800 hover:border-zinc-700 transition-all shadow-sm" title="Cube Statistics">
+          <button onclick="openDiceStatsModal()" class="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-[#171233] border border-[rgba(139,92,246,0.4)] text-xs font-semibold text-[#efeaff] hover:text-white hover:bg-[#241a52] hover:border-[rgba(0,229,255,0.35)] transition-all shadow-sm" title="Cube Statistics">
             <span>🎲</span>
             <span class="hidden sm:inline">Stats</span>
           </button>
@@ -679,7 +679,7 @@
         </div>
       </div>
 
-      <div id="hud-players-bar" class="grid grid-cols-4 gap-1.5 px-1 py-1 rounded-xl bg-zinc-900/60 border border-zinc-800/80"></div>
+      <div id="hud-players-bar" class="grid grid-cols-4 gap-1.5 px-1 py-1 rounded-xl bg-[#171233]/60 border border-[rgba(139,92,246,0.4)]/80"></div>
     </header>
 
     <div class="board-wrapper mx-auto relative flex-shrink-0 z-10 my-auto flex items-center justify-center" style="width: min(92vw, 400px, 50vh); height: min(92vw, 400px, 50vh);">
@@ -695,23 +695,23 @@
         <button id="emote-toggle-btn" onclick="toggleEmoteMenu(event)" class="w-14 h-14 rounded-2xl flex items-center justify-center text-xl btn-modern-secondary" title="Emotes">
           💬
         </button>
-        <div id="emote-picker" class="absolute bottom-full mb-2 left-0 p-2.5 rounded-2xl grid grid-cols-4 gap-1.5 hidden z-50 modern-card w-[210px] shadow-2xl border border-zinc-800">
-          <button onclick="sendEmote('😂', event)" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-zinc-800 active:scale-125 transition-transform">😂</button>
-          <button onclick="sendEmote('🔥', event)" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-zinc-800 active:scale-125 transition-transform">🔥</button>
-          <button onclick="sendEmote('👑', event)" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-zinc-800 active:scale-125 transition-transform">👑</button>
-          <button onclick="sendEmote('😎', event)" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-zinc-800 active:scale-125 transition-transform">😎</button>
-          <button onclick="sendEmote('💀', event)" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-zinc-800 active:scale-125 transition-transform">💀</button>
-          <button onclick="sendEmote('😭', event)" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-zinc-800 active:scale-125 transition-transform">😭</button>
-          <button onclick="sendEmote('😡', event)" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-zinc-800 active:scale-125 transition-transform">😡</button>
-          <button onclick="sendEmote('🎯', event)" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-zinc-800 active:scale-125 transition-transform">🎯</button>
-          <button onclick="sendEmote('🚀', event)" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-zinc-800 active:scale-125 transition-transform">🚀</button>
-          <button onclick="sendEmote('👏', event)" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-zinc-800 active:scale-125 transition-transform">👏</button>
-          <button onclick="sendEmote('🤡', event)" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-zinc-800 active:scale-125 transition-transform">🤡</button>
-          <button onclick="sendEmote('🎲', event)" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-zinc-800 active:scale-125 transition-transform">🎲</button>
+        <div id="emote-picker" class="absolute bottom-full mb-2 left-0 p-2.5 rounded-2xl grid grid-cols-4 gap-1.5 hidden z-50 modern-card w-[210px] shadow-2xl border border-[rgba(139,92,246,0.4)]">
+          <button onclick="sendEmote('😂', event)" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-[#241a52] active:scale-125 transition-transform">😂</button>
+          <button onclick="sendEmote('🔥', event)" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-[#241a52] active:scale-125 transition-transform">🔥</button>
+          <button onclick="sendEmote('👑', event)" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-[#241a52] active:scale-125 transition-transform">👑</button>
+          <button onclick="sendEmote('😎', event)" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-[#241a52] active:scale-125 transition-transform">😎</button>
+          <button onclick="sendEmote('💀', event)" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-[#241a52] active:scale-125 transition-transform">💀</button>
+          <button onclick="sendEmote('😭', event)" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-[#241a52] active:scale-125 transition-transform">😭</button>
+          <button onclick="sendEmote('😡', event)" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-[#241a52] active:scale-125 transition-transform">😡</button>
+          <button onclick="sendEmote('🎯', event)" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-[#241a52] active:scale-125 transition-transform">🎯</button>
+          <button onclick="sendEmote('🚀', event)" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-[#241a52] active:scale-125 transition-transform">🚀</button>
+          <button onclick="sendEmote('👏', event)" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-[#241a52] active:scale-125 transition-transform">👏</button>
+          <button onclick="sendEmote('🤡', event)" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-[#241a52] active:scale-125 transition-transform">🤡</button>
+          <button onclick="sendEmote('🎲', event)" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-[#241a52] active:scale-125 transition-transform">🎲</button>
         </div>
       </div>
 
-      <button id="dice-btn" onclick="rollDice()" class="w-20 h-20 rounded-2xl flex items-center justify-center transition-all bg-white hover:bg-zinc-200 active:scale-95 shadow-md" title="Roll Dice" disabled>
+      <button id="dice-btn" onclick="rollDice()" class="w-20 h-20 rounded-2xl flex items-center justify-center transition-all bg-white hover:bg-[#d9d2ff] active:scale-95 shadow-md" title="Roll Dice" disabled>
         <div class="dice-scene pointer-events-none">
           <div class="cube" id="dice-cube" style="--player-color: #ff2d55; --player-glow: #ff2d78;">
             <div class="face face-1"><div class="dot"></div></div>
@@ -726,7 +726,7 @@
 
       <button onclick="openDiceStatsModal()" class="w-14 h-14 rounded-2xl flex flex-col items-center justify-center text-xs font-medium btn-modern-secondary gap-0.5" title="Cube Statistics">
         <span class="text-lg">📊</span>
-        <span class="text-[9px] text-zinc-400">Stats</span>
+        <span class="text-[9px] text-[#b9b3d9]">Stats</span>
       </button>
     </div>
   </div>
@@ -904,13 +904,13 @@ function updateDiceStatsUI() {
     const barWidth = diceStatistics.totalRolls > 0 ? Math.min(100, Math.max(3, (count / diceStatistics.totalRolls) * 100 * 2.2)) : 16.7;
     html += `
       <div class="flex items-center gap-2.5 text-xs">
-        <span class="text-sm w-4 font-mono font-bold text-zinc-300 text-center">${i}</span>
-        <div class="flex-1 h-3 rounded-full bg-zinc-800/90 overflow-hidden relative border border-zinc-700/50">
-          <div class="h-full bg-white transition-all duration-300 rounded-full" style="width: ${barWidth}%;"></div>
+        <span class="text-sm w-4 font-mono font-bold text-[#efeaff] text-center">${i}</span>
+        <div class="flex-1 h-3 rounded-full bg-[#241a52]/90 overflow-hidden relative border border-[rgba(0,229,255,0.35)]/50">
+          <div class="h-full transition-all duration-300 rounded-full" style="width: ${barWidth}%; background: linear-gradient(90deg, #ff2d78, #8b5cf6, #00e5ff); box-shadow: 0 0 10px rgba(139,92,246,0.7);"></div>
         </div>
-        <div class="w-20 text-right font-mono text-[11px] text-zinc-300">
+        <div class="w-20 text-right font-mono text-[11px] text-[#efeaff]">
           <span class="font-bold">${count}</span>
-          <span class="text-zinc-500 text-[10px] ml-1">(${pct}%)</span>
+          <span class="text-[#8f89b3] text-[10px] ml-1">(${pct}%)</span>
         </div>
       </div>
     `;
@@ -919,10 +919,10 @@ function updateDiceStatsUI() {
 
   if (recentEl) {
     if (diceStatistics.history.length === 0) {
-      recentEl.innerHTML = '<span class="text-xs text-zinc-500 italic">No rolls yet</span>';
+      recentEl.innerHTML = '<span class="text-xs text-[#8f89b3] italic">No rolls yet</span>';
     } else {
       recentEl.innerHTML = diceStatistics.history.map((val, idx) => `
-        <span class="px-2 py-1 rounded-lg font-mono font-bold text-xs ${idx === 0 ? 'bg-white text-zinc-950 shadow-sm' : 'bg-zinc-800 text-zinc-300 border border-zinc-700'}">${val}</span>
+        <span class="px-2 py-1 rounded-lg font-mono font-bold text-xs ${idx === 0 ? 'bg-white text-zinc-950 shadow-sm' : 'bg-[#241a52] text-[#efeaff] border border-[rgba(0,229,255,0.35)]'}">${val}</span>
       `).join('');
     }
   }
@@ -1049,19 +1049,19 @@ function switchAuthTab(mode) {
 
   if (mode === 'login') {
     if (tabLogin) {
-      tabLogin.className = 'flex-1 py-1.5 rounded-lg text-xs font-semibold bg-zinc-800 text-white transition-all';
+      tabLogin.className = 'flex-1 py-1.5 rounded-lg text-xs font-semibold bg-[#241a52] text-white transition-all';
     }
     if (tabReg) {
-      tabReg.className = 'flex-1 py-1.5 rounded-lg text-xs font-semibold text-zinc-400 hover:text-white transition-all';
+      tabReg.className = 'flex-1 py-1.5 rounded-lg text-xs font-semibold text-[#b9b3d9] hover:text-white transition-all';
     }
     if (title) title.innerText = 'Sign In';
     if (btn) btn.innerText = 'Sign In';
   } else {
     if (tabReg) {
-      tabReg.className = 'flex-1 py-1.5 rounded-lg text-xs font-semibold bg-zinc-800 text-white transition-all';
+      tabReg.className = 'flex-1 py-1.5 rounded-lg text-xs font-semibold bg-[#241a52] text-white transition-all';
     }
     if (tabLogin) {
-      tabLogin.className = 'flex-1 py-1.5 rounded-lg text-xs font-semibold text-zinc-400 hover:text-white transition-all';
+      tabLogin.className = 'flex-1 py-1.5 rounded-lg text-xs font-semibold text-[#b9b3d9] hover:text-white transition-all';
     }
     if (title) title.innerText = 'Create Account';
     if (btn) btn.innerText = 'Create Account';
@@ -1309,27 +1309,27 @@ async function loadOnlinePlayers() {
     const res = await fetch('/api/online-players?exclude=' + currentPlayerIdentity.id);
     const online = await res.json();
     if (!Array.isArray(online) || online.length === 0) {
-      container.innerHTML = '<p class="text-xs text-zinc-500 text-center py-2">No other players online right now.</p>';
+      container.innerHTML = '<p class="text-xs text-[#8f89b3] text-center py-2">No other players online right now.</p>';
       return;
     }
     container.innerHTML = '';
     online.forEach(p => {
       const row = document.createElement('div');
-      row.className = 'flex items-center justify-between p-2 rounded-xl bg-zinc-900/80 border border-zinc-800 text-xs';
+      row.className = 'flex items-center justify-between p-2 rounded-xl bg-[#171233]/80 border border-[rgba(139,92,246,0.4)] text-xs';
       row.innerHTML = `
         <div class="flex items-center gap-2 truncate">
           <span class="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0"></span>
           <span class="font-medium text-white truncate">${p.tag || p.username}</span>
         </div>
         <div class="flex items-center gap-1.5 flex-shrink-0">
-          <button onclick="quickAddOnlineFriend('${p.tag || p.username}')" class="px-2 py-1 rounded-lg text-[10px] font-semibold bg-zinc-800 hover:bg-zinc-700 text-zinc-200 transition-all">+ Add</button>
-          <button onclick="inviteFriend('${p.id}', '${p.username}')" class="px-2 py-1 rounded-lg text-[10px] font-semibold bg-zinc-800 hover:bg-zinc-700 text-white transition-all">Invite</button>
+          <button onclick="quickAddOnlineFriend('${p.tag || p.username}')" class="px-2 py-1 rounded-lg text-[10px] font-semibold bg-[#241a52] hover:bg-[#322466] text-[#e6defc] transition-all">+ Add</button>
+          <button onclick="inviteFriend('${p.id}', '${p.username}')" class="px-2 py-1 rounded-lg text-[10px] font-semibold bg-[#241a52] hover:bg-[#322466] text-white transition-all">Invite</button>
         </div>
       `;
       container.appendChild(row);
     });
   } catch(e) {
-    container.innerHTML = '<p class="text-xs text-zinc-500 text-center py-2">Could not load players.</p>';
+    container.innerHTML = '<p class="text-xs text-[#8f89b3] text-center py-2">Could not load players.</p>';
   }
 }
 
@@ -1345,7 +1345,7 @@ async function loadFriendsList() {
     }
     if (!container) return;
     if (!Array.isArray(friends) || friends.length === 0) {
-      container.innerHTML = '<p class="text-xs text-zinc-500 text-center py-4">No friends added yet.<br><span class="text-[10px] text-zinc-600">Add by tag above or click "+ Add" under Online Players!</span></p>';
+      container.innerHTML = '<p class="text-xs text-[#8f89b3] text-center py-4">No friends added yet.<br><span class="text-[10px] text-[#6f6894]">Add by tag above or click "+ Add" under Online Players!</span></p>';
       return;
     }
     container.innerHTML = '';
@@ -1353,13 +1353,13 @@ async function loadFriendsList() {
       const isOnline = !!f.isOnline;
       const statusDot = isOnline
         ? '<span class="w-2 h-2 rounded-full bg-emerald-400" title="Online"></span>'
-        : '<span class="w-2 h-2 rounded-full bg-zinc-600" title="Offline"></span>';
+        : '<span class="w-2 h-2 rounded-full bg-[#453383]" title="Offline"></span>';
       const statusText = isOnline
         ? '<span class="text-[10px] text-emerald-400 font-semibold">Online</span>'
-        : '<span class="text-[10px] text-zinc-500 font-medium">Offline</span>';
+        : '<span class="text-[10px] text-[#8f89b3] font-medium">Offline</span>';
 
       const row = document.createElement('div');
-      row.className = 'flex items-center justify-between p-2 rounded-xl bg-zinc-900/60 border border-zinc-800';
+      row.className = 'flex items-center justify-between p-2 rounded-xl bg-[#171233]/60 border border-[rgba(139,92,246,0.4)]';
       row.innerHTML = `
         <div class="flex items-center gap-2 truncate">
           ${statusDot}
@@ -1370,7 +1370,7 @@ async function loadFriendsList() {
         </div>
         <div class="flex items-center gap-1.5 flex-shrink-0">
           <button onclick="inviteFriend('${f.id}', '${f.username}')" class="px-2.5 py-1 rounded-lg text-[10px] font-semibold btn-modern-primary">Invite</button>
-          <button onclick="removeFriendAction('${f.id}')" class="text-zinc-500 hover:text-rose-400 p-1 text-xs transition-colors" title="Remove Friend">✕</button>
+          <button onclick="removeFriendAction('${f.id}')" class="text-[#8f89b3] hover:text-rose-400 p-1 text-xs transition-colors" title="Remove Friend">✕</button>
         </div>
       `;
       container.appendChild(row);
@@ -1448,7 +1448,7 @@ function showToast(text) {
   if (old) old.remove();
   const toast = document.createElement('div');
   toast.id = 'app-floating-toast';
-  toast.className = 'fixed top-4 left-1/2 -translate-x-1/2 z-[250] px-4 py-2 rounded-xl text-xs font-semibold bg-zinc-900 border border-zinc-700 text-white shadow-xl flex items-center gap-2 animate-fade-in';
+  toast.className = 'fixed top-4 left-1/2 -translate-x-1/2 z-[250] px-4 py-2 rounded-xl text-xs font-semibold bg-[#171233] border border-[rgba(0,229,255,0.35)] text-white shadow-xl flex items-center gap-2 animate-fade-in';
   toast.innerText = text;
   document.body.appendChild(toast);
   setTimeout(() => toast?.remove(), 3000);
@@ -1475,19 +1475,19 @@ socket.on('receive_friend_invite', (data) => {
 
   const toast = document.createElement('div');
   toast.id = 'friend-invite-toast';
-  toast.className = 'fixed top-4 left-1/2 -translate-x-1/2 z-[300] max-w-sm w-[92%] p-4 rounded-2xl modern-card border border-zinc-700 flex items-center justify-between gap-3 shadow-2xl';
+  toast.className = 'fixed top-4 left-1/2 -translate-x-1/2 z-[300] max-w-sm w-[92%] p-4 rounded-2xl modern-card border border-[rgba(0,229,255,0.35)] flex items-center justify-between gap-3 shadow-2xl';
 
   toast.innerHTML = `
     <div class="flex items-center gap-2.5 truncate">
-      <div class="w-9 h-9 rounded-xl flex items-center justify-center text-lg bg-zinc-800 text-white flex-shrink-0">🎮</div>
+      <div class="w-9 h-9 rounded-xl flex items-center justify-center text-lg bg-[#241a52] text-white flex-shrink-0">🎮</div>
       <div class="truncate">
         <div class="text-xs font-bold text-white truncate"><span class="text-white">${data.fromUsername}</span> invited you!</div>
-        <div class="text-[10px] text-zinc-400 uppercase tracking-wider font-mono">Room: ${data.roomId}</div>
+        <div class="text-[10px] text-[#b9b3d9] uppercase tracking-wider font-mono">Room: ${data.roomId}</div>
       </div>
     </div>
     <div class="flex items-center gap-1.5 flex-shrink-0">
       <button onclick="acceptFriendInvite('${data.roomId}')" class="px-3 py-1.5 rounded-lg text-xs font-semibold btn-modern-primary">Join</button>
-      <button onclick="document.getElementById('friend-invite-toast').remove()" class="w-7 h-7 rounded-lg flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-800 text-xs">✕</button>
+      <button onclick="document.getElementById('friend-invite-toast').remove()" class="w-7 h-7 rounded-lg flex items-center justify-center text-[#b9b3d9] hover:text-white hover:bg-[#241a52] text-xs">✕</button>
     </div>
   `;
   document.body.appendChild(toast);
@@ -1644,7 +1644,7 @@ socket.on('lobby_state', (state) => {
     const pName = state.playerNames[i] || ('Player ' + (i+1));
 
     if (isMe) {
-      slotEl.className = 'rounded-xl p-3 flex flex-col justify-between bg-zinc-900 border-2 border-white/60 min-h-[96px] shadow-sm';
+      slotEl.className = 'rounded-xl p-3 flex flex-col justify-between bg-[#171233] border-2 border-white/60 min-h-[96px] shadow-sm';
       slotEl.innerHTML = `
         <div class="flex items-center justify-between w-full mb-1">
           <div class="flex items-center gap-1.5">
@@ -1656,53 +1656,53 @@ socket.on('lobby_state', (state) => {
         <div class="text-center my-auto py-0.5">
           <div class="text-xs font-semibold text-white truncate px-1">${pName}</div>
         </div>
-        <div class="w-full py-1 text-center text-[10px] font-semibold text-zinc-400 bg-zinc-800/50 rounded-lg">Active Slot</div>
+        <div class="w-full py-1 text-center text-[10px] font-semibold text-[#b9b3d9] bg-[#241a52]/50 rounded-lg">Active Slot</div>
       `;
     } else if (isBot) {
-      slotEl.className = 'rounded-xl p-3 flex flex-col justify-between bg-zinc-900/60 border border-zinc-800 min-h-[96px]';
+      slotEl.className = 'rounded-xl p-3 flex flex-col justify-between bg-[#171233]/60 border border-[rgba(139,92,246,0.4)] min-h-[96px]';
       slotEl.innerHTML = `
         <div class="flex items-center justify-between w-full mb-1">
           <div class="flex items-center gap-1.5">
             <div class="w-2.5 h-2.5 rounded-full" style="background:${col};"></div>
-            <span class="text-xs font-medium text-zinc-400">P${i+1}</span>
+            <span class="text-xs font-medium text-[#b9b3d9]">P${i+1}</span>
           </div>
-          <span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400">BOT</span>
+          <span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-[#241a52] text-[#b9b3d9]">BOT</span>
         </div>
         <div class="text-center my-auto py-0.5">
-          <div class="text-xs font-medium text-zinc-300 truncate px-1">${pName}</div>
+          <div class="text-xs font-medium text-[#efeaff] truncate px-1">${pName}</div>
         </div>
         <div class="flex gap-1.5 w-full">
-          <button onclick="joinSlot(${i})" class="flex-1 py-1 rounded-lg text-[10px] font-medium bg-zinc-800 hover:bg-zinc-700 text-white transition-all">Take</button>
-          ${isHost ? `<button onclick="removeBot(${i})" class="w-7 py-1 rounded-lg text-xs font-bold bg-zinc-800 hover:bg-rose-500/20 text-rose-400 transition-all">✕</button>` : ''}
+          <button onclick="joinSlot(${i})" class="flex-1 py-1 rounded-lg text-[10px] font-medium bg-[#241a52] hover:bg-[#322466] text-white transition-all">Take</button>
+          ${isHost ? `<button onclick="removeBot(${i})" class="w-7 py-1 rounded-lg text-xs font-bold bg-[#241a52] hover:bg-rose-500/20 text-rose-400 transition-all">✕</button>` : ''}
         </div>
       `;
     } else if (isOccupied) {
-      slotEl.className = 'rounded-xl p-3 flex flex-col justify-between bg-zinc-900/60 border border-zinc-800 min-h-[96px]';
+      slotEl.className = 'rounded-xl p-3 flex flex-col justify-between bg-[#171233]/60 border border-[rgba(139,92,246,0.4)] min-h-[96px]';
       slotEl.innerHTML = `
         <div class="flex items-center justify-between w-full mb-1">
           <div class="flex items-center gap-1.5">
             <div class="w-2.5 h-2.5 rounded-full" style="background:${col};"></div>
-            <span class="text-xs font-medium text-zinc-400">P${i+1}</span>
+            <span class="text-xs font-medium text-[#b9b3d9]">P${i+1}</span>
           </div>
           <span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400">READY</span>
         </div>
         <div class="text-center my-auto py-0.5">
-          <div class="text-xs font-medium text-zinc-200 truncate px-1">${pName}</div>
+          <div class="text-xs font-medium text-[#e6defc] truncate px-1">${pName}</div>
         </div>
-        <div class="w-full py-1 text-center text-[10px] font-medium text-zinc-500 bg-zinc-950/40 rounded-lg">Occupied</div>
+        <div class="w-full py-1 text-center text-[10px] font-medium text-[#8f89b3] bg-[#0a0618]/40 rounded-lg">Occupied</div>
       `;
     } else {
-      slotEl.className = 'rounded-xl p-3 flex flex-col justify-between bg-zinc-900/30 border border-dashed border-zinc-800 min-h-[96px]';
+      slotEl.className = 'rounded-xl p-3 flex flex-col justify-between bg-[#171233]/30 border border-dashed border-[rgba(139,92,246,0.4)] min-h-[96px]';
       slotEl.innerHTML = `
         <div class="flex items-center justify-between w-full mb-1">
           <div class="flex items-center gap-1.5">
             <div class="w-2.5 h-2.5 rounded-full opacity-30" style="background:${col};"></div>
-            <span class="text-xs font-medium text-zinc-500">P${i+1}</span>
+            <span class="text-xs font-medium text-[#8f89b3]">P${i+1}</span>
           </div>
-          <span class="text-[9px] font-medium uppercase text-zinc-600">OPEN</span>
+          <span class="text-[9px] font-medium uppercase text-[#6f6894]">OPEN</span>
         </div>
         <div class="text-center my-auto py-0.5">
-          <div class="text-xs font-normal text-zinc-500">Empty</div>
+          <div class="text-xs font-normal text-[#8f89b3]">Empty</div>
         </div>
         <div class="flex gap-1.5 w-full">
           <button onclick="joinSlot(${i})" class="flex-1 py-1 rounded-lg text-[10px] font-semibold btn-modern-primary">Claim</button>
@@ -1716,12 +1716,22 @@ socket.on('lobby_state', (state) => {
   const btn2 = document.getElementById('btn-pegs-2');
   const btn4 = document.getElementById('btn-pegs-4');
   if (btn2 && btn4) {
+    const pegsActive = "py-2 rounded-lg font-semibold text-xs transition-all text-[#1a0b16] shadow-sm";
+    const pegsIdle = "py-2 rounded-lg font-semibold text-xs transition-all text-[#b9b3d9] hover:text-white bg-transparent";
     if (pegs === 2) {
-      btn2.className = "py-2 rounded-lg font-semibold text-xs transition-all bg-white text-zinc-950 shadow-sm";
-      btn4.className = "py-2 rounded-lg font-semibold text-xs transition-all text-zinc-400 hover:text-white bg-transparent";
+      btn2.className = pegsActive;
+      btn2.style.background = "linear-gradient(100deg, #ff2d78, #ffb020)";
+      btn2.style.boxShadow = "0 0 16px -4px rgba(255,45,120,0.8)";
+      btn4.className = pegsIdle;
+      btn4.style.background = "transparent";
+      btn4.style.boxShadow = "none";
     } else {
-      btn2.className = "py-2 rounded-lg font-semibold text-xs transition-all text-zinc-400 hover:text-white bg-transparent";
-      btn4.className = "py-2 rounded-lg font-semibold text-xs transition-all bg-white text-zinc-950 shadow-sm";
+      btn2.className = pegsIdle;
+      btn2.style.background = "transparent";
+      btn2.style.boxShadow = "none";
+      btn4.className = pegsActive;
+      btn4.style.background = "linear-gradient(100deg, #ff2d78, #ffb020)";
+      btn4.style.boxShadow = "0 0 16px -4px rgba(255,45,120,0.8)";
     }
   }
 
@@ -1742,12 +1752,12 @@ socket.on('lobby_state', (state) => {
             <button id="start-btn" onclick="addBotAndStart()" class="w-full py-3.5 rounded-xl font-semibold btn-modern-primary text-xs flex items-center justify-center gap-2">
               <span>🤖 ADD AI BOT & START MATCH</span>
             </button>
-            <p class="text-[10px] text-center text-zinc-500">At least 2 players or bots needed</p>
+            <p class="text-[10px] text-center text-[#8f89b3]">At least 2 players or bots needed</p>
           </div>
         `;
       }
     } else {
-      startContainer.innerHTML = `<button id="start-btn" disabled class="w-full py-3.5 rounded-xl font-semibold bg-zinc-900 border border-zinc-800 text-zinc-500 cursor-not-allowed text-xs">WAITING FOR HOST TO START...</button>`;
+      startContainer.innerHTML = `<button id="start-btn" disabled class="w-full py-3.5 rounded-xl font-semibold bg-[#171233] border border-[rgba(139,92,246,0.4)] text-[#8f89b3] cursor-not-allowed text-xs">WAITING FOR HOST TO START...</button>`;
     }
   }
 });
@@ -2122,7 +2132,7 @@ socket.on('player_ranked', (data) => {
   const name = latestPlayerNames[playerSlot] || (latestSlots[playerSlot] === 'bot' ? ('Bot P' + (playerSlot+1)) : PLAYERS[playerSlot].name);
   
   const toast = document.createElement('div');
-  toast.className = 'fixed top-5 left-1/2 -translate-x-1/2 z-[200] px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider bg-zinc-900 border border-zinc-700 text-white shadow-2xl animate-fade-in whitespace-nowrap';
+  toast.className = 'fixed top-5 left-1/2 -translate-x-1/2 z-[200] px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider bg-[#171233] border border-[rgba(0,229,255,0.35)] text-white shadow-2xl animate-fade-in whitespace-nowrap';
   toast.innerText = rankEmoji + ' ' + name + ' finished!';
   document.body.appendChild(toast);
   setTimeout(() => toast.remove(), 3000);
@@ -2130,7 +2140,7 @@ socket.on('player_ranked', (data) => {
   if (playerSlot === mySlot) {
     const banner = document.createElement('div');
     banner.id = 'spectator-banner';
-    banner.className = 'fixed bottom-0 left-0 right-0 z-[100] py-3 text-center text-xs font-bold uppercase tracking-wider bg-zinc-900/90 border-t border-zinc-800 backdrop-blur-md text-white';
+    banner.className = 'fixed bottom-0 left-0 right-0 z-[100] py-3 text-center text-xs font-bold uppercase tracking-wider bg-[#171233]/90 border-t border-[rgba(139,92,246,0.4)] backdrop-blur-md text-white';
     banner.innerText = rankEmoji + ' You finished ' + (rank === 1 ? '1st' : rank === 2 ? '2nd' : rank === 3 ? '3rd' : rank+'th') + '! Spectating...';
     document.body.appendChild(banner);
   }
@@ -2151,12 +2161,12 @@ socket.on('game_over', (finishOrder) => {
       const col = PLAYERS[slot].dotColor;
       const isMe = (slot === mySlot);
       podium += `
-        <div class="flex items-center justify-between p-3 rounded-xl bg-zinc-900 border border-zinc-800">
+        <div class="flex items-center justify-between p-3 rounded-xl bg-[#171233] border border-[rgba(139,92,246,0.4)]">
           <div class="flex items-center gap-2.5">
             <span class="text-xl">${MEDALS[i] || '🎖️'}</span>
             <div>
               <div class="font-bold text-xs" style="color: ${col};">${name}</div>
-              <div class="text-[10px] text-zinc-500 uppercase tracking-wider">${i === 0 ? 'Champion 👑' : ('Rank #' + (i+1))}</div>
+              <div class="text-[10px] text-[#8f89b3] uppercase tracking-wider">${i === 0 ? 'Champion 👑' : ('Rank #' + (i+1))}</div>
             </div>
           </div>
           ${isMe ? '<span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-white text-zinc-950">YOU</span>' : ''}
@@ -2184,13 +2194,13 @@ function initBoard(keepState = false) {
   
   function addHole(x, y, type) {
     const el = document.createElement('div');
-    let bg = '#16161a';
-    let border = 'rgba(255, 255, 255, 0.08)';
-    let shadow = 'inset 0 2px 4px rgba(0,0,0,0.8)';
-    
+    let bg = '#14102b';
+    let border = 'rgba(139, 92, 246, 0.35)';
+    let shadow = 'inset 0 2px 5px rgba(0,0,0,0.85), 0 0 8px -3px rgba(139, 92, 246, 0.5)';
+
     if (type === 'home') {
-      bg = '#1f1f26';
-      border = 'rgba(255, 255, 255, 0.16)';
+      bg = '#1e1440';
+      border = 'rgba(0, 229, 255, 0.45)';
     }
 
     const holeSizePct = (0.78 / GRID_SIZE) * 100;
@@ -2346,7 +2356,7 @@ function updateUI() {
       const pColor = PLAYERS[p].dotColor;
       const pName = latestPlayerNames[p] || ('P' + (p+1));
       
-      chip.className = `flex items-center gap-1.5 px-2 py-1 rounded-lg transition-all ` + (isTurn ? 'bg-zinc-800 border border-zinc-700' : 'opacity-60');
+      chip.className = `flex items-center gap-1.5 px-2 py-1 rounded-lg transition-all ` + (isTurn ? 'bg-[#241a52] border border-[rgba(0,229,255,0.35)]' : 'opacity-60');
       
       let label = pName;
       if (isMe) label += ' (You)';
@@ -2354,7 +2364,7 @@ function updateUI() {
       
       chip.innerHTML = `
         <div class="w-2 h-2 rounded-full ${PLAYERS[p].color}"></div>
-        <div class="text-[10px] font-medium truncate max-w-[55px] ${isTurn ? 'text-white font-semibold' : 'text-zinc-400'}">${label}</div>
+        <div class="text-[10px] font-medium truncate max-w-[55px] ${isTurn ? 'text-white font-semibold' : 'text-[#b9b3d9]'}">${label}</div>
       `;
       hudBar.appendChild(chip);
     }
@@ -2655,7 +2665,7 @@ socket.on('open_rooms', (roomsList) => {
   container.classList.remove('hidden');
   activeRooms.forEach(room => {
     const el = document.createElement('div');
-    el.className = 'flex flex-col gap-1 p-2.5 rounded-xl text-left transition-all hover:bg-zinc-800 bg-zinc-900 border border-zinc-800';
+    el.className = 'flex flex-col gap-1 p-2.5 rounded-xl text-left transition-all hover:bg-[#241a52] bg-[#171233] border border-[rgba(139,92,246,0.4)]';
     
     const statusText = room.gameState === 'lobby' ? 'In Lobby' : 'Playing';
     const statusColor = room.gameState === 'lobby' ? 'text-emerald-400' : 'text-sky-400';
@@ -2667,13 +2677,13 @@ socket.on('open_rooms', (roomsList) => {
         <span class="font-semibold text-white text-xs">Room: ${room.roomId}</span>
         <span class="text-[10px] font-medium ${statusColor}">${statusText}</span>
       </div>
-      <div class="flex justify-between items-center text-[11px] text-zinc-400">
+      <div class="flex justify-between items-center text-[11px] text-[#b9b3d9]">
         <span>Players: ${room.totalCount}/4 (${room.humanCount} human)</span>
       </div>
-      <div class="text-[10px] text-zinc-500 truncate">
+      <div class="text-[10px] text-[#8f89b3] truncate">
         ${room.playerNames.join(', ')}
       </div>
-      <div class="flex gap-1.5 mt-1.5 pt-1.5 border-t border-zinc-800">
+      <div class="flex gap-1.5 mt-1.5 pt-1.5 border-t border-[rgba(139,92,246,0.4)]">
         ${canJoin ? `
           <button onclick="event.stopPropagation(); joinRoomDirect('${room.roomId}')" class="flex-1 py-1.5 rounded-lg text-[10px] font-semibold btn-modern-primary">Join</button>
         ` : ''}
@@ -2681,7 +2691,7 @@ socket.on('open_rooms', (roomsList) => {
           <button onclick="event.stopPropagation(); spectateRoom('${room.roomId}')" class="flex-1 py-1.5 rounded-lg text-[10px] font-medium btn-modern-secondary">Spectate</button>
         ` : ''}
         ${!canJoin && !canSpectate ? `
-          <span class="flex-1 py-1.5 rounded-lg text-[10px] text-center text-zinc-500 bg-zinc-800">Full</span>
+          <span class="flex-1 py-1.5 rounded-lg text-[10px] text-center text-[#8f89b3] bg-[#241a52]">Full</span>
         ` : ''}
       </div>
     `;
@@ -2750,7 +2760,7 @@ function updateConnectionBanner(isDisconnected) {
         if (!banner) {
           banner = document.createElement('div');
           banner.id = 'connection-status-banner';
-          banner.className = 'fixed top-3 left-1/2 -translate-x-1/2 z-[250] px-4 py-1.5 rounded-full text-xs font-medium text-amber-200 bg-zinc-900/90 border border-amber-500/30 backdrop-blur-md shadow-xl flex items-center gap-2 pointer-events-none transition-all duration-200';
+          banner.className = 'fixed top-3 left-1/2 -translate-x-1/2 z-[250] px-4 py-1.5 rounded-full text-xs font-medium text-amber-200 bg-[#171233]/90 border border-amber-500/30 backdrop-blur-md shadow-xl flex items-center gap-2 pointer-events-none transition-all duration-200';
           banner.innerHTML = '<span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span> Reconnecting...';
           document.body.appendChild(banner);
         }
