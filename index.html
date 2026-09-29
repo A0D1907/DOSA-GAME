@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#09090b">
-  <title>DOSA Online</title>
+  <meta name="theme-color" content="#0a0618">
+  <title>DOSA Online ⚡ Cross & Circle Arena</title>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -15,16 +15,20 @@
   <script src="/socket.io/socket.io.js"></script>
   
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
-    
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Orbitron:wght@600;700;800;900&display=swap');
+
     :root {
-      --bg-main: #0d1117;
-      --card-bg: #161b22;
-      --card-border: rgba(255, 255, 255, 0.1);
-      --p1: #ef4444;
-      --p2: #3b82f6;
-      --p3: #f59e0b;
-      --p4: #22c55e;
+      --bg-main: #0a0618;
+      --card-bg: rgba(24, 16, 48, 0.82);
+      --card-border: rgba(255, 255, 255, 0.12);
+      --p1: #ff2d55;
+      --p2: #00c2ff;
+      --p3: #ffb020;
+      --p4: #00e676;
+      --neon-pink: #ff2d78;
+      --neon-cyan: #00e5ff;
+      --neon-violet: #8b5cf6;
+      --neon-amber: #ffb020;
     }
 
     * {
@@ -36,84 +40,182 @@
     body {
       overscroll-behavior: none;
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: var(--bg-main);
-      color: #e6edf3;
+      background:
+        radial-gradient(1100px 550px at 12% -8%, rgba(255, 45, 120, 0.22), transparent 60%),
+        radial-gradient(1000px 520px at 88% -10%, rgba(0, 229, 255, 0.20), transparent 60%),
+        radial-gradient(900px 700px at 50% 115%, rgba(139, 92, 246, 0.28), transparent 62%),
+        linear-gradient(180deg, #0a0618 0%, #120a2e 55%, #0a0618 100%);
+      background-attachment: fixed;
+      color: #f2ecff;
       min-height: 100vh;
       overflow: hidden;
       font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
     }
+    /* Animated aurora blobs */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: -20%;
+      z-index: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(420px 420px at 18% 22%, rgba(255, 45, 120, 0.16), transparent 70%),
+        radial-gradient(460px 460px at 82% 18%, rgba(0, 229, 255, 0.14), transparent 70%),
+        radial-gradient(520px 520px at 50% 85%, rgba(139, 92, 246, 0.18), transparent 70%);
+      filter: blur(10px);
+      animation: auroraDrift 18s ease-in-out infinite alternate;
+    }
+    /* Neon grid overlay */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(139, 92, 246, 0.07) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 229, 255, 0.07) 1px, transparent 1px);
+      background-size: 44px 44px;
+      mask-image: radial-gradient(ellipse 90% 70% at 50% 40%, black 30%, transparent 78%);
+      animation: gridPan 24s linear infinite;
+    }
+    @keyframes auroraDrift {
+      0% { transform: translate3d(-2%, -1%, 0) scale(1); }
+      50% { transform: translate3d(2%, 2%, 0) scale(1.06); }
+      100% { transform: translate3d(-1%, 1%, 0) scale(1.02); }
+    }
+    @keyframes gridPan {
+      0% { background-position: 0 0, 0 0; }
+      100% { background-position: 0 44px, 44px 0; }
+    }
 
     .modern-card {
-      background: #161b22;
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: linear-gradient(160deg, rgba(34, 22, 68, 0.92), rgba(18, 12, 40, 0.92));
+      border: 1px solid rgba(255, 255, 255, 0.14);
       border-radius: 1.25rem;
-      box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.8), 0 0 1px 1px rgba(255, 255, 255, 0.05);
+      box-shadow: 0 24px 60px -18px rgba(0, 0, 0, 0.85),
+        0 0 0 1px rgba(139, 92, 246, 0.12),
+        0 0 32px -8px rgba(255, 45, 120, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(14px);
+      position: relative;
+    }
+    .modern-card::before {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      border-radius: inherit;
+      padding: 1px;
+      background: linear-gradient(135deg, rgba(255, 45, 120, 0.55), rgba(139, 92, 246, 0.35) 35%, rgba(0, 229, 255, 0.5) 70%, rgba(255, 176, 32, 0.5));
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      opacity: 0.5;
+      pointer-events: none;
     }
 
     .btn-modern-primary {
-      background: #ffffff;
-      color: #0d1117;
-      font-weight: 600;
-      border-radius: 0.75rem;
-      transition: all 0.15s ease;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+      background: linear-gradient(100deg, #ff2d78 0%, #ff6a3d 45%, #ffb020 100%);
+      color: #1a0b16;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      border-radius: 0.9rem;
+      transition: all 0.16s ease;
+      box-shadow: 0 8px 24px -8px rgba(255, 45, 120, 0.75), 0 0 18px -4px rgba(255, 176, 32, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+      position: relative;
+      overflow: hidden;
+    }
+    .btn-modern-primary::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -70%;
+      width: 55%;
+      height: 100%;
+      background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+      transform: skewX(-18deg);
+      animation: btnShine 3.2s ease-in-out infinite;
+    }
+    @keyframes btnShine {
+      0%, 55% { left: -70%; }
+      85%, 100% { left: 130%; }
     }
     .btn-modern-primary:hover:not(:disabled) {
-      background: #d0d7de;
-      transform: translateY(-1px);
+      transform: translateY(-1px) scale(1.01);
+      filter: brightness(1.08) saturate(1.1);
     }
     .btn-modern-primary:active:not(:disabled) {
-      transform: translateY(1px);
-      background: #8b949e;
+      transform: translateY(1px) scale(0.99);
     }
 
     .btn-modern-secondary {
-      background: #21262d;
-      color: #e6edf3;
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: 0.75rem;
-      font-weight: 500;
-      transition: all 0.15s ease;
+      background: rgba(20, 14, 44, 0.85);
+      color: #efeaff;
+      border: 1px solid rgba(0, 229, 255, 0.35);
+      border-radius: 0.9rem;
+      font-weight: 600;
+      transition: all 0.16s ease;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 0 16px -8px rgba(0, 229, 255, 0.6);
     }
     .btn-modern-secondary:hover:not(:disabled) {
-      background: #30363d;
-      border-color: rgba(255, 255, 255, 0.25);
+      background: rgba(34, 24, 70, 0.95);
+      border-color: rgba(0, 229, 255, 0.7);
+      box-shadow: 0 0 22px -6px rgba(0, 229, 255, 0.7);
+      transform: translateY(-1px);
     }
     .btn-modern-secondary:active:not(:disabled) {
       transform: translateY(1px);
     }
 
     .board-bezel {
-      background: #0d1117;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.6), 0 20px 40px rgba(0, 0, 0, 0.7);
+      background: radial-gradient(circle at 50% 38%, #1c1240 0%, #0d0822 62%, #070412 100%);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.7),
+        0 0 0 2px rgba(139, 92, 246, 0.22),
+        0 0 44px -6px rgba(139, 92, 246, 0.65),
+        0 0 90px -18px rgba(0, 229, 255, 0.5),
+        0 24px 50px rgba(0, 0, 0, 0.7);
       border-radius: 1.75rem;
+      position: relative;
     }
 
     .board-hole {
       transition: all 0.2s ease;
+      box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.85), 0 0 8px -3px rgba(139, 92, 246, 0.5) !important;
     }
 
     .piece {
       transition: all 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
       touch-action: manipulation;
+      filter: saturate(1.25) drop-shadow(0 0 6px rgba(255, 255, 255, 0.25));
     }
     .piece.valid-move {
-      animation: modernPulse 1s infinite alternate ease-in-out;
+      animation: neonPulse 0.9s infinite alternate ease-in-out;
       cursor: pointer;
+      z-index: 30;
     }
     @keyframes modernPulse {
-      0% { 
-        transform: translate(-50%, -50%) scale(1.05); 
-        filter: brightness(1.15) drop-shadow(0 0 6px rgba(255, 255, 255, 0.7)); 
+      0% {
+        transform: translate(-50%, -50%) scale(1.05);
+        filter: brightness(1.15) drop-shadow(0 0 6px rgba(255, 255, 255, 0.7));
       }
-      100% { 
-        transform: translate(-50%, -50%) scale(1.3); 
-        filter: brightness(1.35) drop-shadow(0 0 12px rgba(255, 255, 255, 0.9)); 
+      100% {
+        transform: translate(-50%, -50%) scale(1.3);
+        filter: brightness(1.35) drop-shadow(0 0 12px rgba(255, 255, 255, 0.9));
+      }
+    }
+    @keyframes neonPulse {
+      0% {
+        transform: translate(-50%, -50%) scale(1.08) rotate(-4deg);
+        filter: brightness(1.3) saturate(1.4) drop-shadow(0 0 7px rgba(255, 255, 255, 0.9)) drop-shadow(0 0 18px var(--player-glow, #ff2d78));
+      }
+      100% {
+        transform: translate(-50%, -50%) scale(1.34) rotate(4deg);
+        filter: brightness(1.55) saturate(1.6) drop-shadow(0 0 12px #fff) drop-shadow(0 0 30px var(--player-glow, #ff2d78));
       }
     }
 
-    .dice-scene { width: 50px; height: 50px; perspective: 400px; margin: 0 auto; z-index: 20; }
+    .dice-scene { width: 52px; height: 52px; perspective: 500px; margin: 0 auto; z-index: 20; filter: drop-shadow(0 0 12px rgba(0, 229, 255, 0.45)); }
     .cube {
       width: 100%; height: 100%; position: relative;
       transform-style: preserve-3d;
@@ -127,10 +229,10 @@
     }
     .face {
       position: absolute; width: 50px; height: 50px;
-      background: #fafafa;
-      border: 1px solid #d4d4d8; border-radius: 12px;
+      background: linear-gradient(145deg, #ffffff 0%, #e8e4ff 60%, #cfc6ff 100%);
+      border: 1px solid rgba(139, 92, 246, 0.55); border-radius: 13px;
       display: grid; padding: 7px;
-      box-shadow: inset 0 0 6px rgba(0,0,0,0.06), 0 4px 10px rgba(0,0,0,0.3);
+      box-shadow: inset 0 0 8px rgba(139, 92, 246, 0.25), 0 0 14px -2px rgba(0, 229, 255, 0.55), 0 4px 10px rgba(0,0,0,0.4);
     }
     .face-1 { transform: rotateY(0deg) translateZ(25px); place-items: center; }
     .face-2 { transform: rotateY(90deg) translateZ(25px); display: flex; flex-direction: column; justify-content: space-between; padding: 7px; box-sizing: border-box; }
@@ -153,10 +255,74 @@
     .face-6 .dot { align-self: center; justify-self: center; }
     
     .dot {
-      background-color: var(--player-color, #18181b);
+      background: radial-gradient(circle at 35% 30%, #fff 0%, var(--player-color, #ff2d78) 55%, #0b0618 130%);
       border-radius: 50%; width: 8px; height: 8px;
       transition: background-color 0.3s ease;
+      box-shadow: 0 0 6px var(--player-color, #ff2d78);
     }
+
+    /* ===== BADASS UI EXTRAS ===== */
+    .dosa-title {
+      font-family: 'Orbitron', 'Inter', sans-serif;
+      background: linear-gradient(95deg, #ff2d78 5%, #ffb020 38%, #00e5ff 72%, #8b5cf6 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      filter: drop-shadow(0 0 18px rgba(255, 45, 120, 0.45)) drop-shadow(0 0 34px rgba(0, 229, 255, 0.25));
+      letter-spacing: 0.12em;
+      animation: titleGlow 3.4s ease-in-out infinite alternate;
+    }
+    @keyframes titleGlow {
+      0% { filter: drop-shadow(0 0 12px rgba(255, 45, 120, 0.4)) drop-shadow(0 0 26px rgba(0, 229, 255, 0.2)); }
+      100% { filter: drop-shadow(0 0 22px rgba(255, 45, 120, 0.65)) drop-shadow(0 0 44px rgba(0, 229, 255, 0.4)); }
+    }
+    .dosa-subtitle {
+      background: linear-gradient(90deg, #00e5ff, #8b5cf6, #ff2d78);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      font-weight: 700;
+    }
+    input:focus {
+      box-shadow: 0 0 0 2px rgba(0, 229, 255, 0.5), 0 0 18px -4px rgba(0, 229, 255, 0.7) !important;
+      border-color: rgba(0, 229, 255, 0.7) !important;
+    }
+    @keyframes popIn {
+      0% { transform: scale(0.92) translateY(10px); opacity: 0; }
+      100% { transform: scale(1) translateY(0); opacity: 1; }
+    }
+    .animate-pop { animation: popIn 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.2) both; }
+    #auth-modal > div, #friends-modal > div, #exit-confirm-modal > div, #dice-stats-modal > div, #victory-screen > div {
+      animation: popIn 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+    }
+    #status-turn-pill {
+      font-family: 'Orbitron', 'Inter', sans-serif;
+      letter-spacing: 0.04em;
+      box-shadow: 0 0 18px -6px currentColor;
+    }
+    #hud-players-bar > div {
+      background: rgba(18, 12, 40, 0.8) !important;
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+      box-shadow: 0 0 14px -8px rgba(139, 92, 246, 0.8);
+    }
+    #dice-btn {
+      background: linear-gradient(145deg, #ffffff, #d9d2ff) !important;
+      box-shadow: 0 0 0 2px rgba(0, 229, 255, 0.35), 0 0 26px -4px rgba(0, 229, 255, 0.8), 0 10px 24px rgba(0, 0, 0, 0.5) !important;
+    }
+    #dice-btn:not(:disabled) {
+      animation: diceReady 1.1s ease-in-out infinite alternate;
+    }
+    @keyframes diceReady {
+      0% { box-shadow: 0 0 0 2px rgba(0, 229, 255, 0.4), 0 0 18px -2px rgba(0, 229, 255, 0.7), 0 10px 24px rgba(0,0,0,0.5); transform: scale(1); }
+      100% { box-shadow: 0 0 0 3px rgba(255, 45, 120, 0.55), 0 0 34px -2px rgba(255, 45, 120, 0.85), 0 10px 24px rgba(0,0,0,0.5); transform: scale(1.06); }
+    }
+    #emote-toggle-btn {
+      border-color: rgba(255, 176, 32, 0.45) !important;
+      box-shadow: 0 0 16px -8px rgba(255, 176, 32, 0.8);
+    }
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.04); border-radius: 8px; }
+    ::-webkit-scrollbar-thumb { background: linear-gradient(180deg, #ff2d78, #8b5cf6, #00e5ff); border-radius: 8px; }
     
     @keyframes floatUp {
       0% { transform: translateY(0) scale(0.6); opacity: 0; }
@@ -189,7 +355,7 @@
     }
   </style>
 </head>
-<body class="bg-[#09090b] text-zinc-100 min-h-screen h-[100dvh] flex flex-col overflow-hidden relative">
+<body class="bg-[#0a0618] text-zinc-100 min-h-screen h-[100dvh] flex flex-col overflow-hidden relative">
 
   <!-- TOP NAVIGATION BAR -->
   <header id="main-nav-bar" class="fixed top-3 left-3 right-3 sm:top-4 sm:left-4 sm:right-4 z-[120] flex items-center justify-between pointer-events-none transition-all duration-200">
@@ -398,8 +564,8 @@
   <!-- HOME SCREEN -->
   <div id="home-screen" class="absolute inset-0 z-[60] flex flex-col items-center justify-center p-4 sm:p-6 overflow-y-auto bg-[#09090b]">
     <div class="text-center mb-6">
-      <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight text-white mb-1">DOSA</h1>
-      <p class="text-xs font-medium text-zinc-400 tracking-wide uppercase">Cross & Circle Multiplayer</p>
+      <h1 class="dosa-title text-5xl sm:text-6xl font-black mb-1">DOSA</h1>
+      <p class="dosa-subtitle text-xs tracking-[0.3em] uppercase">⚡ Cross & Circle Arena ⚡</p>
     </div>
 
     <div class="w-full max-w-sm p-6 sm:p-7 rounded-2xl modern-card text-center">
@@ -547,7 +713,7 @@
 
       <button id="dice-btn" onclick="rollDice()" class="w-20 h-20 rounded-2xl flex items-center justify-center transition-all bg-white hover:bg-zinc-200 active:scale-95 shadow-md" title="Roll Dice" disabled>
         <div class="dice-scene pointer-events-none">
-          <div class="cube" id="dice-cube" style="--player-color: #ef4444;">
+          <div class="cube" id="dice-cube" style="--player-color: #ff2d55; --player-glow: #ff2d78;">
             <div class="face face-1"><div class="dot"></div></div>
             <div class="face face-2"><div class="dot"></div><div class="dot"></div></div>
             <div class="face face-3"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
@@ -660,10 +826,10 @@ function updateBoardConstants() {
 }
 
 const PLAYERS = {
-  0: { color: 'bg-red-500', dotColor: '#ef4444', text: 'text-red-400', name: 'Player 1' },
-  1: { color: 'bg-blue-500', dotColor: '#3b82f6', text: 'text-blue-400', name: 'Player 2' },
-  2: { color: 'bg-amber-500', dotColor: '#f59e0b', text: 'text-amber-400', name: 'Player 3' },
-  3: { color: 'bg-green-500', dotColor: '#22c55e', text: 'text-green-400', name: 'Player 4' }
+  0: { color: 'bg-rose-500', dotColor: '#ff2d55', glow: '#ff2d78', text: 'text-rose-300', name: 'Player 1' },
+  1: { color: 'bg-cyan-400', dotColor: '#00c2ff', glow: '#00e5ff', text: 'text-cyan-300', name: 'Player 2' },
+  2: { color: 'bg-amber-400', dotColor: '#ffb020', glow: '#ffb020', text: 'text-amber-300', name: 'Player 3' },
+  3: { color: 'bg-emerald-400', dotColor: '#00e676', glow: '#00e676', text: 'text-emerald-300', name: 'Player 4' }
 };
 
 const CUBE_FACE_ANGLES = [
@@ -1336,29 +1502,43 @@ function acceptFriendInvite(roomId) {
 }
 
 // =============== NETWORK HANDLERS ===============
-socket.on('connect', () => {
-  updateConnectionBanner(false);
-  if (currentPlayerIdentity) {
-    socket.emit('register_identity', currentPlayerIdentity);
-  }
+let autoRejoinDoneForSocket = null;
+function tryAutoRejoin(reason) {
+  if (!socket.connected) return false;
   const code = getSession('dosaRoom');
+  if (!code) return false;
+  // Avoid duplicate rejoins on the same socket connection (connect + DOMContentLoaded both fire)
+  if (autoRejoinDoneForSocket === socket.id) return true;
+  autoRejoinDoneForSocket = socket.id;
+
   const slot = getSession('dosaSlot');
   const name = getSession('dosaName');
   const isSpectateSession = getSession('dosaSpectate') === 'true';
-  
-  if (code && slot !== null) {
+  const slotNum = (slot !== null && slot !== undefined && slot !== '') ? parseInt(slot, 10) : null;
+
+  if (slotNum !== null && !Number.isNaN(slotNum) && !isSpectateSession) {
     isSpectating = false;
-    socket.emit('reclaim_slot', { roomId: code, slot: parseInt(slot), playerName: name || ('Player ' + (parseInt(slot) + 1)) });
-    setTimeout(() => socket.emit('request_sync'), 300);
-  } else if (code && isSpectateSession) {
+    socket.emit('reclaim_slot', { roomId: code, slot: slotNum, playerName: name || ('Player ' + (slotNum + 1)) });
+  } else if (isSpectateSession) {
     isSpectating = true;
     socket.emit('join_room', { roomId: code, playerName: 'Spectator', spectate: true });
-    setTimeout(() => socket.emit('request_sync'), 300);
-  } else if (code) {
+  } else {
     isSpectating = false;
-    socket.emit('join_room', code); 
-    setTimeout(() => socket.emit('request_sync'), 300); 
+    socket.emit('join_room', { roomId: code, playerName: name || 'Player' });
   }
+  // Hide home immediately so refresh restores match view instead of flashing lobby
+  document.getElementById('home-screen')?.classList.add('hidden');
+  setTimeout(() => socket.emit('request_sync'), 350);
+  return true;
+}
+
+socket.on('connect', () => {
+  updateConnectionBanner(false);
+  autoRejoinDoneForSocket = null;
+  if (currentPlayerIdentity) {
+    socket.emit('register_identity', currentPlayerIdentity);
+  }
+  tryAutoRejoin('connect');
 });
 
 socket.on('sync_requested', (requesterSocketId) => {
@@ -1586,6 +1766,7 @@ function copyRoomInvite() {
 
 function quickMatchVsAI() {
   isSpectating = false;
+  autoRejoinDoneForSocket = socket.id;
   const name = document.getElementById('nickname-input')?.value.trim() || 'Player 1';
   const code = 'SOLO' + Math.floor(100 + Math.random() * 900);
   saveSession('dosaRoom', code);
@@ -1602,6 +1783,7 @@ function quickMatchVsAI() {
 
 function joinRoom() {
   isSpectating = false;
+  autoRejoinDoneForSocket = socket.id;
   const code = document.getElementById('room-code-input').value.toUpperCase().trim();
   const name = document.getElementById('nickname-input')?.value.trim() || 'Player';
   if (code.length > 0) {
@@ -1668,6 +1850,7 @@ function returnToLobby() {
 
 function leaveRoom() {
   isSpectating = false;
+  autoRejoinDoneForSocket = null;
   if (botTurnTimer) { clearTimeout(botTurnTimer); botTurnTimer = null; }
   socket.emit('leave_room');
   clearSession('dosaRoom');
@@ -2126,8 +2309,9 @@ function renderPieces() {
     el.style.left = `calc(` + ((x + OFFSET + 0.5) * (100 / GRID_SIZE)) + `% + ` + offsetX + `px)`;
     el.style.top = `calc(` + ((y + OFFSET + 0.5) * (100 / GRID_SIZE)) + `% + ` + offsetY + `px)`;
     
-    const isValid = currentPlayer === mySlot && validMoves.some(m => m.piece.id === piece.id);
-    if (isValid) {
+    el.style.setProperty('--player-glow', PLAYERS[piece.player]?.glow || PLAYERS[piece.player]?.dotColor || '#ff2d78');
+    const isValid = (currentPlayer === mySlot || isSpectating) && validMoves.some(m => m.piece.id === piece.id);
+    if (isValid && !isSpectating) {
       el.classList.add('valid-move', 'z-30');
       el.onclick = () => selectMove(validMoves.find(m => m.piece.id === piece.id));
     } else {
@@ -2146,7 +2330,7 @@ function updateUI() {
   if (isSpectating) prefix = 'Spectating: ' + nameStr + "'s Turn";
   if (statusEl) statusEl.innerText = prefix;
   
-  const col = PLAYERS[currentPlayer]?.dotColor || '#38bdf8';
+  const col = PLAYERS[currentPlayer]?.dotColor || '#00c2ff';
   if (pillEl) {
     pillEl.style.cssText = 'background: ' + col + '18; border: 1px solid ' + col + '44; color: ' + col + ';';
   }
@@ -2182,7 +2366,8 @@ function updateUI() {
   const isBotTurn = isHost && latestSlots[currentPlayer] === 'bot';
 
   if (cube) {
-    cube.style.setProperty('--player-color', PLAYERS[currentPlayer]?.dotColor || '#ef4444');
+    cube.style.setProperty('--player-color', PLAYERS[currentPlayer]?.dotColor || '#ff2d55');
+    cube.style.setProperty('--player-glow', PLAYERS[currentPlayer]?.glow || PLAYERS[currentPlayer]?.dotColor || '#ff2d78');
     
     if (isBotTurn && !diceRolled && !isAnimating) {
       if (botTurnTimer) clearTimeout(botTurnTimer);
@@ -2505,6 +2690,8 @@ socket.on('open_rooms', (roomsList) => {
 });
 
 function joinRoomDirect(roomId) {
+  isSpectating = false;
+  autoRejoinDoneForSocket = socket.id;
   const name = document.getElementById('nickname-input')?.value.trim() || 'Player';
   saveSession('dosaRoom', roomId);
   saveSession('dosaName', name);
@@ -2515,6 +2702,7 @@ function joinRoomDirect(roomId) {
 
 function spectateRoom(roomId) {
   isSpectating = true;
+  autoRejoinDoneForSocket = socket.id;
   saveSession('dosaRoom', roomId);
   saveSession('dosaSpectate', 'true');
   socket.emit('join_room', { roomId, playerName: 'Spectator', spectate: true });
@@ -2539,24 +2727,13 @@ document.addEventListener("DOMContentLoaded", () => {
     if (roomInput) roomInput.value = roomParam.toUpperCase();
   }
   
-  // Auto-rejoin saved room on page load
-  const code = getSession('dosaRoom');
-  const slot = getSession('dosaSlot');
-  const name = getSession('dosaName');
-  const isSpectateSession = getSession('dosaSpectate') === 'true';
-  
-  if (code) {
-    if (slot !== null && !isSpectateSession) {
-      // Was a player - reclaim slot
-      socket.emit('reclaim_slot', { roomId: code, slot: parseInt(slot), playerName: name || ('Player ' + (parseInt(slot) + 1)) });
-    } else if (isSpectateSession) {
-      // Was a spectator
-      socket.emit('join_room', { roomId: code, playerName: 'Spectator', spectate: true });
-    } else {
-      // Was in lobby
-      socket.emit('join_room', { roomId: code, playerName: name || 'Player' });
-    }
-    setTimeout(() => socket.emit('request_sync'), 300);
+  // Auto-rejoin saved room on page load (socket may not be connected yet; try now + on connect)
+  if (socket.connected) {
+    tryAutoRejoin('domcontentloaded');
+  } else {
+    socket.once('connect', () => tryAutoRejoin('domcontentloaded-deferred'));
+    // Fallback: if connect already fired before this listener, retry shortly
+    setTimeout(() => tryAutoRejoin('domcontentloaded-retry'), 800);
   }
 });
 
@@ -2589,27 +2766,23 @@ function updateConnectionBanner(isDisconnected) {
 
 socket.on('disconnect', () => {
   updateConnectionBanner(true);
+  autoRejoinDoneForSocket = null;
 });
 
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible") {
     if (!socket.connected) {
       updateConnectionBanner(true);
+      autoRejoinDoneForSocket = null;
       socket.connect();
     } else {
       updateConnectionBanner(false);
-      const code = getSession('dosaRoom');
-      const slot = getSession('dosaSlot');
-      const name = getSession('dosaName');
-      const isSpectateSession = getSession('dosaSpectate') === 'true';
-      if (code && slot !== null && !isSpectateSession) {
-        socket.emit('reclaim_slot', { roomId: code, slot: parseInt(slot), playerName: name || ('Player ' + (parseInt(slot) + 1)) });
-      } else if (code && isSpectateSession) {
-        socket.emit('join_room', { roomId: code, playerName: 'Spectator', spectate: true });
-      } else if (code) {
-        socket.emit('join_room', { roomId: code, playerName: name || 'Player' });
+      // Re-allow rejoin on visibility return (new navigation counts as new attempt)
+      autoRejoinDoneForSocket = null;
+      if (!tryAutoRejoin('visibility')) {
+        const code = getSession('dosaRoom');
+        if (code) setTimeout(() => socket.emit("request_sync"), 300);
       }
-      setTimeout(() => socket.emit("request_sync"), 300);
     }
   }
 });

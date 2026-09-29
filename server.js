@@ -236,6 +236,10 @@ app.delete('/api/friends', (req, res) => {
     });
 });
 
+app.get('/health', (req, res) => {
+  res.status(200).json({ ok: true, uptime: process.uptime(), rooms: Object.keys(rooms).length });
+});
+
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
@@ -662,13 +666,17 @@ io.on('connection', (socket) => {
   });
 
   socket.on('reclaim_slot', (data) => {
+    if (!data || !data.roomId || typeof data.slot !== 'number' || data.slot < 0 || data.slot > 3) return;
     const state = getRoomState(data.roomId);
-    if (state.gameState === 'playing') {
-      if (state.cleanupTimer) {
-        clearTimeout(state.cleanupTimer);
-        state.cleanupTimer = null;
-        console.log(`Cancelled cleanup timer for room ${data.roomId} - player returned!`);
-      }
+    if (state.cleanupTimer) {
+      clearTimeout(state.cleanupTimer);
+      state.cleanupTimer = null;
+      console.log(`Cancelled cleanup timer for room ${data.roomId} - player returned!`);
+    }
+    // Only reclaim if slot is empty, a bot placeholder, marked offline, or stale socket id
+    const occupant = state.slots[data.slot];
+    const occupantIsStale = occupant && occupant !== 'bot' && !io.sockets.sockets.get(occupant);
+    if (!occupant || occupant === 'bot' || state.offlineSlots[data.slot] || occupantIsStale) {
       state.slots[data.slot] = socket.id;
       state.offlineSlots[data.slot] = false;
       if (data.playerName) {
@@ -680,17 +688,18 @@ io.on('connection', (socket) => {
         state.boardState.slots = [...state.slots];
         state.boardState.playerNames = [...state.playerNames];
       }
-      socket.roomId = data.roomId;
-      socket.join(data.roomId);
-      
-      // Directly send current state to the recovering player
-      socket.emit('lobby_state', { ...state, roomId: data.roomId });
-      if (state.boardState) {
-        socket.emit('sync_data', state.boardState);
-      }
-      io.to(data.roomId).emit('player_reconnected', data.slot);
-      broadcastOpenRooms();
     }
+    socket.roomId = data.roomId;
+    socket.join(data.roomId);
+    socket.isSpectate = false;
+
+    // Directly send current state to the recovering player
+    socket.emit('lobby_state', { ...state, roomId: data.roomId });
+    if (state.gameState === 'playing' && state.boardState) {
+      socket.emit('sync_data', state.boardState);
+    }
+    io.to(data.roomId).emit('player_reconnected', data.slot);
+    broadcastOpenRooms();
   });
 
   socket.on('leave_room', () => {
@@ -793,6 +802,29 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 8085;
-http.listen(PORT, () => {
+const server = http.listen(PORT, () => {
   console.log(`Multiplayer Server running on port ${PORT}`);
 });
+
+function gracefulShutdown(signal) {
+  console.log(`Received ${signal}, shutting down gracefully...`);
+  try {
+    Object.keys(rooms).forEach(clearRoomTurnTimer);
+    Object.values(rooms).forEach(r => {
+      if (r.cleanupTimer) clearTimeout(r.cleanupTimer);
+    });
+  } catch (e) {}
+  server.close(() => {
+    console.log('HTTP server closed');
+    db.close((err) => {
+      if (err) console.error('DB close error:', err.message);
+      else console.log('DB closed');
+      process.exit(0);
+    });
+    // Force exit if DB close hangs (Render gives limited shutdown time)
+    setTimeout(() => process.exit(0), 5000).unref();
+  });
+}
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
