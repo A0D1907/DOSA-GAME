@@ -2538,6 +2538,26 @@ document.addEventListener("DOMContentLoaded", () => {
     const roomInput = document.getElementById('room-code-input');
     if (roomInput) roomInput.value = roomParam.toUpperCase();
   }
+  
+  // Auto-rejoin saved room on page load
+  const code = getSession('dosaRoom');
+  const slot = getSession('dosaSlot');
+  const name = getSession('dosaName');
+  const isSpectateSession = getSession('dosaSpectate') === 'true';
+  
+  if (code) {
+    if (slot !== null && !isSpectateSession) {
+      // Was a player - reclaim slot
+      socket.emit('reclaim_slot', { roomId: code, slot: parseInt(slot), playerName: name || ('Player ' + (parseInt(slot) + 1)) });
+    } else if (isSpectateSession) {
+      // Was a spectator
+      socket.emit('join_room', { roomId: code, playerName: 'Spectator', spectate: true });
+    } else {
+      // Was in lobby
+      socket.emit('join_room', { roomId: code, playerName: name || 'Player' });
+    }
+    setTimeout(() => socket.emit('request_sync'), 300);
+  }
 });
 
 let reconnectDebounceTimer = null;
@@ -2581,8 +2601,13 @@ document.addEventListener("visibilitychange", () => {
       const code = getSession('dosaRoom');
       const slot = getSession('dosaSlot');
       const name = getSession('dosaName');
-      if (code && slot !== null) {
+      const isSpectateSession = getSession('dosaSpectate') === 'true';
+      if (code && slot !== null && !isSpectateSession) {
         socket.emit('reclaim_slot', { roomId: code, slot: parseInt(slot), playerName: name || ('Player ' + (parseInt(slot) + 1)) });
+      } else if (code && isSpectateSession) {
+        socket.emit('join_room', { roomId: code, playerName: 'Spectator', spectate: true });
+      } else if (code) {
+        socket.emit('join_room', { roomId: code, playerName: name || 'Player' });
       }
       setTimeout(() => socket.emit("request_sync"), 300);
     }
