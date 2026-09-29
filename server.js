@@ -271,6 +271,11 @@ io.on('connection', (socket) => {
   socket.on('reclaim_slot', (data) => {
     const state = getRoomState(data.roomId);
     if (state.gameState === 'playing') {
+      if (state.cleanupTimer) {
+        clearTimeout(state.cleanupTimer);
+        state.cleanupTimer = null;
+        console.log(`Cancelled cleanup timer for room ${data.roomId} - player returned!`);
+      }
       state.slots[data.slot] = socket.id;
       state.offlineSlots[data.slot] = false;
       if (data.playerName) {
@@ -278,9 +283,18 @@ io.on('connection', (socket) => {
       } else if (!state.playerNames[data.slot]) {
         state.playerNames[data.slot] = `Player ${data.slot + 1}`;
       }
+      if (state.boardState) {
+        state.boardState.slots = [...state.slots];
+        state.boardState.playerNames = [...state.playerNames];
+      }
       socket.roomId = data.roomId;
       socket.join(data.roomId);
+      
+      // Directly send current state to the recovering player
       socket.emit('lobby_state', { ...state, roomId: data.roomId });
+      if (state.boardState) {
+        socket.emit('sync_data', state.boardState);
+      }
       io.to(data.roomId).emit('player_reconnected', data.slot);
       broadcastOpenRooms();
     }
@@ -335,17 +349,30 @@ io.on('connection', (socket) => {
         state.slots[oldSlot] = null;
         state.playerNames[oldSlot] = '';
         io.to(socket.roomId).emit('lobby_state', { ...state, roomId: socket.roomId });
+
+        // Lobby empty cleanup
+        const humanCount = state.slots.filter(s => s !== null && s !== 'bot').length;
+        if (humanCount === 0) {
+          delete rooms[socket.roomId];
+          console.log(`Deleted empty lobby: ${socket.roomId}`);
+        }
       } else {
         state.offlineSlots[oldSlot] = true;
         io.to(socket.roomId).emit('player_disconnected', oldSlot);
+
+        // Active game: DO NOT delete room immediately! Give 5 minutes grace period
+        const onlineHumans = state.slots.filter((s, i) => s !== null && s !== 'bot' && !state.offlineSlots[i]).length;
+        if (onlineHumans === 0 && !state.cleanupTimer) {
+          console.log(`All human players offline in room ${socket.roomId}. Starting 5-minute recovery timer.`);
+          state.cleanupTimer = setTimeout(() => {
+            const recheck = state.slots.filter((s, i) => s !== null && s !== 'bot' && !state.offlineSlots[i]).length;
+            if (recheck === 0) {
+              delete rooms[socket.roomId];
+              console.log(`Recovery window expired. Deleted empty room: ${socket.roomId}`);
+            }
+          }, 300000); // 5 minutes
+        }
       }
-    }
-    
-    // Cleanup empty rooms (rooms with no human players left)
-    const humanCount = state.slots.filter((s, i) => s !== null && s !== 'bot' && !state.offlineSlots[i]).length;
-    if (humanCount === 0) {
-      delete rooms[socket.roomId];
-      console.log(`Deleted empty room: ${socket.roomId}`);
     }
     broadcastOpenRooms();
   });

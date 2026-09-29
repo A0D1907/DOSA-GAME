@@ -412,19 +412,41 @@ let isAnimating = false;
 let finishedPlayers = []; // tracks finish order (slot indices)
 let jailMissCounter = {0: 0, 1: 0, 2: 0, 3: 0};
 
+// Storage helpers that persist across mobile background throttling and tab reloads
+function saveSession(key, value) {
+  try {
+    sessionStorage.setItem(key, value);
+    localStorage.setItem(key, value);
+  } catch(e) {}
+}
+
+function getSession(key) {
+  try {
+    return sessionStorage.getItem(key) || localStorage.getItem(key) || null;
+  } catch(e) {
+    return null;
+  }
+}
+
+function clearSession(key) {
+  try {
+    sessionStorage.removeItem(key);
+    localStorage.removeItem(key);
+  } catch(e) {}
+}
+
 // =============== NETWORK HANDLERS ===============
 socket.on('connect', () => {
-  const code = sessionStorage.getItem('dosaRoom');
-  const slot = sessionStorage.getItem('dosaSlot');
-  const name = sessionStorage.getItem('dosaName');
-  const gameHidden = document.getElementById('game-screen')?.classList.contains('hidden');
+  const code = getSession('dosaRoom');
+  const slot = getSession('dosaSlot');
+  const name = getSession('dosaName');
   
   if (code && slot !== null) {
     socket.emit('reclaim_slot', { roomId: code, slot: parseInt(slot), playerName: name || `Player ${parseInt(slot) + 1}` });
-    setTimeout(() => socket.emit('request_sync'), 500);
-  } else if (code && !gameHidden) {
+    setTimeout(() => socket.emit('request_sync'), 300);
+  } else if (code) {
     socket.emit('join_room', code); 
-    setTimeout(() => socket.emit('request_sync'), 500); 
+    setTimeout(() => socket.emit('request_sync'), 300); 
   }
 });
 
@@ -460,6 +482,15 @@ socket.on('sync_data', (state) => {
           break;
         }
       }
+      if (mySlot === null) {
+        const savedSlot = getSession('dosaSlot');
+        if (savedSlot !== null) {
+          mySlot = parseInt(savedSlot);
+        }
+      }
+      if (mySlot !== null) {
+        saveSession('dosaSlot', mySlot);
+      }
       isHost = (state.slots.find(s => s !== null && s !== 'bot') === socket.id);
     }
 
@@ -484,6 +515,14 @@ setInterval(() => {
 }, 3000);
 
 socket.on('lobby_state', (state) => {
+  if (state.slots) {
+    latestSlots = state.slots;
+  }
+  if (state.playerNames) {
+    latestPlayerNames = state.playerNames;
+  }
+
+  const savedSlot = getSession('dosaSlot');
   mySlot = null;
   for(let i=0; i<4; i++) {
     if (state.slots[i] === socket.id) {
@@ -491,11 +530,16 @@ socket.on('lobby_state', (state) => {
       break;
     }
   }
-  isHost = (state.slots.find(s => s !== null && s !== 'bot') === socket.id);
-
-  if (state.playerNames) {
-    latestPlayerNames = state.playerNames;
+  if (mySlot === null && savedSlot !== null) {
+    const s = parseInt(savedSlot);
+    if (!state.offlineSlots?.[s] || state.slots[s] === socket.id) {
+      mySlot = s;
+    }
   }
+  if (mySlot !== null) {
+    saveSession('dosaSlot', mySlot);
+  }
+  isHost = (state.slots.find(s => s !== null && s !== 'bot') === socket.id);
 
   if (state.gameState === 'playing') {
     document.getElementById('home-screen').classList.add('hidden');
@@ -510,8 +554,6 @@ socket.on('lobby_state', (state) => {
   document.getElementById('game-screen').classList.add('hidden');
   document.getElementById('victory-screen').classList.add('hidden');
   document.getElementById('lobby-room-code').innerText = `Room: ${state.roomId}`;
-  latestSlots = state.slots;
-  mySlot = null;
   for(let i=0; i<4; i++) {
     const btn = document.getElementById(`slot-${i}`);
     if (state.slots[i]) {
@@ -557,7 +599,7 @@ socket.on('lobby_state', (state) => {
 function joinRoom() {
   const code = document.getElementById('room-code-input').value.toUpperCase().trim();
   if (code.length > 0) {
-    sessionStorage.setItem('dosaRoom', code);
+    saveSession('dosaRoom', code);
     socket.emit('join_room', code);
     document.getElementById('home-screen').classList.add('hidden');
   } else {
@@ -568,8 +610,8 @@ function joinRoom() {
 function joinSlot(slotIndex) {
   if (mySlot !== null) return;
   const name = document.getElementById('nickname-input')?.value.trim() || `Player ${slotIndex + 1}`;
-  sessionStorage.setItem('dosaSlot', slotIndex);
-  sessionStorage.setItem('dosaName', name);
+  saveSession('dosaSlot', slotIndex);
+  saveSession('dosaName', name);
   socket.emit('join_slot', { slotIndex, playerName: name });
 }
 
@@ -588,8 +630,8 @@ function returnToLobby() { socket.emit('return_to_lobby'); }
 
 function leaveRoom() {
   socket.emit('leave_room');
-  sessionStorage.removeItem('dosaRoom');
-  sessionStorage.removeItem('dosaSlot');
+  clearSession('dosaRoom');
+  clearSession('dosaSlot');
   window.location.reload();
 }
 
@@ -1495,7 +1537,7 @@ async function removeFriendAction(friendId) {
 }
 
 function inviteFriend(friendUsername) {
-  const code = sessionStorage.getItem('dosaRoom');
+  const code = getSession('dosaRoom');
   if (code) {
     navigator.clipboard?.writeText(`${window.location.origin}/?room=${code}`);
     alert(`Copied invite link for Room ${code}! Send it to ${friendUsername}`);
@@ -1506,7 +1548,7 @@ function inviteFriend(friendUsername) {
 
 document.addEventListener("DOMContentLoaded", () => {
   initAuthUI();
-  const savedName = sessionStorage.getItem('dosaName');
+  const savedName = getSession('dosaName');
   if (savedName) {
     const input = document.getElementById('nickname-input');
     if (input) input.value = savedName;
@@ -1547,9 +1589,9 @@ document.addEventListener("visibilitychange", () => {
       updateConnectionBanner(true);
       socket.connect();
     } else {
-      const code = sessionStorage.getItem('dosaRoom');
-      const slot = sessionStorage.getItem('dosaSlot');
-      const name = sessionStorage.getItem('dosaName');
+      const code = getSession('dosaRoom');
+      const slot = getSession('dosaSlot');
+      const name = getSession('dosaName');
       if (code && slot !== null) {
         socket.emit('reclaim_slot', { roomId: code, slot: parseInt(slot), playerName: name || `Player ${parseInt(slot) + 1}` });
       }
