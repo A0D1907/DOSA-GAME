@@ -201,6 +201,11 @@
     </div>
 
     <div class="flex items-center gap-2 pointer-events-auto">
+      <button id="auth-nav-btn" onclick="openAuthModal()" class="px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-zinc-900/90 border border-zinc-800 text-zinc-200 hover:bg-zinc-800 hover:text-white transition-all shadow-sm">
+        <span id="auth-nav-icon">🔑</span>
+        <span id="auth-nav-label">Log In</span>
+      </button>
+
       <button onclick="openFriendsModal()" class="px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-zinc-900/90 border border-zinc-800 text-zinc-200 hover:bg-zinc-800 hover:text-white transition-all shadow-sm">
         <span>👥</span>
         <span id="friends-badge-count">Friends</span>
@@ -212,6 +217,76 @@
       </div>
     </div>
   </header>
+
+  <!-- AUTH MODAL (LOG IN / SIGN UP) -->
+  <div id="auth-modal" class="fixed inset-0 z-[170] flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm hidden transition-all duration-200">
+    <div class="w-full max-w-sm p-6 rounded-2xl modern-card relative flex flex-col border border-zinc-800 shadow-2xl">
+      <button onclick="closeAuthModal()" class="absolute top-4 right-4 w-8 h-8 rounded-lg flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-800 transition-all">✕</button>
+      
+      <!-- Guest / Logged Out View -->
+      <div id="auth-form-view">
+        <div class="mb-4">
+          <h3 class="text-base font-bold text-white flex items-center gap-2">
+            <span>🔑</span> <span id="auth-title">Sign In</span>
+          </h3>
+          <p class="text-xs text-zinc-400 mt-0.5">Sign in or create an account to save your nickname and friends.</p>
+        </div>
+
+        <!-- Mode Switcher Tabs -->
+        <div class="flex gap-1.5 p-1 rounded-xl bg-zinc-900 border border-zinc-800 mb-4">
+          <button id="auth-tab-login" onclick="switchAuthTab('login')" class="flex-1 py-1.5 rounded-lg text-xs font-semibold bg-zinc-800 text-white transition-all">Sign In</button>
+          <button id="auth-tab-register" onclick="switchAuthTab('register')" class="flex-1 py-1.5 rounded-lg text-xs font-semibold text-zinc-400 hover:text-white transition-all">Register</button>
+        </div>
+
+        <form onsubmit="handleAuthSubmit(event)" class="flex flex-col gap-3">
+          <div>
+            <label class="text-[11px] font-semibold text-zinc-400 block mb-1">Username</label>
+            <input type="text" id="auth-username" required placeholder="Enter username" class="w-full h-10 rounded-xl px-3 text-xs bg-zinc-900 border border-zinc-800 text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-600 transition-all" maxlength="24" autocomplete="username" />
+          </div>
+          <div>
+            <label class="text-[11px] font-semibold text-zinc-400 block mb-1">Password</label>
+            <input type="password" id="auth-password" required placeholder="Enter password" class="w-full h-10 rounded-xl px-3 text-xs bg-zinc-900 border border-zinc-800 text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-600 transition-all" autocomplete="current-password" />
+          </div>
+
+          <div id="auth-error-msg" class="text-xs text-rose-400 min-h-[16px] text-center font-medium"></div>
+
+          <button type="submit" id="auth-submit-btn" class="w-full py-2.5 rounded-xl text-xs font-semibold btn-modern-primary mt-1">Sign In</button>
+        </form>
+      </div>
+
+      <!-- Logged In Profile View -->
+      <div id="auth-profile-view" class="hidden">
+        <div class="mb-4">
+          <h3 class="text-base font-bold text-white flex items-center gap-2">
+            <span>👤</span> <span>Account Profile</span>
+          </h3>
+          <p class="text-xs text-zinc-400 mt-0.5">You are currently signed in.</p>
+        </div>
+
+        <div class="p-4 rounded-xl bg-zinc-900/60 border border-zinc-800/80 mb-4 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-xs text-zinc-400">Username</span>
+            <span id="auth-profile-username" class="text-xs font-bold text-white">Player</span>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-xs text-zinc-400">Player Tag</span>
+            <span id="auth-profile-tag" class="text-xs font-mono font-bold text-emerald-400">Player#0000</span>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-xs text-zinc-400">Status</span>
+            <span class="text-xs font-medium text-emerald-400 flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Online
+            </span>
+          </div>
+        </div>
+
+        <button onclick="handleLogout()" class="w-full py-2.5 rounded-xl text-xs font-semibold bg-rose-600/90 hover:bg-rose-500 text-white transition-all shadow-sm">
+          Log Out
+        </button>
+      </div>
+
+    </div>
+  </div>
 
   <!-- EXIT GAME CONFIRMATION MODAL -->
   <div id="exit-confirm-modal" class="fixed inset-0 z-[180] flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm hidden transition-all duration-200">
@@ -741,24 +816,215 @@ function clearSession(key) {
   } catch(e) {}
 }
 
-// =============== PLAYER IDENTITY & FRIENDS ===============
+// =============== AUTH & PLAYER IDENTITY ===============
 let currentPlayerIdentity = null;
+let currentAuthMode = 'login'; // 'login' | 'register'
 
-async function initPlayerIdentity() {
+function getSessionUser() {
   try {
-    let saved = localStorage.getItem('dosaPlayer');
-    if (saved) {
-      currentPlayerIdentity = JSON.parse(saved);
+    const raw = localStorage.getItem('dosaUser');
+    return raw ? JSON.parse(raw) : null;
+  } catch(e) {
+    return null;
+  }
+}
+
+function updateAuthNavUI() {
+  const btnLabel = document.getElementById('auth-nav-label');
+  const btnIcon = document.getElementById('auth-nav-icon');
+  const user = getSessionUser();
+  if (user && user.username) {
+    if (btnLabel) btnLabel.innerText = user.username;
+    if (btnIcon) btnIcon.innerText = '👤';
+  } else {
+    if (btnLabel) btnLabel.innerText = 'Log In';
+    if (btnIcon) btnIcon.innerText = '🔑';
+  }
+}
+
+function openAuthModal() {
+  const modal = document.getElementById('auth-modal');
+  if (!modal) return;
+  modal.classList.remove('hidden');
+  
+  const savedUser = getSessionUser();
+  const formView = document.getElementById('auth-form-view');
+  const profileView = document.getElementById('auth-profile-view');
+  const errEl = document.getElementById('auth-error-msg');
+  if (errEl) errEl.innerText = '';
+
+  if (savedUser && savedUser.id) {
+    if (formView) formView.classList.add('hidden');
+    if (profileView) profileView.classList.remove('hidden');
+    const uNameEl = document.getElementById('auth-profile-username');
+    const uTagEl = document.getElementById('auth-profile-tag');
+    if (uNameEl) uNameEl.innerText = savedUser.username;
+    if (uTagEl) uTagEl.innerText = currentPlayerIdentity ? currentPlayerIdentity.tag : (savedUser.username + '#' + savedUser.id);
+  } else {
+    if (formView) formView.classList.remove('hidden');
+    if (profileView) profileView.classList.add('hidden');
+    switchAuthTab('login');
+  }
+}
+
+function closeAuthModal() {
+  document.getElementById('auth-modal')?.classList.add('hidden');
+}
+
+function switchAuthTab(mode) {
+  currentAuthMode = mode;
+  const tabLogin = document.getElementById('auth-tab-login');
+  const tabReg = document.getElementById('auth-tab-register');
+  const title = document.getElementById('auth-title');
+  const btn = document.getElementById('auth-submit-btn');
+  const errEl = document.getElementById('auth-error-msg');
+  if (errEl) errEl.innerText = '';
+
+  if (mode === 'login') {
+    if (tabLogin) {
+      tabLogin.className = 'flex-1 py-1.5 rounded-lg text-xs font-semibold bg-zinc-800 text-white transition-all';
+    }
+    if (tabReg) {
+      tabReg.className = 'flex-1 py-1.5 rounded-lg text-xs font-semibold text-zinc-400 hover:text-white transition-all';
+    }
+    if (title) title.innerText = 'Sign In';
+    if (btn) btn.innerText = 'Sign In';
+  } else {
+    if (tabReg) {
+      tabReg.className = 'flex-1 py-1.5 rounded-lg text-xs font-semibold bg-zinc-800 text-white transition-all';
+    }
+    if (tabLogin) {
+      tabLogin.className = 'flex-1 py-1.5 rounded-lg text-xs font-semibold text-zinc-400 hover:text-white transition-all';
+    }
+    if (title) title.innerText = 'Create Account';
+    if (btn) btn.innerText = 'Create Account';
+  }
+}
+
+async function handleAuthSubmit(e) {
+  if (e) e.preventDefault();
+  const usernameInput = document.getElementById('auth-username');
+  const passwordInput = document.getElementById('auth-password');
+  const errEl = document.getElementById('auth-error-msg');
+  const username = (usernameInput?.value || '').trim();
+  const password = (passwordInput?.value || '').trim();
+
+  if (!username || !password) {
+    if (errEl) errEl.innerText = 'Please enter both username and password';
+    return;
+  }
+
+  const endpoint = (currentAuthMode === 'login') ? '/api/login' : '/api/register';
+  try {
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      if (errEl) errEl.innerText = data.error || 'Authentication failed';
+      return;
+    }
+
+    // Success!
+    localStorage.setItem('dosaUser', JSON.stringify({ id: data.id, username: data.username }));
+    
+    // Update player identity
+    if (!currentPlayerIdentity) currentPlayerIdentity = {};
+    currentPlayerIdentity.id = 'u_' + data.id;
+    currentPlayerIdentity.username = data.username;
+    currentPlayerIdentity.tag = data.username + '#' + String(data.id).padStart(4, '0');
+    currentPlayerIdentity.isLoggedIn = true;
+    
+    saveSession('dosaName', data.username);
+    localStorage.setItem('dosaPlayer', JSON.stringify(currentPlayerIdentity));
+    
+    const nickInput = document.getElementById('nickname-input');
+    if (nickInput) nickInput.value = data.username;
+    
+    updateIdentityDisplay();
+    updateAuthNavUI();
+
+    try {
+      await fetch('/api/player/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(currentPlayerIdentity)
+      });
+      if (socket.connected) {
+        socket.emit('register_identity', currentPlayerIdentity);
+      }
+    } catch(e) {}
+
+    loadFriendsList();
+    closeAuthModal();
+    showToast(`Welcome, ${data.username}!`);
+  } catch(err) {
+    if (errEl) errEl.innerText = 'Connection error. Please try again.';
+  }
+}
+
+function handleLogout() {
+  localStorage.removeItem('dosaUser');
+  const rawName = 'Player';
+  currentPlayerIdentity = {
+    id: 'p_' + Math.random().toString(36).substring(2, 9),
+    username: rawName,
+    tag: rawName + '#' + Math.floor(1000 + Math.random() * 9000),
+    isLoggedIn: false
+  };
+  saveSession('dosaName', rawName);
+  localStorage.setItem('dosaPlayer', JSON.stringify(currentPlayerIdentity));
+  
+  const nickInput = document.getElementById('nickname-input');
+  if (nickInput) nickInput.value = rawName;
+  
+  updateIdentityDisplay();
+  updateAuthNavUI();
+
+  try {
+    fetch('/api/player/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(currentPlayerIdentity)
+    });
+    if (socket.connected) {
+      socket.emit('register_identity', currentPlayerIdentity);
     }
   } catch(e) {}
 
-  if (!currentPlayerIdentity || !currentPlayerIdentity.id) {
-    const rawName = getSession('dosaName') || 'Player';
+  loadFriendsList();
+  closeAuthModal();
+  showToast('Logged out successfully.');
+}
+
+async function initPlayerIdentity() {
+  const savedUser = getSessionUser();
+  if (savedUser && savedUser.id) {
     currentPlayerIdentity = {
-      id: 'p_' + Math.random().toString(36).substring(2, 9),
-      username: rawName,
-      tag: rawName + '#' + Math.floor(1000 + Math.random() * 9000)
+      id: 'u_' + savedUser.id,
+      username: savedUser.username,
+      tag: savedUser.username + '#' + String(savedUser.id).padStart(4, '0'),
+      isLoggedIn: true
     };
+  } else {
+    try {
+      let saved = localStorage.getItem('dosaPlayer');
+      if (saved) {
+        currentPlayerIdentity = JSON.parse(saved);
+      }
+    } catch(e) {}
+
+    if (!currentPlayerIdentity || !currentPlayerIdentity.id) {
+      const rawName = getSession('dosaName') || 'Player';
+      currentPlayerIdentity = {
+        id: 'p_' + Math.random().toString(36).substring(2, 9),
+        username: rawName,
+        tag: rawName + '#' + Math.floor(1000 + Math.random() * 9000),
+        isLoggedIn: false
+      };
+    }
   }
 
   try {
@@ -775,6 +1041,7 @@ async function initPlayerIdentity() {
 
   localStorage.setItem('dosaPlayer', JSON.stringify(currentPlayerIdentity));
   updateIdentityDisplay();
+  updateAuthNavUI();
   
   if (socket.connected) {
     socket.emit('register_identity', currentPlayerIdentity);
@@ -1421,6 +1688,8 @@ socket.on('dice_rolled', (data) => {
     botTurnTimer = null;
   }
 
+  moveSentForCurrentRoll = false;
+
   if (typeof data.player === 'number') {
     currentPlayer = data.player;
   }
@@ -1524,7 +1793,14 @@ socket.on('dice_rolled', (data) => {
 
 socket.on('move_executed', (data) => {
   const piece = pieces.find(p => p.id === data.pieceId);
+  if (!piece) return;
   const { action, target } = data;
+  
+  moveSentForCurrentRoll = true;
+  if (botTurnTimer) {
+    clearTimeout(botTurnTimer);
+    botTurnTimer = null;
+  }
   
   if (action === 'leave_jail' || action === 'shortcut' || action === 'move') {
     piece.state = 'perimeter'; piece.pos = target;
@@ -1533,12 +1809,13 @@ socket.on('move_executed', (data) => {
   }
   
   let captured = false;
+  const movingPlayer = piece.player;
   if (piece.state === 'perimeter') {
-    const enemies = pieces.filter(p => p.player !== currentPlayer && p.state === 'perimeter' && p.pos === piece.pos);
+    const enemies = pieces.filter(p => p.player !== movingPlayer && p.state === 'perimeter' && p.pos === piece.pos);
     enemies.forEach(e => {
       e.state = 'jail';
       captured = true;
-      const taken = pieces.filter(p => p.player === e.player && p.state === 'jail').map(p => p.pos);
+      const taken = pieces.filter(p => p.id !== e.id && p.player === e.player && p.state === 'jail').map(p => p.pos);
       for (let i = 0; i < pegsCountGlobal; i++) {
         if (!taken.includes(i)) { e.pos = i; break; }
       }
@@ -1597,6 +1874,8 @@ socket.on('turn_passed', (data) => {
     clearTimeout(botTurnTimer);
     botTurnTimer = null;
   }
+
+  moveSentForCurrentRoll = false;
 
   if (data && typeof data.currentPlayer === 'number') {
     currentPlayer = data.currentPlayer;
@@ -1764,19 +2043,40 @@ function initBoard(keepState = false) {
 }
 
 function getPieceVisualPosition(piece) {
-  let cx, cy;
+  let cx = 0, cy = 0;
   let vPlayer = visualMap[piece.player];
-  if (piece.state === 'jail') [cx, cy] = JAILS[vPlayer][piece.pos];
-  else if (piece.state === 'perimeter') [cx, cy] = PERIMETER[piece.pos];
-  else if (piece.state === 'home') [cx, cy] = HOMES[vPlayer][piece.pos];
-  else if (piece.state === 'goal') [cx, cy] = GOAL;
+  if (piece.state === 'jail') {
+    if (JAILS[vPlayer] && JAILS[vPlayer][piece.pos]) {
+      [cx, cy] = JAILS[vPlayer][piece.pos];
+    } else if (JAILS[vPlayer] && JAILS[vPlayer][0]) {
+      [cx, cy] = JAILS[vPlayer][0];
+    }
+  } else if (piece.state === 'perimeter') {
+    if (PERIMETER[piece.pos]) [cx, cy] = PERIMETER[piece.pos];
+  } else if (piece.state === 'home') {
+    if (HOMES[vPlayer] && HOMES[vPlayer][piece.pos]) {
+      [cx, cy] = HOMES[vPlayer][piece.pos];
+    }
+  } else if (piece.state === 'goal') {
+    [cx, cy] = GOAL;
+  }
   
-  let off = {x:0, y:0};
-  if (piece.state === 'perimeter' || piece.state === 'home') {
-    const sharing = pieces.filter(p => p.state === piece.state && p.pos === piece.pos);
+  let off = {x: 0, y: 0};
+  const sharing = pieces.filter(p => {
+    if (piece.state === 'jail') {
+      return p.player === piece.player && p.state === 'jail' && p.pos === piece.pos;
+    }
+    return p.state === piece.state && p.pos === piece.pos;
+  });
+  if (sharing.length > 1) {
     const index = sharing.indexOf(piece);
-    const offsets = [{x:0,y:0}, {x:-4,y:-4}, {x:4,y:-4}, {x:-4,y:4}, {x:4,y:4}];
-    off = offsets[index] || {x:0, y:0};
+    const offsets = [
+      {x: -5, y: -5},
+      {x:  5, y:  5},
+      {x:  5, y: -5},
+      {x: -5, y:  5}
+    ];
+    off = offsets[index % offsets.length] || {x: 0, y: 0};
   }
   return { x: cx, y: cy, offsetX: off.x, offsetY: off.y };
 }
@@ -2030,7 +2330,17 @@ function rollDice(isBotAuto = false) {
   socket.emit('roll_dice', { player: currentPlayer, value: val });
 }
 
+let moveSentForCurrentRoll = false;
+
 function selectMove(moveObj) {
+  if (!moveObj || !moveObj.piece) return;
+  if (moveSentForCurrentRoll) return;
+  moveSentForCurrentRoll = true;
+  validMoves = [];
+  if (botTurnTimer) {
+    clearTimeout(botTurnTimer);
+    botTurnTimer = null;
+  }
   socket.emit('execute_move', { pieceId: moveObj.piece.id, action: moveObj.action, target: moveObj.target });
 }
 

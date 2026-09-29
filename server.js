@@ -205,7 +205,8 @@ function getRoomState(roomId) {
       turnWatchdog: null,
       lastTurnAdvance: 0,
       diceRolled: false,
-      diceValue: null
+      diceValue: null,
+      moveExecutedThisTurn: false
     };
   }
   return rooms[roomId];
@@ -235,6 +236,7 @@ function advanceRoomTurn(roomId, forcedByWatchdog = false) {
   state.currentPlayer = next;
   state.diceRolled = false;
   state.diceValue = null;
+  state.moveExecutedThisTurn = false;
   state.turnId = (state.turnId || 0) + 1;
   state.lastTurnAdvance = Date.now();
 
@@ -459,6 +461,7 @@ io.on('connection', (socket) => {
 
     state.diceRolled = true;
     state.diceValue = data.value;
+    state.moveExecutedThisTurn = false;
 
     // Refresh watchdog to allow animation and move execution
     clearRoomTurnTimer(socket.roomId);
@@ -485,6 +488,13 @@ io.on('connection', (socket) => {
     if (!socket.roomId) return;
     const state = getRoomState(socket.roomId);
     if (state.gameState !== 'playing') return;
+
+    // Strictly enforce exactly ONE move per dice roll
+    if (!state.diceRolled || state.moveExecutedThisTurn) {
+      console.warn(`[Server] Rejected duplicate execute_move in room ${socket.roomId}`);
+      return;
+    }
+    state.moveExecutedThisTurn = true;
 
     // Refresh watchdog for follow-up roll or turn switch
     clearRoomTurnTimer(socket.roomId);
