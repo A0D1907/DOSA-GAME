@@ -199,10 +199,64 @@ function getRoomState(roomId) {
       playerNames: ['', '', '', ''],
       gameState: 'lobby', // 'lobby' | 'playing' | 'finished'
       gameSettings: { pegsPerPlayer: 4 },
-      offlineSlots: [false, false, false, false]
+      offlineSlots: [false, false, false, false],
+      currentPlayer: 0,
+      turnId: 0,
+      turnWatchdog: null,
+      lastTurnAdvance: 0,
+      diceRolled: false,
+      diceValue: null
     };
   }
   return rooms[roomId];
+}
+
+function clearRoomTurnTimer(roomId) {
+  const room = rooms[roomId];
+  if (room && room.turnWatchdog) {
+    clearTimeout(room.turnWatchdog);
+    room.turnWatchdog = null;
+  }
+}
+
+function advanceRoomTurn(roomId, forcedByWatchdog = false) {
+  const state = rooms[roomId];
+  if (!state || state.gameState !== 'playing') return;
+
+  clearRoomTurnTimer(roomId);
+
+  let next = state.currentPlayer;
+  let attempts = 0;
+  do {
+    next = (next + 1) % 4;
+    attempts++;
+  } while ((!state.slots[next] || (state.finishOrder && state.finishOrder.includes(next))) && attempts < 10);
+
+  state.currentPlayer = next;
+  state.diceRolled = false;
+  state.diceValue = null;
+  state.turnId = (state.turnId || 0) + 1;
+  state.lastTurnAdvance = Date.now();
+
+  io.to(roomId).emit('turn_passed', {
+    currentPlayer: state.currentPlayer,
+    turnId: state.turnId,
+    forced: forcedByWatchdog
+  });
+
+  // Watchdog: If bot or offline, allow 6s for host/bot to act. If not acted, server auto advances!
+  // If human, allow 25s AFK timer.
+  const isBotOrOffline = (state.slots[next] === 'bot' || state.offlineSlots[next]);
+  const timeoutMs = isBotOrOffline ? 6000 : 25000;
+  const currentTurnId = state.turnId;
+
+  state.turnWatchdog = setTimeout(() => {
+    const currentState = rooms[roomId];
+    if (currentState && currentState.gameState === 'playing' && currentState.currentPlayer === next && currentState.turnId === currentTurnId) {
+      console.log(`[Watchdog] Turn timed out for player ${next} in room ${roomId}. Auto-advancing turn.`);
+      advanceRoomTurn(roomId, true);
+    }
+  }, timeoutMs);
 }
 
 function broadcastOpenRooms() {
@@ -372,8 +426,29 @@ io.on('connection', (socket) => {
     if (hasHuman && totalPlayers >= 2) {
       state.gameState = 'playing';
       state.finishOrder = []; // reset finish rankings
+      const firstActive = state.slots.findIndex(s => s !== null);
+      state.currentPlayer = firstActive !== -1 ? firstActive : 0;
+      state.turnId = 1;
+      state.diceRolled = false;
+      state.diceValue = null;
+      state.lastTurnAdvance = Date.now();
+
       io.to(socket.roomId).emit('game_started', state);
       broadcastOpenRooms();
+
+      // Schedule initial turn watchdog
+      clearRoomTurnTimer(socket.roomId);
+      const isBotOrOffline = (state.slots[state.currentPlayer] === 'bot' || state.offlineSlots[state.currentPlayer]);
+      const timeoutMs = isBotOrOffline ? 6000 : 25000;
+      const currentTurnId = state.turnId;
+      const rId = socket.roomId;
+      state.turnWatchdog = setTimeout(() => {
+        const currentState = rooms[rId];
+        if (currentState && currentState.gameState === 'playing' && currentState.turnId === currentTurnId) {
+          console.log(`[Watchdog] Initial turn timed out for player ${currentState.currentPlayer} in room ${rId}. Advancing turn.`);
+          advanceRoomTurn(rId, true);
+        }
+      }, timeoutMs);
     }
   });
 
@@ -381,19 +456,65 @@ io.on('connection', (socket) => {
     if (!socket.roomId) return;
     const state = getRoomState(socket.roomId);
     if (state.gameState !== 'playing') return;
-    io.to(socket.roomId).emit('dice_rolled', data);
+
+    state.diceRolled = true;
+    state.diceValue = data.value;
+
+    // Refresh watchdog to allow animation and move execution
+    clearRoomTurnTimer(socket.roomId);
+    const rId = socket.roomId;
+    const currentTurnId = state.turnId;
+    const p = state.currentPlayer;
+    const isBot = (state.slots[p] === 'bot' || state.offlineSlots[p]);
+    state.turnWatchdog = setTimeout(() => {
+      const currentState = rooms[rId];
+      if (currentState && currentState.gameState === 'playing' && currentState.turnId === currentTurnId) {
+        console.log(`[Watchdog] Move timed out after roll for player ${p} in room ${rId}. Advancing turn.`);
+        advanceRoomTurn(rId, true);
+      }
+    }, isBot ? 5000 : 20000);
+
+    io.to(socket.roomId).emit('dice_rolled', {
+      player: (typeof data === 'object' && typeof data.player === 'number') ? data.player : state.currentPlayer,
+      value: data.value,
+      turnId: state.turnId
+    });
   });
 
   socket.on('execute_move', (moveObj) => {
     if (!socket.roomId) return;
     const state = getRoomState(socket.roomId);
     if (state.gameState !== 'playing') return;
+
+    // Refresh watchdog for follow-up roll or turn switch
+    clearRoomTurnTimer(socket.roomId);
+    const rId = socket.roomId;
+    const currentTurnId = state.turnId;
+    const p = state.currentPlayer;
+    const isBot = (state.slots[p] === 'bot' || state.offlineSlots[p]);
+    state.turnWatchdog = setTimeout(() => {
+      const currentState = rooms[rId];
+      if (currentState && currentState.gameState === 'playing' && currentState.turnId === currentTurnId) {
+        console.log(`[Watchdog] Post-move timed out for player ${p} in room ${rId}. Advancing turn.`);
+        advanceRoomTurn(rId, true);
+      }
+    }, isBot ? 5000 : 20000);
+
     io.to(socket.roomId).emit('move_executed', moveObj);
   });
   
   socket.on('next_turn', () => {
-     if (!socket.roomId) return;
-     io.to(socket.roomId).emit('turn_passed');
+    if (!socket.roomId) return;
+    const state = getRoomState(socket.roomId);
+    if (state.gameState !== 'playing') return;
+
+    // Debounce rapid duplicate next_turn calls (min 350ms between turns)
+    const now = Date.now();
+    if (state.lastTurnAdvance && (now - state.lastTurnAdvance < 350)) {
+      return;
+    }
+
+    advanceRoomTurn(socket.roomId);
   });
 
   socket.on('player_finished', (playerSlot) => {
@@ -414,6 +535,7 @@ io.on('connection', (socket) => {
     if (unfinished <= 1) {
       // Game is truly over
       state.gameState = 'finished';
+      clearRoomTurnTimer(socket.roomId);
       io.to(socket.roomId).emit('game_over', state.finishOrder);
     }
     broadcastOpenRooms();
@@ -422,6 +544,7 @@ io.on('connection', (socket) => {
   socket.on('return_to_lobby', () => {
     if (!socket.roomId) return;
     const state = getRoomState(socket.roomId);
+    clearRoomTurnTimer(socket.roomId);
     state.gameState = 'lobby';
     io.to(socket.roomId).emit('lobby_state', { ...state, roomId: socket.roomId });
     broadcastOpenRooms();
@@ -450,6 +573,7 @@ io.on('connection', (socket) => {
 
   socket.on('reset_session', () => {
     if (!socket.roomId) return;
+    clearRoomTurnTimer(socket.roomId);
     const state = getRoomState(socket.roomId);
     state.slots = [null, null, null, null];
     state.playerNames = ['', '', '', ''];
@@ -492,6 +616,7 @@ io.on('connection', (socket) => {
 
   socket.on('leave_room', () => {
     if (!socket.roomId) return;
+    clearRoomTurnTimer(socket.roomId);
     const state = getRoomState(socket.roomId);
     const oldSlot = state.slots.indexOf(socket.id);
     if (oldSlot !== -1) {
@@ -509,8 +634,18 @@ io.on('connection', (socket) => {
     broadcastOpenRooms();
   });
 
+  // Emote rate limiter storage: max 12 emotes per sec per socket
+  const socketEmoteTimestamps = [];
   socket.on('send_emote', (data) => {
     if (!socket.roomId) return;
+    const now = Date.now();
+    // Keep only timestamps from last 1000ms
+    while (socketEmoteTimestamps.length > 0 && now - socketEmoteTimestamps[0] > 1000) {
+      socketEmoteTimestamps.shift();
+    }
+    if (socketEmoteTimestamps.length >= 12) return; // rate limit: prevent abuse/crash
+    socketEmoteTimestamps.push(now);
+
     const state = getRoomState(socket.roomId);
     if (state.gameState !== 'playing') return;
     
@@ -524,7 +659,7 @@ io.on('connection', (socket) => {
       emoji = data;
     }
     
-    if (slotIndex !== -1 && slotIndex !== null && slotIndex !== undefined) {
+    if (slotIndex !== -1 && slotIndex !== null && slotIndex !== undefined && emoji) {
       io.to(socket.roomId).emit('receive_emote', { player: slotIndex, emoji });
     }
   });

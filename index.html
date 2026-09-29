@@ -192,7 +192,7 @@
 <body class="bg-[#09090b] text-zinc-100 min-h-screen h-[100dvh] flex flex-col overflow-hidden relative">
 
   <!-- TOP NAVIGATION BAR -->
-  <header class="fixed top-3 left-3 right-3 sm:top-4 sm:left-4 sm:right-4 z-[120] flex items-center justify-between pointer-events-none">
+  <header id="main-nav-bar" class="fixed top-3 left-3 right-3 sm:top-4 sm:left-4 sm:right-4 z-[120] flex items-center justify-between pointer-events-none transition-all duration-200">
     <div class="flex items-center gap-2 pointer-events-auto">
       <div class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-900/80 border border-zinc-800 backdrop-blur-md">
         <span class="font-bold text-sm tracking-wider text-white">DOSA</span>
@@ -212,6 +212,54 @@
       </div>
     </div>
   </header>
+
+  <!-- EXIT GAME CONFIRMATION MODAL -->
+  <div id="exit-confirm-modal" class="fixed inset-0 z-[180] flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm hidden transition-all duration-200">
+    <div class="w-full max-w-xs p-6 rounded-2xl modern-card text-center border border-zinc-800 shadow-2xl">
+      <div class="text-3xl mb-2">🚪</div>
+      <h3 class="text-base font-bold text-white mb-1">Exit Game?</h3>
+      <p class="text-xs text-zinc-400 mb-5">Are you sure you want to return to the menu? Your progress is saved if you reconnect.</p>
+      <div class="flex gap-2">
+        <button onclick="closeExitModal()" class="flex-1 py-2.5 rounded-xl text-xs font-semibold btn-modern-secondary">Cancel</button>
+        <button onclick="executeExitGame()" class="flex-1 py-2.5 rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white transition-all shadow-sm">Exit Game</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DICE REAL STATISTICS MODAL -->
+  <div id="dice-stats-modal" class="fixed inset-0 z-[180] flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm hidden transition-all duration-200">
+    <div class="w-full max-w-sm p-6 rounded-2xl modern-card border border-zinc-800 shadow-2xl relative">
+      <button onclick="closeDiceStatsModal()" class="absolute top-4 right-4 w-7 h-7 rounded-lg flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-800 transition-all">✕</button>
+      
+      <div class="flex items-center gap-2 mb-1">
+        <span class="text-xl">🎲</span>
+        <h3 class="text-sm font-bold text-white uppercase tracking-wider">Cube Statistics</h3>
+      </div>
+      <p class="text-xs text-zinc-400 mb-4">True random 6-sided die. Expected fair probability: 16.7% per face.</p>
+      
+      <div class="grid grid-cols-2 gap-2 mb-4 p-3 rounded-xl bg-zinc-900/80 border border-zinc-800 text-center">
+        <div>
+          <div class="text-[10px] uppercase font-semibold text-zinc-500">Total Rolls</div>
+          <div id="stats-total-rolls" class="text-lg font-mono font-bold text-white">0</div>
+        </div>
+        <div>
+          <div class="text-[10px] uppercase font-semibold text-zinc-500">Average Roll</div>
+          <div id="stats-avg-roll" class="text-lg font-mono font-bold text-emerald-400">3.50</div>
+        </div>
+      </div>
+
+      <div id="stats-bars-container" class="space-y-2 mb-4">
+        <!-- 6 distribution bars dynamically populated -->
+      </div>
+
+      <div>
+        <div class="text-[10px] uppercase font-semibold text-zinc-500 mb-1.5">Recent Rolls (Newest First)</div>
+        <div id="stats-recent-rolls" class="flex gap-1.5 overflow-x-auto py-1">
+          <span class="text-xs text-zinc-500 italic">No rolls yet</span>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- FRIENDS & PLAYERS MODAL -->
   <div id="friends-modal" class="fixed inset-0 z-[160] flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm hidden transition-all duration-200">
@@ -367,23 +415,33 @@
 
   <!-- GAME SCREEN -->
   <div id="game-screen" class="hidden h-full flex flex-col justify-between items-center overflow-hidden">
-    <header class="game-header w-full text-center pt-3 pb-1 relative z-10 flex-shrink-0 max-w-[480px] px-3">
-      <div class="flex items-center justify-between mb-2">
-        <button onclick="leaveRoom()" class="w-8 h-8 rounded-lg flex items-center justify-center btn-modern-secondary text-xs" title="Exit to Lobby">
-          ✕
+    <header class="game-header w-full text-center pt-3 pb-1 relative z-20 flex-shrink-0 max-w-[500px] px-3">
+      <div class="flex items-center justify-between gap-2 mb-2">
+        <button onclick="confirmExitGame()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs font-semibold text-zinc-300 hover:text-white hover:bg-zinc-800 hover:border-zinc-700 transition-all shadow-sm" title="Exit Game">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+          <span>Exit</span>
         </button>
-        <div id="status-turn-pill" class="px-3.5 py-1 rounded-full text-xs font-semibold border border-zinc-700 bg-zinc-900 transition-all">
+
+        <div id="status-turn-pill" class="px-3.5 py-1.5 rounded-full text-xs font-semibold border border-zinc-700 bg-zinc-900 transition-all flex items-center gap-1.5 shadow-sm">
+          <span id="status-turn-dot" class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
           <span id="status-text">Your Turn</span>
         </div>
-        <button onclick="openFriendsModal()" class="w-8 h-8 rounded-lg flex items-center justify-center btn-modern-secondary text-xs" title="Friends">
-          👥
-        </button>
+
+        <div class="flex items-center gap-1.5">
+          <button onclick="openDiceStatsModal()" class="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs font-semibold text-zinc-300 hover:text-white hover:bg-zinc-800 hover:border-zinc-700 transition-all shadow-sm" title="Cube Statistics">
+            <span>🎲</span>
+            <span class="hidden sm:inline">Stats</span>
+          </button>
+          <button onclick="openFriendsModal()" class="w-8 h-8 rounded-xl flex items-center justify-center btn-modern-secondary text-xs" title="Friends">
+            👥
+          </button>
+        </div>
       </div>
 
       <div id="hud-players-bar" class="grid grid-cols-4 gap-1.5 px-1 py-1 rounded-xl bg-zinc-900/60 border border-zinc-800/80"></div>
     </header>
 
-    <div class="board-wrapper mx-auto relative flex-shrink-0 z-10 my-auto flex items-center justify-center">
+    <div class="board-wrapper mx-auto relative flex-shrink-0 z-10 my-auto flex items-center justify-center" style="width: min(92vw, 400px, 50vh); height: min(92vw, 400px, 50vh);">
       <div id="board-container" class="absolute inset-2 sm:inset-3 transition-transform duration-700 ease-in-out">
         <div class="board-bezel absolute inset-0"></div>
         <div id="holes" class="absolute inset-0 z-0"></div>
@@ -391,24 +449,24 @@
       </div>
     </div>
 
-    <div class="controls-bar w-full max-w-[420px] mx-auto mt-1 mb-5 px-6 flex justify-between items-center relative z-10 flex-shrink-0">
+    <div class="controls-bar w-full max-w-[420px] mx-auto mt-1 mb-5 px-6 flex justify-between items-center relative z-20 flex-shrink-0">
       <div class="relative" id="emote-container">
         <button id="emote-toggle-btn" onclick="toggleEmoteMenu(event)" class="w-14 h-14 rounded-2xl flex items-center justify-center text-xl btn-modern-secondary" title="Emotes">
           💬
         </button>
-        <div id="emote-picker" class="absolute bottom-full mb-2 left-0 p-2.5 rounded-2xl grid grid-cols-4 gap-1.5 hidden z-50 modern-card w-[210px]">
-          <button onclick="sendEmote('😂')" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-zinc-800 transition-all">😂</button>
-          <button onclick="sendEmote('🔥')" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-zinc-800 transition-all">🔥</button>
-          <button onclick="sendEmote('👑')" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-zinc-800 transition-all">👑</button>
-          <button onclick="sendEmote('😎')" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-zinc-800 transition-all">😎</button>
-          <button onclick="sendEmote('💀')" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-zinc-800 transition-all">💀</button>
-          <button onclick="sendEmote('😭')" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-zinc-800 transition-all">😭</button>
-          <button onclick="sendEmote('😡')" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-zinc-800 transition-all">😡</button>
-          <button onclick="sendEmote('🎯')" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-zinc-800 transition-all">🎯</button>
-          <button onclick="sendEmote('🚀')" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-zinc-800 transition-all">🚀</button>
-          <button onclick="sendEmote('👏')" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-zinc-800 transition-all">👏</button>
-          <button onclick="sendEmote('🤡')" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-zinc-800 transition-all">🤡</button>
-          <button onclick="sendEmote('🎲')" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-zinc-800 transition-all">🎲</button>
+        <div id="emote-picker" class="absolute bottom-full mb-2 left-0 p-2.5 rounded-2xl grid grid-cols-4 gap-1.5 hidden z-50 modern-card w-[210px] shadow-2xl border border-zinc-800">
+          <button onclick="sendEmote('😂', event)" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-zinc-800 active:scale-125 transition-transform">😂</button>
+          <button onclick="sendEmote('🔥', event)" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-zinc-800 active:scale-125 transition-transform">🔥</button>
+          <button onclick="sendEmote('👑', event)" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-zinc-800 active:scale-125 transition-transform">👑</button>
+          <button onclick="sendEmote('😎', event)" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-zinc-800 active:scale-125 transition-transform">😎</button>
+          <button onclick="sendEmote('💀', event)" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-zinc-800 active:scale-125 transition-transform">💀</button>
+          <button onclick="sendEmote('😭', event)" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-zinc-800 active:scale-125 transition-transform">😭</button>
+          <button onclick="sendEmote('😡', event)" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-zinc-800 active:scale-125 transition-transform">😡</button>
+          <button onclick="sendEmote('🎯', event)" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-zinc-800 active:scale-125 transition-transform">🎯</button>
+          <button onclick="sendEmote('🚀', event)" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-zinc-800 active:scale-125 transition-transform">🚀</button>
+          <button onclick="sendEmote('👏', event)" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-zinc-800 active:scale-125 transition-transform">👏</button>
+          <button onclick="sendEmote('🤡', event)" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-zinc-800 active:scale-125 transition-transform">🤡</button>
+          <button onclick="sendEmote('🎲', event)" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-zinc-800 active:scale-125 transition-transform">🎲</button>
         </div>
       </div>
 
@@ -425,7 +483,10 @@
         </div>
       </button>
 
-      <div class="w-14 h-14 pointer-events-none"></div>
+      <button onclick="openDiceStatsModal()" class="w-14 h-14 rounded-2xl flex flex-col items-center justify-center text-xs font-medium btn-modern-secondary gap-0.5" title="Cube Statistics">
+        <span class="text-lg">📊</span>
+        <span class="text-[9px] text-zinc-400">Stats</span>
+      </button>
     </div>
   </div>
 
@@ -530,6 +591,15 @@ const PLAYERS = {
   3: { color: 'bg-emerald-400', dotColor: '#34d399', text: 'text-emerald-400', name: 'Player 4' }
 };
 
+const CUBE_FACE_ANGLES = [
+  { x: 0, y: 0 },       // Face 1: Front
+  { x: 0, y: -90 },     // Face 2: Right
+  { x: -90, y: 0 },     // Face 3: Top
+  { x: 90, y: 0 },      // Face 4: Bottom
+  { x: 0, y: 90 },      // Face 5: Left
+  { x: 0, y: 180 }      // Face 6: Back
+];
+
 const DICE_ROTATIONS = [
   'rotateX(0deg) rotateY(0deg)',
   'rotateX(0deg) rotateY(-90deg)',
@@ -538,6 +608,97 @@ const DICE_ROTATIONS = [
   'rotateX(0deg) rotateY(90deg)',
   'rotateX(0deg) rotateY(180deg)'
 ];
+
+let cubeAngleX = -25;
+let cubeAngleY = 45;
+let botTurnTimer = null;
+let consecutiveNoMovesOn6 = 0;
+
+// =============== DICE REAL STATISTICS ===============
+let diceStatistics = {
+  totalRolls: 0,
+  counts: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 },
+  history: []
+};
+
+function recordDiceRoll(val) {
+  if (val >= 1 && val <= 6) {
+    diceStatistics.totalRolls++;
+    diceStatistics.counts[val]++;
+    diceStatistics.history.unshift(val);
+    if (diceStatistics.history.length > 16) diceStatistics.history.pop();
+    updateDiceStatsUI();
+  }
+}
+
+function openDiceStatsModal() {
+  updateDiceStatsUI();
+  document.getElementById('dice-stats-modal')?.classList.remove('hidden');
+}
+
+function closeDiceStatsModal() {
+  document.getElementById('dice-stats-modal')?.classList.add('hidden');
+}
+
+function updateDiceStatsUI() {
+  const totalEl = document.getElementById('stats-total-rolls');
+  const avgEl = document.getElementById('stats-avg-roll');
+  const barsEl = document.getElementById('stats-bars-container');
+  const recentEl = document.getElementById('stats-recent-rolls');
+  if (!totalEl || !barsEl) return;
+
+  totalEl.innerText = diceStatistics.totalRolls;
+
+  let sum = 0;
+  for (let i = 1; i <= 6; i++) {
+    sum += i * diceStatistics.counts[i];
+  }
+  const avg = diceStatistics.totalRolls > 0 ? (sum / diceStatistics.totalRolls).toFixed(2) : '3.50';
+  avgEl.innerText = avg;
+
+  let html = '';
+  for (let i = 1; i <= 6; i++) {
+    const count = diceStatistics.counts[i];
+    const pct = diceStatistics.totalRolls > 0 ? ((count / diceStatistics.totalRolls) * 100).toFixed(1) : '16.7';
+    const barWidth = diceStatistics.totalRolls > 0 ? Math.min(100, Math.max(3, (count / diceStatistics.totalRolls) * 100 * 2.2)) : 16.7;
+    html += `
+      <div class="flex items-center gap-2.5 text-xs">
+        <span class="text-sm w-4 font-mono font-bold text-zinc-300 text-center">${i}</span>
+        <div class="flex-1 h-3 rounded-full bg-zinc-800/90 overflow-hidden relative border border-zinc-700/50">
+          <div class="h-full bg-white transition-all duration-300 rounded-full" style="width: ${barWidth}%;"></div>
+        </div>
+        <div class="w-20 text-right font-mono text-[11px] text-zinc-300">
+          <span class="font-bold">${count}</span>
+          <span class="text-zinc-500 text-[10px] ml-1">(${pct}%)</span>
+        </div>
+      </div>
+    `;
+  }
+  barsEl.innerHTML = html;
+
+  if (recentEl) {
+    if (diceStatistics.history.length === 0) {
+      recentEl.innerHTML = '<span class="text-xs text-zinc-500 italic">No rolls yet</span>';
+    } else {
+      recentEl.innerHTML = diceStatistics.history.map((val, idx) => `
+        <span class="px-2 py-1 rounded-lg font-mono font-bold text-xs ${idx === 0 ? 'bg-white text-zinc-950 shadow-sm' : 'bg-zinc-800 text-zinc-300 border border-zinc-700'}">${val}</span>
+      `).join('');
+    }
+  }
+}
+
+function confirmExitGame() {
+  document.getElementById('exit-confirm-modal')?.classList.remove('hidden');
+}
+
+function closeExitModal() {
+  document.getElementById('exit-confirm-modal')?.classList.add('hidden');
+}
+
+function executeExitGame() {
+  closeExitModal();
+  leaveRoom();
+}
 
 // =============== MULTIPLAYER STATE ===============
 let mySlot = null;
@@ -954,14 +1115,16 @@ socket.on('sync_data', (state) => {
   }
 });
 
+let animStartTime = 0;
 setInterval(() => {
-  if (isAnimating) {
-    const cube = document.getElementById('dice-cube');
-    if (cube) cube.classList.remove('rolling');
+  if (isAnimating && animStartTime > 0 && Date.now() - animStartTime > 4500) {
+    console.warn('Animation watchdog triggered after 4.5s');
     isAnimating = false;
+    diceRolled = true;
     updateUI();
+    renderPieces();
   }
-}, 3000);
+}, 1000);
 
 socket.on('lobby_state', (state) => {
   if (state.slots) latestSlots = state.slots;
@@ -1192,26 +1355,43 @@ function resetSession() {
 }
 
 function returnToLobby() {
+  if (botTurnTimer) { clearTimeout(botTurnTimer); botTurnTimer = null; }
   socket.emit('return_to_lobby');
+  document.getElementById('victory-screen')?.classList.add('hidden');
+  document.getElementById('game-screen')?.classList.add('hidden');
+  document.getElementById('game-screen')?.classList.remove('flex');
+  document.getElementById('lobby-screen')?.classList.remove('hidden');
+  document.getElementById('main-nav-bar')?.classList.remove('hidden');
+  document.getElementById('spectator-banner')?.remove();
 }
 
 function leaveRoom() {
+  if (botTurnTimer) { clearTimeout(botTurnTimer); botTurnTimer = null; }
   socket.emit('leave_room');
   clearSession('dosaRoom');
   clearSession('dosaSlot');
-  window.location.reload();
+  document.getElementById('game-screen')?.classList.add('hidden');
+  document.getElementById('game-screen')?.classList.remove('flex');
+  document.getElementById('lobby-screen')?.classList.add('hidden');
+  document.getElementById('victory-screen')?.classList.add('hidden');
+  document.getElementById('home-screen')?.classList.remove('hidden');
+  document.getElementById('main-nav-bar')?.classList.remove('hidden');
+  document.getElementById('spectator-banner')?.remove();
 }
 
 socket.on('game_started', (data) => {
+  if (botTurnTimer) { clearTimeout(botTurnTimer); botTurnTimer = null; }
   isAnimating = false;
   diceRolled = false;
   validMoves = [];
   finishedPlayers = [];
+  consecutiveNoMovesOn6 = 0;
+  document.getElementById('main-nav-bar')?.classList.add('hidden'); // HIDE OVERLAPPING HEADER
   document.getElementById('spectator-banner')?.remove();
-  document.getElementById('lobby-screen').classList.add('hidden');
-  document.getElementById('victory-screen').classList.add('hidden');
-  document.getElementById('game-screen').classList.remove('hidden');
-  document.getElementById('game-screen').classList.add('flex');
+  document.getElementById('lobby-screen')?.classList.add('hidden');
+  document.getElementById('victory-screen')?.classList.add('hidden');
+  document.getElementById('game-screen')?.classList.remove('hidden');
+  document.getElementById('game-screen')?.classList.add('flex');
   pegsCountGlobal = data.gameSettings.pegsPerPlayer;
   latestSlots = data.slots;
   if (data.playerNames) latestPlayerNames = data.playerNames;
@@ -1236,18 +1416,31 @@ socket.on('game_started', (data) => {
 });
 
 socket.on('dice_rolled', (data) => {
+  if (botTurnTimer) {
+    clearTimeout(botTurnTimer);
+    botTurnTimer = null;
+  }
+
+  if (typeof data.player === 'number') {
+    currentPlayer = data.player;
+  }
+
   isAnimating = true;
   playDiceSound();
+  
+  diceValue = data.value;
+  recordDiceRoll(diceValue);
+
   const cube = document.getElementById('dice-cube');
-  cube.classList.add('rolling');
-  cube.style.transform = ''; 
+  if (cube) {
+    const face = CUBE_FACE_ANGLES[diceValue - 1] || { x: 0, y: 0 };
+    cubeAngleX = (Math.round(cubeAngleX / 360) + 2) * 360 + face.x;
+    cubeAngleY = (Math.round(cubeAngleY / 360) + 2) * 360 + face.y;
+    cube.style.transition = 'transform 0.65s cubic-bezier(0.2, 0.9, 0.3, 1.15)';
+    cube.style.transform = `rotateX(${cubeAngleX}deg) rotateY(${cubeAngleY}deg)`;
+  }
   
   setTimeout(() => {
-    cube.classList.remove('rolling');
-    diceValue = data.value;
-    if (diceValue === 6) jailMissCounter[currentPlayer] = 0;
-    cube.style.transform = DICE_ROTATIONS[diceValue - 1];
-    
     diceRolled = true;
     isAnimating = false;
 
@@ -1256,21 +1449,34 @@ socket.on('dice_rolled', (data) => {
         const emotes6 = ['🎲', '👑', '😎'];
         const randomEmote = emotes6[Math.floor(Math.random() * emotes6.length)];
         socket.emit('send_emote', { player: currentPlayer, emoji: randomEmote });
-      }, 300);
+      }, 200);
     }
 
     if (currentPlayer === mySlot || (isHost && latestSlots[currentPlayer] === 'bot')) {
       calculateValidMoves();
       if (validMoves.length === 0) {
         if (diceValue === 6) {
-          setTimeout(() => { diceRolled = false; validMoves = []; updateUI(); renderPieces(); }, 1000);
+          consecutiveNoMovesOn6++;
+          if (consecutiveNoMovesOn6 > 1) {
+            consecutiveNoMovesOn6 = 0;
+            botTurnTimer = setTimeout(() => socket.emit('next_turn'), 800);
+          } else {
+            botTurnTimer = setTimeout(() => {
+              diceRolled = false;
+              validMoves = [];
+              updateUI();
+              renderPieces();
+            }, 800);
+          }
         } else {
-          setTimeout(() => socket.emit('next_turn'), 1000);
+          consecutiveNoMovesOn6 = 0;
+          botTurnTimer = setTimeout(() => socket.emit('next_turn'), 700);
         }
       } else {
+        consecutiveNoMovesOn6 = 0;
         renderPieces();
         if (isHost && latestSlots[currentPlayer] === 'bot') {
-          setTimeout(() => {
+          botTurnTimer = setTimeout(() => {
             function scoreBotMove(m) {
               let score = 0;
               score += (Math.random() * 40 - 20);
@@ -1309,11 +1515,11 @@ socket.on('dice_rolled', (data) => {
               chosen = scoredMoves[1].move;
             }
             selectMove(chosen);
-          }, 800);
+          }, 700);
         }
       }
     }
-  }, 600);
+  }, 650);
 });
 
 socket.on('move_executed', (data) => {
@@ -1377,20 +1583,35 @@ socket.on('move_executed', (data) => {
   
   if (currentPlayer === mySlot || (isHost && latestSlots[currentPlayer] === 'bot')) {
     if (diceValue === 6 || action === 'shortcut') {
-      diceRolled = false; updateUI();
+      diceRolled = false;
+      updateUI();
     } else {
-      setTimeout(() => socket.emit('next_turn'), 600);
+      if (botTurnTimer) clearTimeout(botTurnTimer);
+      botTurnTimer = setTimeout(() => socket.emit('next_turn'), 600);
     }
   }
 });
 
-socket.on('turn_passed', () => {
-  do {
-    currentPlayer = (currentPlayer + 1) % 4;
-  } while ((!activeSlots.includes(currentPlayer) || finishedPlayers.includes(currentPlayer)) && activeSlots.length > 0);
+socket.on('turn_passed', (data) => {
+  if (botTurnTimer) {
+    clearTimeout(botTurnTimer);
+    botTurnTimer = null;
+  }
+
+  if (data && typeof data.currentPlayer === 'number') {
+    currentPlayer = data.currentPlayer;
+  } else {
+    do {
+      currentPlayer = (currentPlayer + 1) % 4;
+    } while ((!activeSlots.includes(currentPlayer) || finishedPlayers.includes(currentPlayer)) && activeSlots.length > 0);
+  }
+
   diceRolled = false;
   validMoves = [];
   diceValue = null;
+  isAnimating = false;
+  consecutiveNoMovesOn6 = 0;
+
   updateUI();
   renderPieces();
 });
@@ -1417,7 +1638,8 @@ socket.on('player_ranked', (data) => {
   }
   
   if (currentPlayer === mySlot || (isHost && latestSlots[currentPlayer] === 'bot')) {
-    setTimeout(() => socket.emit('next_turn'), 600);
+    if (botTurnTimer) clearTimeout(botTurnTimer);
+    botTurnTimer = setTimeout(() => socket.emit('next_turn'), 600);
   }
 });
 
@@ -1615,11 +1837,15 @@ function updateUI() {
 
   const cube = document.getElementById('dice-cube');
   if (cube) {
-    cube.style.setProperty('--player-color', PLAYERS[currentPlayer].dotColor);
+    cube.style.setProperty('--player-color', PLAYERS[currentPlayer]?.dotColor || '#f43f5e');
     if (isHost && latestSlots[currentPlayer] === 'bot' && !diceRolled && !isAnimating) {
-      setTimeout(() => rollDice(true), 1000);
+      if (botTurnTimer) clearTimeout(botTurnTimer);
+      botTurnTimer = setTimeout(() => rollDice(true), 750);
     }
-    if (!diceRolled && !isAnimating) cube.style.transform = 'rotateX(-25deg) rotateY(45deg)';
+    if (!diceRolled && !isAnimating) {
+      cube.style.transition = 'transform 0.4s ease-out';
+      cube.style.transform = `rotateX(${cubeAngleX}deg) rotateY(${cubeAngleY}deg)`;
+    }
   }
 
   if (isHost && pieces && pieces.length > 0) {
@@ -1724,10 +1950,12 @@ document.addEventListener('click', (e) => {
   }
 });
 
-function sendEmote(emoji) {
+function sendEmote(emoji, e) {
+  if (e) e.stopPropagation();
   if (mySlot === null) return;
   socket.emit('send_emote', emoji);
-  document.getElementById('emote-picker')?.classList.add('hidden');
+  // Do NOT hide picker: allow spamming emojis freely!
+  // To close picker, player clicks the chat button or outside.
 }
 
 const EMOTE_SOUNDS = {
@@ -1735,31 +1963,45 @@ const EMOTE_SOUNDS = {
   '💧': new Audio('/waterdrop sound.mp3'),
 };
 
+let lastEmoteSoundTime = 0;
 socket.on('receive_emote', (data) => {
   const { player, emoji } = data;
   const vPlayer = visualMap[player];
   const holesEl = document.getElementById('holes');
+  if (!holesEl) return;
   
-  if (EMOTE_SOUNDS[emoji]) {
+  const now = Date.now();
+  if (EMOTE_SOUNDS[emoji] && now - lastEmoteSoundTime > 120) {
+    lastEmoteSoundTime = now;
     const snd = EMOTE_SOUNDS[emoji].cloneNode();
     snd.volume = 0.8;
     snd.play().catch(() => {});
   }
   
+  // Cap floating emotes on board to prevent lag or memory accumulation
+  const existingEmotes = holesEl.querySelectorAll('.emote-wrapper');
+  if (existingEmotes.length > 15) {
+    existingEmotes[0].remove();
+  }
+
   const wrapper = document.createElement('div');
-  wrapper.className = 'absolute z-[100] drop-shadow-xl pointer-events-none';
+  wrapper.className = 'absolute z-[100] drop-shadow-xl pointer-events-none emote-wrapper';
   
   const el = document.createElement('div');
   el.className = 'text-4xl emote-anim';
   el.innerText = emoji;
   
+  // Add organic jitter on position for spammed emotes
+  const jitterX = (Math.random() - 0.5) * 28;
+  const jitterY = (Math.random() - 0.5) * 14;
+
   const labelOffset = pegsCountGlobal === 2 ? 5 : 9;
   const LABEL_POS = { 0: [0, -labelOffset], 1: [labelOffset, 0], 2: [0, labelOffset], 3: [-labelOffset, 0] };
-  wrapper.style.left = ((LABEL_POS[vPlayer][0] + OFFSET + 0.5) * (100 / GRID_SIZE)) + '%';
-  wrapper.style.top = ((LABEL_POS[vPlayer][1] + OFFSET + 0.5) * (100 / GRID_SIZE)) + '%';
+  wrapper.style.left = `calc(${((LABEL_POS[vPlayer][0] + OFFSET + 0.5) * (100 / GRID_SIZE))}% + ${jitterX}px)`;
+  wrapper.style.top = `calc(${((LABEL_POS[vPlayer][1] + OFFSET + 0.5) * (100 / GRID_SIZE))}% + ${jitterY}px)`;
   
   const container = document.getElementById('board-container');
-  const rotMatch = container.style.transform.match(/rotate\(([-\d]+)deg\)/);
+  const rotMatch = container?.style.transform.match(/rotate\(([-\d]+)deg\)/);
   const boardRot = rotMatch ? parseInt(rotMatch[1]) : 0;
   wrapper.style.transform = 'translate(-50%, -50%) rotate(' + (-boardRot) + 'deg)';
   
@@ -1768,32 +2010,14 @@ socket.on('receive_emote', (data) => {
   setTimeout(() => wrapper.remove(), 2200);
 });
 
-function getWeightedDiceRoll(player) {
-  const hasPiecesInJail = pieces.some(p => p.player === player && p.state === 'jail');
-  let weight6 = 1.6;
-  if (hasPiecesInJail) {
-    const misses = jailMissCounter[player] || 0;
-    if (misses >= 3) weight6 = 3.5;
-    else if (misses >= 2) weight6 = 2.4;
+// Real statistics: fair 1/6 probability distribution using crypto PRNG
+function getFairDiceRoll() {
+  if (window.crypto && window.crypto.getRandomValues) {
+    const arr = new Uint32Array(1);
+    window.crypto.getRandomValues(arr);
+    return (arr[0] % 6) + 1;
   }
-
-  const weights = [1, 1, 1, 1, 1, weight6];
-  const totalWeight = weights.reduce((a, b) => a + b, 0);
-  let random = Math.random() * totalWeight;
-
-  for (let i = 0; i < weights.length; i++) {
-    if (random < weights[i]) {
-      const rolled = i + 1;
-      if (rolled === 6) {
-        jailMissCounter[player] = 0;
-      } else if (hasPiecesInJail) {
-        jailMissCounter[player] = (jailMissCounter[player] || 0) + 1;
-      }
-      return rolled;
-    }
-    random -= weights[i];
-  }
-  return 6;
+  return Math.floor(Math.random() * 6) + 1;
 }
 
 function rollDice(isBotAuto = false) {
@@ -1801,7 +2025,8 @@ function rollDice(isBotAuto = false) {
   if (currentPlayer !== mySlot) {
     if (!isHost || latestSlots[currentPlayer] !== 'bot' || !isBotAuto) return;
   }
-  const val = getWeightedDiceRoll(currentPlayer);
+  animStartTime = Date.now();
+  const val = getFairDiceRoll();
   socket.emit('roll_dice', { player: currentPlayer, value: val });
 }
 
