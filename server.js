@@ -351,7 +351,7 @@ io.on('connection', (socket) => {
   });
 });
 
-const PORT = 8085;
+const PORT = process.env.PORT || 8085;
 http.listen(PORT, () => {
-  console.log(`Multiplayer Server running on http://localhost:${PORT}`);
+  console.log(`Multiplayer Server running on port ${PORT}`);
 });
