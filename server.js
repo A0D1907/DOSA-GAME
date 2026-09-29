@@ -39,58 +39,150 @@ app.post('/api/login', (req, res) => {
   });
 });
 
-const onlineUsers = {}; // userId -> socket.id
+const fs = require('fs');
+
+// Persistent JSON store for players and friendships so redeploys never wipe accounts
+const STORE_PATH = path.join(__dirname, 'players_store.json');
+let playerStore = { players: {}, friends: {} }; // players: id -> { id, username, tag, lastSeen }, friends: id -> [friendIds]
+
+try {
+  if (fs.existsSync(STORE_PATH)) {
+    playerStore = JSON.parse(fs.readFileSync(STORE_PATH, 'utf8'));
+  }
+} catch (e) {
+  console.log('Using fresh playerStore');
+}
+
+function persistStore() {
+  try {
+    fs.writeFileSync(STORE_PATH, JSON.stringify(playerStore, null, 2));
+  } catch (e) {}
+}
+
+const activeSockets = {}; // socket.id -> { id, username, tag }
+const userToSocket = {}; // id -> socket.id
+
+// Register or get player identity
+app.post('/api/player/sync', (req, res) => {
+  let { id, username, tag } = req.body;
+  if (!id) {
+    id = 'p_' + Math.random().toString(36).substring(2, 9);
+  }
+  username = (username || 'Player').trim();
+  if (!tag) {
+    const code = Math.floor(1000 + Math.random() * 9000);
+    tag = `${username}#${code}`;
+  }
+
+  playerStore.players[id] = { id, username, tag, lastSeen: Date.now() };
+  if (!playerStore.friends[id]) playerStore.friends[id] = [];
+  persistStore();
+
+  res.json({ id, username, tag });
+});
+
+// Get currently online players for effortless 1-click adding
+app.get('/api/online-players', (req, res) => {
+  const excludeId = req.query.exclude;
+  const online = Object.values(activeSockets)
+    .filter(p => p.id && p.id !== excludeId)
+    .map(p => ({
+      id: p.id,
+      username: p.username,
+      tag: p.tag,
+      isOnline: true
+    }));
+  res.json(online);
+});
 
 app.get('/api/friends/:userId', (req, res) => {
   const userId = req.params.userId;
-  db.all(`
-    SELECT DISTINCT u.id, u.username 
-    FROM users u 
-    JOIN friends f ON (u.id = f.friend_id AND f.user_id = ?) OR (u.id = f.user_id AND f.friend_id = ?)
-    WHERE u.id != ?
-  `, [userId, userId, userId], (err, rows) => {
-    if (err) return res.status(500).json({ error: 'Server error' });
-    const friendsWithStatus = (rows || []).map(r => ({
-      ...r,
-      isOnline: !!onlineUsers[r.id]
-    }));
-    res.json(friendsWithStatus);
+  const friendIds = playerStore.friends[userId] || [];
+  
+  const list = friendIds.map(fId => {
+    const p = playerStore.players[fId] || { id: fId, username: 'Friend', tag: `#${fId.slice(-4)}` };
+    const isOnline = !!userToSocket[fId];
+    return {
+      id: p.id,
+      username: p.username,
+      tag: p.tag,
+      isOnline
+    };
   });
+
+  res.json(list);
 });
 
 app.post('/api/friends', (req, res) => {
-  const { userId, friendUsername } = req.body;
-  if (!friendUsername || !userId) return res.status(400).json({ error: 'Missing parameters' });
+  const { userId, query } = req.body;
+  if (!query || !userId) return res.status(400).json({ error: 'Please enter a username or player tag' });
   
-  const cleanName = friendUsername.trim();
-  db.get("SELECT id, username FROM users WHERE LOWER(TRIM(username)) = LOWER(?)", [cleanName], (err, row) => {
-    if (err || !row) return res.status(404).json({ error: `User "${cleanName}" not found` });
-    if (row.id == userId) return res.status(400).json({ error: 'You cannot add yourself as a friend' });
+  const q = query.trim().toLowerCase();
+  
+  // 1. Check known players store
+  let target = Object.values(playerStore.players).find(p => 
+    p.id !== userId && (
+      p.tag.toLowerCase() === q ||
+      p.username.toLowerCase() === q ||
+      p.tag.toLowerCase().startsWith(q)
+    )
+  );
 
-    db.get("SELECT * FROM friends WHERE (user_id = ? AND friend_id = ?) OR (user_id = ? AND friend_id = ?)", 
-      [userId, row.id, row.id, userId], (checkErr, existing) => {
-      if (existing) return res.status(400).json({ error: 'Already friends' });
-      
-      // Make friendship mutual so both players can find each other
-      db.run("INSERT OR IGNORE INTO friends (user_id, friend_id) VALUES (?, ?), (?, ?)", 
-        [userId, row.id, row.id, userId], function(insertErr) {
-        if (insertErr) return res.status(500).json({ error: 'Could not add friend' });
-        
-        io.emit('friends_updated');
-        res.json({ id: row.id, username: row.username });
-      });
+  // 2. Check active online sockets
+  if (!target) {
+    target = Object.values(activeSockets).find(p => 
+      p.id !== userId && (
+        p.tag.toLowerCase() === q ||
+        p.username.toLowerCase() === q ||
+        p.tag.toLowerCase().startsWith(q)
+      )
+    );
+  }
+
+  // 3. Fallback: Check SQLite
+  if (!target) {
+    return db.get("SELECT id, username FROM users WHERE LOWER(TRIM(username)) = LOWER(?)", [q], (err, row) => {
+      if (err || !row) {
+        return res.status(404).json({ error: `Player "${query}" not found. Ensure they entered a nickname or are online.` });
+      }
+      const targetId = 'usr_' + row.id;
+      const targetTag = `${row.username}#${row.id}`;
+      playerStore.players[targetId] = { id: targetId, username: row.username, tag: targetTag, lastSeen: Date.now() };
+      completeFriendAdd(userId, targetId, row.username, targetTag, res);
     });
-  });
+  }
+
+  completeFriendAdd(userId, target.id, target.username, target.tag, res);
 });
+
+function completeFriendAdd(u1, u2, friendName, friendTag, res) {
+  if (u1 === u2) return res.status(400).json({ error: 'You cannot add yourself' });
+  if (!playerStore.friends[u1]) playerStore.friends[u1] = [];
+  if (!playerStore.friends[u2]) playerStore.friends[u2] = [];
+
+  if (playerStore.friends[u1].includes(u2)) {
+    return res.status(400).json({ error: 'Already friends' });
+  }
+
+  playerStore.friends[u1].push(u2);
+  playerStore.friends[u2].push(u1);
+  persistStore();
+
+  io.emit('friends_updated');
+  res.json({ id: u2, username: friendName, tag: friendTag });
+}
 
 app.delete('/api/friends', (req, res) => {
   const { userId, friendId } = req.body;
-  db.run("DELETE FROM friends WHERE (user_id = ? AND friend_id = ?) OR (user_id = ? AND friend_id = ?)", 
-    [userId, friendId, friendId, userId], function(err) {
-    if (err) return res.status(500).json({ error: 'Server error' });
-    io.emit('friends_updated');
-    res.json({ success: true });
-  });
+  if (playerStore.friends[userId]) {
+    playerStore.friends[userId] = playerStore.friends[userId].filter(id => id !== friendId);
+  }
+  if (playerStore.friends[friendId]) {
+    playerStore.friends[friendId] = playerStore.friends[friendId].filter(id => id !== userId);
+  }
+  persistStore();
+  io.emit('friends_updated');
+  res.json({ success: true });
 });
 
 app.get('/', (req, res) => {
@@ -133,25 +225,44 @@ io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
   broadcastOpenRooms();
 
+  socket.on('register_identity', (player) => {
+    if (!player || !player.id) return;
+    const id = player.id;
+    const username = (player.username || 'Player').trim();
+    const tag = player.tag || `${username}#${id.slice(-4)}`;
+
+    playerStore.players[id] = { id, username, tag, lastSeen: Date.now() };
+    if (!playerStore.friends[id]) playerStore.friends[id] = [];
+    persistStore();
+
+    activeSockets[socket.id] = { id, username, tag };
+    userToSocket[id] = socket.id;
+    socket.userId = id;
+    socket.playerTag = tag;
+    socket.username = username;
+
+    io.emit('friends_updated');
+  });
+
   socket.on('register_user', (userId) => {
     if (userId) {
-      onlineUsers[userId] = socket.id;
+      userToSocket[userId] = socket.id;
       socket.userId = userId;
       io.emit('friends_updated');
     }
   });
 
   socket.on('send_friend_invite', (data) => {
-    const { friendId, fromUsername, roomId } = data;
-    const targetSocketId = onlineUsers[friendId];
+    const { friendId, fromUsername, roomId, friendUsername } = data;
+    const targetSocketId = userToSocket[friendId];
     if (targetSocketId && io.sockets.sockets.get(targetSocketId)) {
       io.to(targetSocketId).emit('receive_friend_invite', {
         fromUsername,
         roomId
       });
-      socket.emit('invite_status', { success: true, message: `Invite sent to friend!` });
+      socket.emit('invite_status', { success: true, message: `Invite sent to ${friendUsername || 'friend'}!` });
     } else {
-      socket.emit('invite_status', { success: false, message: `Friend is offline. Invite link copied!` });
+      socket.emit('invite_status', { success: false, message: `Friend is offline. Game link copied to clipboard!` });
     }
   });
   
@@ -420,10 +531,15 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);
-    if (socket.userId && onlineUsers[socket.userId] === socket.id) {
-      delete onlineUsers[socket.userId];
-      io.emit('friends_updated');
+    if (activeSockets[socket.id]) {
+      const p = activeSockets[socket.id];
+      delete userToSocket[p.id];
+      delete activeSockets[socket.id];
     }
+    if (socket.userId) {
+      delete userToSocket[socket.userId];
+    }
+    io.emit('friends_updated');
     if (!socket.roomId) return;
     const state = getRoomState(socket.roomId);
     const oldSlot = state.slots.indexOf(socket.id);

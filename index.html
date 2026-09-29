@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#08090f">
+  <meta name="theme-color" content="#09090b">
   <title>DOSA Online</title>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon.png">
@@ -15,20 +15,16 @@
   <script src="/socket.io/socket.io.js"></script>
   
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
     
     :root {
-      --bg-dark: #08090f;
-      --panel-bg: rgba(15, 20, 32, 0.88);
-      --panel-border: rgba(255, 255, 255, 0.08);
-      --neon-cyan: #00f0ff;
-      --neon-pink: #ff2a5f;
-      --neon-gold: #ffb703;
-      --neon-green: #00f59b;
-      --p1: #ff2a5f;
-      --p2: #00f0ff;
-      --p3: #ffb703;
-      --p4: #00f59b;
+      --bg-main: #09090b;
+      --card-bg: #121215;
+      --card-border: rgba(255, 255, 255, 0.08);
+      --p1: #f43f5e;
+      --p2: #38bdf8;
+      --p3: #fbbf24;
+      --p4: #34d399;
     }
 
     * {
@@ -39,178 +35,102 @@
 
     body {
       overscroll-behavior: none;
-      font-family: 'Rajdhani', sans-serif;
-      background: #08090f;
-      color: #f1f5f9;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg-main);
+      color: #fafafa;
       min-height: 100vh;
       overflow: hidden;
+      font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
     }
 
-    /* Subtle Technical Micro-Dot Grid */
-    .cyber-grid-bg {
-      position: absolute;
-      inset: 0;
-      background-image: 
-        radial-gradient(rgba(0, 240, 255, 0.08) 1px, transparent 1px);
-      background-size: 24px 24px;
-      pointer-events: none;
-      z-index: 0;
+    .modern-card {
+      background: #121215;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 1.25rem;
+      box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.8), 0 0 1px 1px rgba(255, 255, 255, 0.05);
     }
 
-    .bg-cyber-glow {
-      position: absolute;
-      inset: 0;
-      background: 
-        radial-gradient(ellipse 70% 45% at 50% 0%, rgba(0, 240, 255, 0.07) 0%, transparent 70%),
-        radial-gradient(ellipse 60% 40% at 50% 100%, rgba(14, 165, 233, 0.05) 0%, transparent 60%);
-      pointer-events: none;
-      z-index: 0;
+    .btn-modern-primary {
+      background: #ffffff;
+      color: #09090b;
+      font-weight: 600;
+      border-radius: 0.75rem;
+      transition: all 0.15s ease;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
+    .btn-modern-primary:hover:not(:disabled) {
+      background: #e4e4e7;
+      transform: translateY(-1px);
+    }
+    .btn-modern-primary:active:not(:disabled) {
+      transform: translateY(1px);
+      background: #d4d4d8;
     }
 
-    .game-font { font-family: 'Orbitron', monospace; font-weight: 900; }
-    .hud-font { font-family: 'Orbitron', sans-serif; }
-
-    /* High-End Dark Glass Panels */
-    .game-card {
-      background: linear-gradient(145deg, rgba(16, 22, 36, 0.92), rgba(9, 12, 22, 0.96));
+    .btn-modern-secondary {
+      background: #18181b;
+      color: #e4e4e7;
       border: 1px solid rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(24px);
-      border-radius: 1.5rem;
-      box-shadow: 
-        0 25px 50px -12px rgba(0, 0, 0, 0.85),
-        0 0 35px rgba(0, 240, 255, 0.08),
-        inset 0 1px 0 rgba(255, 255, 255, 0.12);
-      position: relative;
+      border-radius: 0.75rem;
+      font-weight: 500;
+      transition: all 0.15s ease;
+    }
+    .btn-modern-secondary:hover:not(:disabled) {
+      background: #27272a;
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+    .btn-modern-secondary:active:not(:disabled) {
+      transform: translateY(1px);
     }
 
-    .game-card::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 20%; right: 20%; height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(0, 240, 255, 0.8), transparent);
-    }
-
-    /* Video Game Primary Action Button */
-    .btn-game-primary {
-      background: linear-gradient(135deg, #00f0ff, #0066ff);
-      border: 1px solid rgba(255, 255, 255, 0.4);
-      border-radius: 1rem;
-      box-shadow: 
-        0 5px 0 #003db3,
-        0 12px 25px rgba(0, 102, 255, 0.45),
-        inset 0 1px 1px rgba(255, 255, 255, 0.6);
-      transition: all 0.12s cubic-bezier(0.3, 0, 0.2, 1);
-      text-shadow: 0 1px 3px rgba(0,0,0,0.6);
-      font-family: 'Orbitron', sans-serif;
-      letter-spacing: 0.12em;
-    }
-    .btn-game-primary:hover:not(:disabled) {
-      filter: brightness(1.12);
-      transform: translateY(-2px);
-      box-shadow: 0 7px 0 #003db3, 0 16px 30px rgba(0, 102, 255, 0.6);
-    }
-    .btn-game-primary:active:not(:disabled) {
-      transform: translateY(4px);
-      box-shadow: 0 1px 0 #003db3, 0 4px 12px rgba(0, 102, 255, 0.3);
-    }
-
-    .btn-game-secondary {
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 1rem;
-      box-shadow: 0 3px 0 rgba(0, 0, 0, 0.4);
-      transition: all 0.12s ease;
-      font-family: 'Rajdhani', sans-serif;
-    }
-    .btn-game-secondary:hover {
-      background: rgba(255, 255, 255, 0.1);
-      border-color: rgba(0, 240, 255, 0.4);
-      box-shadow: 0 3px 0 rgba(0, 0, 0, 0.4), 0 0 15px rgba(0, 240, 255, 0.2);
-    }
-    .btn-game-secondary:active {
-      transform: translateY(2px);
-      box-shadow: 0 1px 0 rgba(0, 0, 0, 0.4);
-    }
-
-    /* Turn Indicator Badge */
-    .turn-badge {
-      font-family: 'Orbitron', sans-serif;
-      letter-spacing: 0.15em;
-      border-radius: 9999px;
-      padding: 0.35rem 1.1rem;
-      text-transform: uppercase;
-      font-size: 0.75rem;
-      font-weight: 800;
-      transition: all 0.3s ease;
-      position: relative;
-    }
-
-    /* Cyber Bezel Board Container */
     .board-bezel {
-      background: radial-gradient(circle at 50% 50%, #121827 0%, #0d121c 65%, #07090f 100%);
-      border: 2px solid rgba(0, 240, 255, 0.25);
-      box-shadow: 
-        0 25px 60px rgba(0, 0, 0, 0.95),
-        0 0 30px rgba(0, 240, 255, 0.12),
-        inset 0 0 20px rgba(0, 0, 0, 0.8);
-      border-radius: 2rem;
+      background: #101013;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.6), 0 20px 40px rgba(0, 0, 0, 0.7);
+      border-radius: 1.75rem;
     }
 
-    /* Recessed Board Holes */
     .board-hole {
-      box-shadow: 
-        inset 0 3px 6px rgba(0,0,0,0.95),
-        0 1px 1px rgba(255,255,255,0.06);
       transition: all 0.2s ease;
     }
 
-    /* 3D Glass Sphere Pieces with Intense Specular Reflection */
     .piece {
-      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transition: all 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
       touch-action: manipulation;
     }
     .piece.valid-move {
-      animation: targetPulse 0.9s infinite alternate;
+      animation: modernPulse 1s infinite alternate ease-in-out;
       cursor: pointer;
     }
-    .piece.valid-move::after {
-      content: '';
-      position: absolute;
-      top: 50%; left: 50%;
-      width: 48px; height: 48px;
-      transform: translate(-50%, -50%);
-      border-radius: 50%;
-    }
-    @keyframes targetPulse {
+    @keyframes modernPulse {
       0% { 
-        transform: translate(-50%, -50%) scale(1.1); 
-        filter: brightness(1.2) drop-shadow(0 0 10px #fff) drop-shadow(0 0 20px var(--neon-cyan)); 
+        transform: translate(-50%, -50%) scale(1.05); 
+        filter: brightness(1.15) drop-shadow(0 0 6px rgba(255, 255, 255, 0.7)); 
       }
       100% { 
-        transform: translate(-50%, -50%) scale(1.4); 
-        filter: brightness(1.5) drop-shadow(0 0 16px #fff) drop-shadow(0 0 30px #00f0ff); 
+        transform: translate(-50%, -50%) scale(1.3); 
+        filter: brightness(1.35) drop-shadow(0 0 12px rgba(255, 255, 255, 0.9)); 
       }
     }
 
-    /* 3D Cyber Cube Dice */
-    .dice-scene { width: 50px; height: 50px; perspective: 450px; margin: 0 auto; z-index: 20; }
+    .dice-scene { width: 50px; height: 50px; perspective: 400px; margin: 0 auto; z-index: 20; }
     .cube {
       width: 100%; height: 100%; position: relative;
       transform-style: preserve-3d;
       transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
       transform: rotateX(-25deg) rotateY(45deg);
     }
-    .cube.rolling { animation: spin 0.5s linear infinite; }
-    @keyframes spin {
+    .cube.rolling { animation: spinDice 0.4s linear infinite; }
+    @keyframes spinDice {
       0% { transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg); }
       100% { transform: rotateX(360deg) rotateY(360deg) rotateZ(0deg); }
     }
     .face {
       position: absolute; width: 50px; height: 50px;
-      background: linear-gradient(135deg, #ffffff, #e2e8f0);
-      border: 1px solid #cbd5e1; border-radius: 12px;
+      background: #fafafa;
+      border: 1px solid #d4d4d8; border-radius: 12px;
       display: grid; padding: 7px;
-      box-shadow: inset 0 0 10px rgba(0,0,0,0.1), 0 6px 14px rgba(0,0,0,0.4);
+      box-shadow: inset 0 0 6px rgba(0,0,0,0.06), 0 4px 10px rgba(0,0,0,0.3);
     }
     .face-1 { transform: rotateY(0deg) translateZ(25px); place-items: center; }
     .face-2 { transform: rotateY(90deg) translateZ(25px); display: flex; flex-direction: column; justify-content: space-between; padding: 7px; box-sizing: border-box; }
@@ -233,23 +153,21 @@
     .face-6 .dot { align-self: center; justify-self: center; }
     
     .dot {
-      background-color: var(--player-color, #111);
-      border-radius: 50%; width: 7px; height: 7px;
-      box-shadow: 0 0 8px var(--player-color, rgba(0,0,0,0.5));
-      transition: background-color 0.4s ease, box-shadow 0.4s ease;
+      background-color: var(--player-color, #18181b);
+      border-radius: 50%; width: 8px; height: 8px;
+      transition: background-color 0.3s ease;
     }
     
     @keyframes floatUp {
-      0% { transform: translateY(0) scale(0.5); opacity: 0; }
-      10% { transform: translateY(-50px) scale(1.6); opacity: 1; }
-      80% { transform: translateY(-75px) scale(1.6); opacity: 1; }
-      100% { transform: translateY(-110px) scale(1); opacity: 0; }
+      0% { transform: translateY(0) scale(0.6); opacity: 0; }
+      15% { transform: translateY(-40px) scale(1.3); opacity: 1; }
+      80% { transform: translateY(-65px) scale(1.3); opacity: 1; }
+      100% { transform: translateY(-90px) scale(1); opacity: 0; }
     }
     .emote-anim {
-      animation: floatUp 2.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+      animation: floatUp 2.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
 
-    /* Mobile Adaptive Scaling */
     .board-wrapper {
       width: min(94vw, 420px, 58vh);
       height: min(94vw, 420px, 58vh);
@@ -269,278 +187,260 @@
         margin-bottom: 0.5rem !important;
       }
     }
-
-    @media (max-width: 480px) {
-      .auth-nav-text {
-        display: none;
-      }
-    }
   </style>
 </head>
-<body class="text-slate-100 min-h-screen h-[100dvh] flex flex-col overflow-hidden relative selection:bg-cyan-500/30">
-  <div class="cyber-grid-bg"></div>
-  <div class="bg-cyber-glow"></div>
+<body class="bg-[#09090b] text-zinc-100 min-h-screen h-[100dvh] flex flex-col overflow-hidden relative">
 
   <!-- TOP NAVIGATION BAR -->
-  <div class="fixed top-3 right-3 sm:top-4 sm:right-4 z-[120] flex items-center gap-1.5 sm:gap-2">
-    <div id="user-logged-out-bar">
-      <button onclick="openAuthModal()" class="px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl text-xs font-black tracking-wider uppercase flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); backdrop-filter: blur(12px); color: #f8fafc; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
-        🔑 <span class="auth-nav-text">Login / Sign Up</span>
-      </button>
-    </div>
-    <div id="user-logged-in-bar" class="hidden flex items-center gap-1.5 sm:gap-2">
-      <button onclick="openFriendsModal()" class="px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs font-black tracking-wider uppercase flex items-center gap-1 transition-all hover:scale-105 active:scale-95" style="background: rgba(99,102,241,0.2); border: 1px solid rgba(99,102,241,0.4); backdrop-filter: blur(12px); color: #a5b4fc; box-shadow: 0 4px 15px rgba(99,102,241,0.2);">
-        👥 <span id="friends-badge-count" class="auth-nav-text">Friends</span>
-      </button>
-      <div class="px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs font-black tracking-wider flex items-center gap-1 max-w-[110px] sm:max-w-none truncate" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); backdrop-filter: blur(12px); color: #f8fafc;">
-        👤 <span id="current-username-display" class="truncate">User</span>
-      </div>
-      <button onclick="logoutUser()" title="Logout" class="w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center text-xs font-black transition-all hover:scale-110 active:scale-95 text-rose-400" style="background: rgba(244,63,94,0.15); border: 1px solid rgba(244,63,94,0.3);">
-        🚪
-      </button>
-    </div>
-  </div>
-
-  <!-- AUTH MODAL -->
-  <div id="auth-modal" class="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md hidden transition-all duration-300">
-    <div class="w-full max-w-sm p-6 rounded-3xl relative game-card">
-      <button onclick="closeAuthModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-all">✕</button>
-      <div class="flex gap-2 mb-5 p-1 rounded-xl bg-white/5 border border-white/10">
-        <button id="auth-tab-login" onclick="switchAuthTab('login')" class="flex-1 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-[0_0_12px_rgba(0,240,255,0.35)]">Sign In</button>
-        <button id="auth-tab-register" onclick="switchAuthTab('register')" class="flex-1 py-2 rounded-lg text-xs font-black uppercase tracking-wider text-slate-400 hover:text-white transition-all bg-transparent">Sign Up</button>
-      </div>
-
-      <div class="flex flex-col gap-3">
-        <div>
-          <label class="text-[11px] font-bold text-slate-300 uppercase tracking-widest block mb-1">Username</label>
-          <input type="text" id="auth-username-input" onkeydown="if(event.key==='Enter') submitAuth()" placeholder="Enter username" class="w-full h-11 rounded-xl px-3 text-sm font-bold focus:outline-none transition-all" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); color:#f1f5f9;" maxlength="20" />
-        </div>
-        <div>
-          <label class="text-[11px] font-bold text-slate-300 uppercase tracking-widest block mb-1">Password</label>
-          <input type="password" id="auth-password-input" onkeydown="if(event.key==='Enter') submitAuth()" placeholder="••••••••" class="w-full h-11 rounded-xl px-3 text-sm font-bold focus:outline-none transition-all" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); color:#f1f5f9;" maxlength="30" />
-        </div>
-        <div id="auth-error-msg" class="text-xs font-bold text-rose-400 min-h-[16px] text-center"></div>
-        <button id="auth-submit-btn" onclick="submitAuth()" class="w-full py-3.5 rounded-xl font-black tracking-widest uppercase transition-all btn-game-primary text-white text-xs mt-1">Sign In</button>
+  <header class="fixed top-3 left-3 right-3 sm:top-4 sm:left-4 sm:right-4 z-[120] flex items-center justify-between pointer-events-none">
+    <div class="flex items-center gap-2 pointer-events-auto">
+      <div class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-900/80 border border-zinc-800 backdrop-blur-md">
+        <span class="font-bold text-sm tracking-wider text-white">DOSA</span>
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
       </div>
     </div>
-  </div>
 
-  <!-- FRIENDS MODAL -->
-  <div id="friends-modal" class="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md hidden transition-all duration-300">
-    <div class="w-full max-w-sm p-6 rounded-3xl relative game-card">
-      <button onclick="closeFriendsModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-all">✕</button>
-      <h3 class="text-base font-black text-white tracking-wider flex items-center gap-2 mb-4 game-font">
-        <span>👥</span> <span>FRIENDS SYSTEM</span>
-      </h3>
+    <div class="flex items-center gap-2 pointer-events-auto">
+      <button onclick="openFriendsModal()" class="px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-zinc-900/90 border border-zinc-800 text-zinc-200 hover:bg-zinc-800 hover:text-white transition-all shadow-sm">
+        <span>👥</span>
+        <span id="friends-badge-count">Friends</span>
+      </button>
+
+      <div onclick="copyMyPlayerTag()" title="Click to copy your Player Tag" class="cursor-pointer px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-zinc-900/90 border border-zinc-800 text-zinc-300 hover:border-zinc-700 transition-all max-w-[150px] truncate shadow-sm">
+        <span class="text-zinc-500">#</span>
+        <span id="nav-player-tag" class="truncate font-mono">Player</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- FRIENDS & PLAYERS MODAL -->
+  <div id="friends-modal" class="fixed inset-0 z-[160] flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm hidden transition-all duration-200">
+    <div class="w-full max-w-md p-6 rounded-2xl modern-card relative max-h-[90vh] flex flex-col">
+      <button onclick="closeFriendsModal()" class="absolute top-4 right-4 w-8 h-8 rounded-lg flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-800 transition-all">✕</button>
       
-      <!-- Add Friend Input -->
-      <div class="flex gap-2 mb-3">
-        <input type="text" id="add-friend-input" onkeydown="if(event.key==='Enter') addFriendAction()" placeholder="Friend's exact username" class="flex-1 h-10 rounded-xl px-3 text-xs font-bold focus:outline-none" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); color:#f1f5f9;" maxlength="20" />
-        <button onclick="addFriendAction()" class="px-4 h-10 rounded-xl text-xs font-black uppercase tracking-wider bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-[0_0_10px_rgba(0,240,255,0.3)] hover:scale-105 active:scale-95 transition-all">Add</button>
+      <div class="mb-4">
+        <h3 class="text-base font-bold text-white flex items-center gap-2">
+          <span>👥</span> <span>Friends & Players</span>
+        </h3>
+        <p class="text-xs text-zinc-400 mt-0.5">Connect, add friends, and invite each other to matches.</p>
       </div>
-      <div id="friend-status-msg" class="text-[11px] font-bold text-center min-h-[16px] mb-2 text-cyan-300"></div>
 
-      <!-- Friends List -->
-      <div class="border-t border-white/10 pt-3">
-        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2.5">Mutual Friends</p>
-        <div id="friends-list-container" class="flex flex-col gap-2 max-h-56 overflow-y-auto pr-1">
-          <p class="text-xs text-slate-400 text-center py-4">No friends added yet.</p>
+      <div class="overflow-y-auto pr-1 flex flex-col gap-4">
+        <div class="p-3.5 rounded-xl bg-zinc-900/60 border border-zinc-800/80 flex items-center justify-between">
+          <div>
+            <span class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider block">Your Player Tag</span>
+            <div id="my-tag-display" class="text-sm font-mono font-bold text-white mt-0.5">Player#0000</div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="copyMyPlayerTag()" class="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-zinc-800 hover:bg-zinc-700 text-zinc-200 transition-all flex items-center gap-1">
+              <span>📋</span> <span id="copy-tag-text">Copy</span>
+            </button>
+            <button onclick="copyRoomInviteDirect()" class="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-zinc-800 hover:bg-zinc-700 text-zinc-200 transition-all flex items-center gap-1" title="Copy game link to share">
+              <span>🔗 Link</span>
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <label class="text-[11px] font-semibold text-zinc-400 block mb-1.5">Add Friend by Tag or Name</label>
+          <div class="flex gap-2">
+            <input type="text" id="add-friend-input" onkeydown="if(event.key==='Enter') addFriendAction()" placeholder="e.g. Alex#4821 or Alex" class="flex-1 h-10 rounded-xl px-3 text-xs bg-zinc-900 border border-zinc-800 text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-600 transition-all" maxlength="30" />
+            <button onclick="addFriendAction()" class="px-4 h-10 rounded-xl text-xs font-semibold btn-modern-primary">Add</button>
+          </div>
+          <div id="friend-status-msg" class="text-[11px] font-medium min-h-[16px] mt-1 text-center"></div>
+        </div>
+
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Players Online Right Now
+            </span>
+            <button onclick="loadOnlinePlayers()" class="text-[10px] text-zinc-400 hover:text-white transition-colors">Refresh ↻</button>
+          </div>
+          <div id="online-players-container" class="flex flex-col gap-1.5 max-h-36 overflow-y-auto">
+            <p class="text-xs text-zinc-500 text-center py-2">Loading online players...</p>
+          </div>
+        </div>
+
+        <div class="border-t border-zinc-800/80 pt-3">
+          <span class="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider block mb-2">Mutual Friends</span>
+          <div id="friends-list-container" class="flex flex-col gap-1.5 max-h-40 overflow-y-auto">
+            <p class="text-xs text-zinc-500 text-center py-4">No friends added yet.</p>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
   <!-- HOME SCREEN -->
-  <div id="home-screen" class="absolute inset-0 z-[60] flex flex-col items-center justify-center p-4 sm:p-6 overflow-y-auto" style="background: radial-gradient(circle at 50% 25%, #111827 0%, #080a10 75%);">
+  <div id="home-screen" class="absolute inset-0 z-[60] flex flex-col items-center justify-center p-4 sm:p-6 overflow-y-auto bg-[#09090b]">
     <div class="text-center mb-6">
-      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-[10px] font-black uppercase tracking-[0.25em] mb-2">
-        <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping"></span> Real-Time Multiplayer
-      </div>
-      <h1 class="text-5xl sm:text-6xl font-black tracking-[0.25em] uppercase text-white game-font" style="text-shadow: 0 0 25px rgba(0, 240, 255, 0.6), 0 0 50px rgba(0, 102, 255, 0.3);">DOSA</h1>
-      <p class="text-xs font-bold tracking-[0.4em] text-slate-400 uppercase mt-1 game-font">Cross & Circle Arcade</p>
+      <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight text-white mb-1">DOSA</h1>
+      <p class="text-xs font-medium text-zinc-400 tracking-wide uppercase">Cross & Circle Multiplayer</p>
     </div>
 
-    <div class="w-full max-w-sm p-6 sm:p-8 rounded-3xl text-center game-card">
+    <div class="w-full max-w-sm p-6 sm:p-7 rounded-2xl modern-card text-center">
       <div class="mb-4 text-left">
-        <label class="text-[11px] font-bold text-slate-300 uppercase tracking-widest block mb-1.5">Player Nickname</label>
-        <input type="text" id="nickname-input" placeholder="e.g. Shadow" class="w-full h-12 rounded-xl px-4 text-center text-base font-bold focus:outline-none transition-all" style="background: rgba(255,255,255,0.06); border: 1.5px solid rgba(255,255,255,0.12); color: #f8fafc;" autocomplete="off" maxlength="15" />
+        <label class="text-xs font-semibold text-zinc-300 block mb-1.5">Player Nickname</label>
+        <input type="text" id="nickname-input" oninput="onNicknameChange()" placeholder="e.g. Shadow" class="w-full h-11 rounded-xl px-3.5 text-sm font-medium bg-zinc-900 border border-zinc-800 text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-600 transition-all text-center" autocomplete="off" maxlength="15" />
       </div>
       
       <div class="mb-5 text-left">
-        <label class="text-[11px] font-bold text-slate-300 uppercase tracking-widest block mb-1.5">Room Code</label>
-        <input type="text" id="room-code-input" placeholder="e.g. DOSA" class="w-full h-12 rounded-xl px-4 text-center text-lg font-black uppercase tracking-widest focus:outline-none transition-all" style="background: rgba(255,255,255,0.06); border: 1.5px solid rgba(255,255,255,0.12); color: #00f0ff;" autocomplete="off" maxlength="8" />
+        <label class="text-xs font-semibold text-zinc-300 block mb-1.5">Room Code</label>
+        <input type="text" id="room-code-input" placeholder="e.g. DOSA" class="w-full h-11 rounded-xl px-3.5 text-base font-bold uppercase tracking-wider bg-zinc-900 border border-zinc-800 text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-600 transition-all text-center" autocomplete="off" maxlength="8" />
       </div>
       
-      <button onclick="joinRoom()" class="w-full py-4 rounded-xl font-black tracking-widest uppercase btn-game-primary text-white text-sm mb-2.5">Join / Create Room</button>
-      <button onclick="quickMatchVsAI()" class="w-full py-3 rounded-xl font-bold tracking-wider uppercase btn-game-secondary text-cyan-300 text-xs flex items-center justify-center gap-2">
+      <button onclick="joinRoom()" class="w-full py-3.5 rounded-xl font-semibold btn-modern-primary text-sm mb-2.5">Join / Create Match</button>
+      <button onclick="quickMatchVsAI()" class="w-full py-3 rounded-xl font-medium btn-modern-secondary text-xs flex items-center justify-center gap-2">
         <span>⚡ Quick Match vs AI (Solo)</span>
       </button>
 
-      <p class="text-[11px] text-slate-500 mt-4 font-medium">Play online with friends or challenge smart AI bots.</p>
+      <p class="text-[11px] text-zinc-500 mt-4">Play in real-time with friends or challenge smart bots.</p>
     </div>
     
-    <!-- Open Lobbies Container -->
-    <div id="open-rooms-container" class="w-full max-w-sm mt-4 p-5 rounded-3xl text-center game-card hidden">
-      <p class="text-xs font-bold text-slate-300 uppercase tracking-widest mb-3 text-center">Live Matches & Lobbies</p>
-      <div id="open-rooms-list" class="flex flex-col gap-2 max-h-40 overflow-y-auto pr-1"></div>
+    <div id="open-rooms-container" class="w-full max-w-sm mt-4 p-4 rounded-2xl modern-card hidden">
+      <p class="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2.5 text-center">Active Lobbies</p>
+      <div id="open-rooms-list" class="flex flex-col gap-1.5 max-h-36 overflow-y-auto pr-1"></div>
     </div>
   </div>
 
   <!-- LOBBY SCREEN -->
-  <div id="lobby-screen" class="hidden absolute inset-0 z-50 flex flex-col items-center justify-center p-4 sm:p-6 overflow-y-auto" style="background: radial-gradient(circle at 50% 25%, #111827 0%, #080a10 75%);">
-    <div class="w-full max-w-md p-5 sm:p-6 rounded-3xl game-card">
+  <div id="lobby-screen" class="hidden absolute inset-0 z-50 flex flex-col items-center justify-center p-4 sm:p-6 overflow-y-auto bg-[#09090b]">
+    <div class="w-full max-w-md p-5 sm:p-6 rounded-2xl modern-card">
       
-      <!-- Lobby Header -->
-      <div class="mb-5 pb-4 border-b border-white/10 flex items-center justify-between">
+      <div class="mb-5 pb-4 border-b border-zinc-800 flex items-center justify-between">
         <div>
-          <span class="text-[10px] font-black uppercase tracking-widest text-slate-400 block">Lobby Room</span>
-          <h2 class="text-xl font-black text-white tracking-wider game-font" id="lobby-room-code">ROOM: ----</h2>
+          <span class="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 block">Lobby Room</span>
+          <h2 class="text-lg font-bold text-white tracking-wide" id="lobby-room-code">ROOM: ----</h2>
         </div>
-        <button onclick="copyRoomInvite()" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/20 text-cyan-300 border border-white/15 transition-all flex items-center gap-1.5" title="Copy Invite Link">
+        <button onclick="copyRoomInvite()" class="px-3 py-1.5 rounded-xl text-xs font-medium btn-modern-secondary flex items-center gap-1.5" title="Copy Invite Link">
           <span>📋</span> <span id="copy-btn-text">Copy Link</span>
         </button>
       </div>
 
-      <!-- Character Select 4 Slots Grid -->
       <div class="mb-4">
-        <p class="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-2.5 text-center">Select Your Player Slot</p>
-        <div class="grid grid-cols-2 gap-3" id="lobby-slots-grid">
-          <div id="slot-0" class="rounded-2xl p-2.5 flex flex-col justify-between transition-all" style="background: rgba(255,255,255,0.04); border: 1.5px solid rgba(255,255,255,0.08); min-height: 104px;"></div>
-          <div id="slot-1" class="rounded-2xl p-2.5 flex flex-col justify-between transition-all" style="background: rgba(255,255,255,0.04); border: 1.5px solid rgba(255,255,255,0.08); min-height: 104px;"></div>
-          <div id="slot-2" class="rounded-2xl p-2.5 flex flex-col justify-between transition-all" style="background: rgba(255,255,255,0.04); border: 1.5px solid rgba(255,255,255,0.08); min-height: 104px;"></div>
-          <div id="slot-3" class="rounded-2xl p-2.5 flex flex-col justify-between transition-all" style="background: rgba(255,255,255,0.04); border: 1.5px solid rgba(255,255,255,0.08); min-height: 104px;"></div>
+        <p class="text-xs font-semibold text-zinc-400 mb-2.5 text-center">Select Player Slot</p>
+        <div class="grid grid-cols-2 gap-2.5" id="lobby-slots-grid">
+          <div id="slot-0" class="rounded-xl p-3 flex flex-col justify-between bg-zinc-900/60 border border-zinc-800 min-h-[96px]"></div>
+          <div id="slot-1" class="rounded-xl p-3 flex flex-col justify-between bg-zinc-900/60 border border-zinc-800 min-h-[96px]"></div>
+          <div id="slot-2" class="rounded-xl p-3 flex flex-col justify-between bg-zinc-900/60 border border-zinc-800 min-h-[96px]"></div>
+          <div id="slot-3" class="rounded-xl p-3 flex flex-col justify-between bg-zinc-900/60 border border-zinc-800 min-h-[96px]"></div>
         </div>
       </div>
 
-      <!-- Mode Selector (2 Pegs vs 4 Pegs) -->
       <div class="mb-5">
         <div class="flex items-center justify-between mb-2">
-          <span class="text-[11px] font-black uppercase tracking-widest text-slate-400">Match Mode</span>
-          <span class="text-[10px] font-bold text-slate-500 uppercase" id="host-settings-label">Host Controls</span>
+          <span class="text-xs font-semibold text-zinc-400">Match Mode</span>
+          <span class="text-[10px] font-medium text-zinc-500 uppercase" id="host-settings-label">Host Controls</span>
         </div>
-        <div class="grid grid-cols-2 gap-2 p-1.5 rounded-2xl bg-white/5 border border-white/10">
-          <button id="btn-pegs-2" onclick="setPegs(2)" class="py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all text-slate-400 hover:text-white">⚡ 2 Pegs (Blitz)</button>
-          <button id="btn-pegs-4" onclick="setPegs(4)" class="py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all text-slate-400 hover:text-white">🏆 4 Pegs (Classic)</button>
+        <div class="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-zinc-900 border border-zinc-800">
+          <button id="btn-pegs-2" onclick="setPegs(2)" class="py-2 rounded-lg font-semibold text-xs transition-all text-zinc-400 hover:text-white">2 Pegs (Blitz)</button>
+          <button id="btn-pegs-4" onclick="setPegs(4)" class="py-2 rounded-lg font-semibold text-xs transition-all text-zinc-400 hover:text-white">4 Pegs (Classic)</button>
         </div>
       </div>
 
-      <!-- Start Button Container -->
       <div id="start-btn-container" class="mb-4">
-        <button id="start-btn" onclick="startGame()" disabled class="w-full py-4 rounded-2xl font-black tracking-widest uppercase transition-all disabled:opacity-40 disabled:cursor-not-allowed btn-game-primary text-white text-sm">Waiting for players...</button>
+        <button id="start-btn" onclick="startGame()" disabled class="w-full py-3.5 rounded-xl font-semibold btn-modern-primary text-sm disabled:opacity-40 disabled:cursor-not-allowed">Waiting for players...</button>
       </div>
 
-      <!-- Footer Actions -->
       <div class="flex justify-between items-center px-1 text-xs">
-        <button onclick="leaveRoom()" class="font-bold text-slate-400 uppercase tracking-wider hover:text-rose-400 transition-colors flex items-center gap-1">
+        <button onclick="leaveRoom()" class="font-medium text-zinc-400 hover:text-rose-400 transition-colors flex items-center gap-1">
           <span>🚪</span> Exit Lobby
         </button>
-        <button onclick="resetSession()" class="font-bold text-rose-400/70 uppercase tracking-wider hover:text-rose-400 transition-colors">
-          ⚠ Reset Room
+        <button onclick="resetSession()" class="font-medium text-zinc-500 hover:text-zinc-300 transition-colors">
+          Reset Room
         </button>
       </div>
     </div>
   </div>
 
   <!-- VICTORY SCREEN -->
-  <div id="victory-screen" class="hidden absolute inset-0 z-[60] flex flex-col items-center justify-center p-6" style="background: rgba(15,12,41,0.85); backdrop-filter: blur(20px);">
-    <div class="w-full max-w-sm p-8 rounded-3xl text-center game-card">
-      <div class="text-6xl mb-4 animate-bounce">🏆</div>
-      <h2 class="text-xs font-bold text-indigo-300 uppercase tracking-[0.4em] mb-4 game-font">Final Standings</h2>
-      <div id="winner-name" class="text-left mb-8 space-y-1.5" style="min-height:40px;"></div>
-      <button onclick="returnToLobby()" class="w-full py-4 mb-3 rounded-2xl font-black tracking-widest uppercase transition-all btn-game-primary text-white">Play Again</button>
-      <button onclick="leaveRoom()" class="w-full py-3.5 rounded-2xl font-bold tracking-widest uppercase transition-all btn-game-secondary text-slate-300">Leave Room</button>
+  <div id="victory-screen" class="hidden absolute inset-0 z-[60] flex flex-col items-center justify-center p-6 bg-black/80 backdrop-blur-md">
+    <div class="w-full max-w-sm p-6 sm:p-8 rounded-2xl modern-card text-center">
+      <div class="text-5xl mb-3">🏆</div>
+      <h2 class="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-4">Final Standings</h2>
+      <div id="winner-name" class="text-left mb-6 space-y-2" style="min-height:40px;"></div>
+      <button onclick="returnToLobby()" class="w-full py-3.5 mb-2.5 rounded-xl font-semibold btn-modern-primary text-sm">Play Again</button>
+      <button onclick="leaveRoom()" class="w-full py-3 rounded-xl font-medium btn-modern-secondary text-xs">Leave Room</button>
     </div>
   </div>
 
   <!-- GAME SCREEN -->
   <div id="game-screen" class="hidden h-full flex flex-col justify-between items-center overflow-hidden">
-    <!-- Cyber HUD Header with Active Player Strip -->
     <header class="game-header w-full text-center pt-3 pb-1 relative z-10 flex-shrink-0 max-w-[480px] px-3">
       <div class="flex items-center justify-between mb-2">
-        <button onclick="leaveRoom()" class="w-9 h-9 rounded-xl flex items-center justify-center transition-all btn-game-secondary text-slate-300" title="Exit to Lobby">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clip-rule="evenodd" /></svg>
+        <button onclick="leaveRoom()" class="w-8 h-8 rounded-lg flex items-center justify-center btn-modern-secondary text-xs" title="Exit to Lobby">
+          ✕
         </button>
-        <div class="flex items-center gap-2">
-          <h1 class="text-xl font-black tracking-[0.3em] uppercase game-font" style="color:#00f0ff; text-shadow: 0 0 15px rgba(0,240,255,0.8);">DOSA</h1>
-          <span class="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-pink-500/20 text-pink-400 border border-pink-500/30">ONLINE</span>
-        </div>
-        <div id="status-turn-pill" class="turn-badge bg-white/10 text-white border border-white/20">
+        <div id="status-turn-pill" class="px-3.5 py-1 rounded-full text-xs font-semibold border border-zinc-700 bg-zinc-900 transition-all">
           <span id="status-text">Your Turn</span>
         </div>
+        <button onclick="openFriendsModal()" class="w-8 h-8 rounded-lg flex items-center justify-center btn-modern-secondary text-xs" title="Friends">
+          👥
+        </button>
       </div>
 
-      <!-- Player HUD Chips -->
-      <div id="hud-players-bar" class="grid grid-cols-4 gap-1.5 px-1 py-1 rounded-2xl" style="background: rgba(10, 8, 28, 0.7); border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(16px);"></div>
+      <div id="hud-players-bar" class="grid grid-cols-4 gap-1.5 px-1 py-1 rounded-xl bg-zinc-900/60 border border-zinc-800/80"></div>
     </header>
 
-    <!-- Board Area with Cyber Bezel -->
     <div class="board-wrapper mx-auto relative flex-shrink-0 z-10 my-auto flex items-center justify-center">
       <div id="board-container" class="absolute inset-2 sm:inset-3 transition-transform duration-700 ease-in-out">
-        <!-- Surface with Cyber Bezel -->
         <div class="board-bezel absolute inset-0"></div>
         <div id="holes" class="absolute inset-0 z-0"></div>
         <div id="pieces" class="absolute inset-0 z-10 pointer-events-auto"></div>
       </div>
     </div>
 
-    <!-- Bottom UI Controls -->
     <div class="controls-bar w-full max-w-[420px] mx-auto mt-1 mb-5 px-6 flex justify-between items-center relative z-10 flex-shrink-0">
-      
-      <!-- Emote Button with Tap-to-Toggle & Scrollable Menu -->
       <div class="relative" id="emote-container">
-        <button id="emote-toggle-btn" onclick="toggleEmoteMenu(event)" class="w-16 h-16 rounded-2xl flex items-center justify-center transition-all outline-none text-2xl btn-game-secondary hover:scale-105" title="Chat Emotes">
+        <button id="emote-toggle-btn" onclick="toggleEmoteMenu(event)" class="w-14 h-14 rounded-2xl flex items-center justify-center text-xl btn-modern-secondary" title="Emotes">
           💬
         </button>
-        <div id="emote-picker" class="absolute bottom-full mb-3 left-0 p-2.5 rounded-3xl flex flex-col gap-1.5 hidden z-50 overflow-y-auto max-h-[260px] no-scrollbar game-card border border-white/20">
-          <button onclick="sendEmote('😂')" class="w-11 h-11 flex items-center justify-center rounded-xl text-2xl transition-all hover:scale-125 hover:bg-white/10 active:scale-90">😂</button>
-          <button onclick="sendEmote('🔥')" class="w-11 h-11 flex items-center justify-center rounded-xl text-2xl transition-all hover:scale-125 hover:bg-white/10 active:scale-90">🔥</button>
-          <button onclick="sendEmote('👑')" class="w-11 h-11 flex items-center justify-center rounded-xl text-2xl transition-all hover:scale-125 hover:bg-white/10 active:scale-90">👑</button>
-          <button onclick="sendEmote('😎')" class="w-11 h-11 flex items-center justify-center rounded-xl text-2xl transition-all hover:scale-125 hover:bg-white/10 active:scale-90">😎</button>
-          <button onclick="sendEmote('💀')" class="w-11 h-11 flex items-center justify-center rounded-xl text-2xl transition-all hover:scale-125 hover:bg-white/10 active:scale-90">💀</button>
-          <button onclick="sendEmote('😭')" class="w-11 h-11 flex items-center justify-center rounded-xl text-2xl transition-all hover:scale-125 hover:bg-white/10 active:scale-90">😭</button>
-          <button onclick="sendEmote('😡')" class="w-11 h-11 flex items-center justify-center rounded-xl text-2xl transition-all hover:scale-125 hover:bg-white/10 active:scale-90">😡</button>
-          <button onclick="sendEmote('🎯')" class="w-11 h-11 flex items-center justify-center rounded-xl text-2xl transition-all hover:scale-125 hover:bg-white/10 active:scale-90">🎯</button>
-          <button onclick="sendEmote('🚀')" class="w-11 h-11 flex items-center justify-center rounded-xl text-2xl transition-all hover:scale-125 hover:bg-white/10 active:scale-90">🚀</button>
-          <button onclick="sendEmote('👏')" class="w-11 h-11 flex items-center justify-center rounded-xl text-2xl transition-all hover:scale-125 hover:bg-white/10 active:scale-90">👏</button>
-          <button onclick="sendEmote('🤡')" class="w-11 h-11 flex items-center justify-center rounded-xl text-2xl transition-all hover:scale-125 hover:bg-white/10 active:scale-90">🤡</button>
-          <button onclick="sendEmote('🎲')" class="w-11 h-11 flex items-center justify-center rounded-xl text-2xl transition-all hover:scale-125 hover:bg-white/10 active:scale-90">🎲</button>
-          <button onclick="sendEmote('😮')" class="w-11 h-11 flex items-center justify-center rounded-xl text-2xl transition-all hover:scale-125 hover:bg-white/10 active:scale-90">😮</button>
-          <button onclick="sendEmote('🍀')" class="w-11 h-11 flex items-center justify-center rounded-xl text-2xl transition-all hover:scale-125 hover:bg-white/10 active:scale-90">🍀</button>
-          <button onclick="sendEmote('🐦')" class="w-11 h-11 flex items-center justify-center rounded-xl text-2xl transition-all hover:scale-125 hover:bg-white/10 active:scale-90">🐦</button>
-          <button onclick="sendEmote('💧')" class="w-11 h-11 flex items-center justify-center rounded-xl text-2xl transition-all hover:scale-125 hover:bg-white/10 active:scale-90">💧</button>
+        <div id="emote-picker" class="absolute bottom-full mb-2 left-0 p-2.5 rounded-2xl grid grid-cols-4 gap-1.5 hidden z-50 modern-card w-[210px]">
+          <button onclick="sendEmote('😂')" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-zinc-800 transition-all">😂</button>
+          <button onclick="sendEmote('🔥')" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-zinc-800 transition-all">🔥</button>
+          <button onclick="sendEmote('👑')" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-zinc-800 transition-all">👑</button>
+          <button onclick="sendEmote('😎')" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-zinc-800 transition-all">😎</button>
+          <button onclick="sendEmote('💀')" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-zinc-800 transition-all">💀</button>
+          <button onclick="sendEmote('😭')" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-zinc-800 transition-all">😭</button>
+          <button onclick="sendEmote('😡')" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-zinc-800 transition-all">😡</button>
+          <button onclick="sendEmote('🎯')" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-zinc-800 transition-all">🎯</button>
+          <button onclick="sendEmote('🚀')" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-zinc-800 transition-all">🚀</button>
+          <button onclick="sendEmote('👏')" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-zinc-800 transition-all">👏</button>
+          <button onclick="sendEmote('🤡')" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-zinc-800 transition-all">🤡</button>
+          <button onclick="sendEmote('🎲')" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-zinc-800 transition-all">🎲</button>
         </div>
       </div>
 
-      <button id="dice-btn" onclick="rollDice()" class="w-24 h-24 rounded-3xl flex flex-col items-center justify-center transition-all outline-none relative btn-game-primary" title="Roll Dice">
+      <button id="dice-btn" onclick="rollDice()" class="w-20 h-20 rounded-2xl flex flex-col items-center justify-center transition-all bg-white hover:bg-zinc-200 active:scale-95 shadow-md" title="Roll Dice">
         <div class="dice-scene pointer-events-none">
-          <div class="cube" id="dice-cube" style="--player-color: #ff0077;">
+          <div class="cube" id="dice-cube" style="--player-color: #f43f5e;">
             <div class="face face-1"><div class="dot"></div></div>
             <div class="face face-2"><div class="dot"></div><div class="dot"></div></div>
-            <div class="face face-3"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
-            <div class="face face-4"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+            <div class="face face-3"><div class="dot"></div><div class="dot"></div></div>
+            <div class="face face-4"><div class="dot"></div><div class="dot"></div></div>
             <div class="face face-5"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
             <div class="face face-6"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
           </div>
         </div>
       </button>
 
-      <div class="w-16 h-16 pointer-events-none"></div>
+      <div class="w-14 h-14 pointer-events-none"></div>
     </div>
   </div>
 
 <script>
 const socket = io();
 
-
 // =============== BOARD CONSTANTS ===============
-let GRID_SIZE = 19; // -9 to 9
+let GRID_SIZE = 19;
 let OFFSET = 9;
 
 let JAILS = {
-  0: [[-1.5, -9], [-0.5, -9], [0.5, -9], [1.5, -9]], // Top
-  1: [[9, -1.5], [9, -0.5], [9, 0.5], [9, 1.5]],     // Right
-  2: [[1.5, 9], [0.5, 9], [-0.5, 9], [-1.5, 9]],     // Bottom
-  3: [[-9, 1.5], [-9, 0.5], [-9, -0.5], [-9, -1.5]]  // Left
+  0: [[-1.5, -9], [-0.5, -9], [0.5, -9], [1.5, -9]],
+  1: [[9, -1.5], [9, -0.5], [9, 0.5], [9, 1.5]],
+  2: [[1.5, 9], [0.5, 9], [-0.5, 9], [-1.5, 9]],
+  3: [[-9, 1.5], [-9, 0.5], [-9, -0.5], [-9, -1.5]]
 };
 
 let HOMES = {
@@ -552,7 +452,6 @@ let HOMES = {
 
 const GOAL = [0, 0];
 
-// 64 spaces around the perimeter
 let PERIMETER = [
   [-2, -8], [-1, -8], [0, -8], [1, -8], [2, -8],
   [2, -7], [2, -6], [2, -5], [2, -4], [2, -3], [2, -2],
@@ -568,8 +467,8 @@ let PERIMETER = [
   [-2, -3], [-2, -4], [-2, -5], [-2, -6], [-2, -7]
 ];
 
-let START_SPACES = [4, 20, 36, 52]; // Left outer corner when facing center
-let SHORTCUT_SPACES = [10, 26, 42, 58]; // The 4 inner corners
+let START_SPACES = [4, 20, 36, 52];
+let SHORTCUT_SPACES = [10, 26, 42, 58];
 
 function updateBoardConstants() {
   const is2Pegs = (pegsCountGlobal === 2);
@@ -625,19 +524,19 @@ function updateBoardConstants() {
 }
 
 const PLAYERS = {
-  0: { color: 'bg-[#ff0077]', dotColor: '#ff0077', glow: 'shadow-[0_0_20px_#ff0077]', text: 'text-[#ff0077]', name: 'Player 1' },
-  1: { color: 'bg-[#00f0ff]', dotColor: '#00f0ff', glow: 'shadow-[0_0_20px_#00f0ff]', text: 'text-[#00f0ff]', name: 'Player 2' },
-  2: { color: 'bg-[#ffbe0b]', dotColor: '#ffbe0b', glow: 'shadow-[0_0_20px_#ffbe0b]', text: 'text-[#ffbe0b]', name: 'Player 3' },
-  3: { color: 'bg-[#00ff88]', dotColor: '#00ff88', glow: 'shadow-[0_0_20px_#00ff88]', text: 'text-[#00ff88]', name: 'Player 4' }
+  0: { color: 'bg-rose-500', dotColor: '#f43f5e', text: 'text-rose-400', name: 'Player 1' },
+  1: { color: 'bg-sky-400', dotColor: '#38bdf8', text: 'text-sky-400', name: 'Player 2' },
+  2: { color: 'bg-amber-400', dotColor: '#fbbf24', text: 'text-amber-400', name: 'Player 3' },
+  3: { color: 'bg-emerald-400', dotColor: '#34d399', text: 'text-emerald-400', name: 'Player 4' }
 };
 
 const DICE_ROTATIONS = [
-  'rotateX(0deg) rotateY(0deg)',      // 1
-  'rotateX(0deg) rotateY(-90deg)',    // 2
-  'rotateX(-90deg) rotateY(0deg)',    // 3
-  'rotateX(90deg) rotateY(0deg)',     // 4
-  'rotateX(0deg) rotateY(90deg)',     // 5
-  'rotateX(0deg) rotateY(180deg)'     // 6
+  'rotateX(0deg) rotateY(0deg)',
+  'rotateX(0deg) rotateY(-90deg)',
+  'rotateX(-90deg) rotateY(0deg)',
+  'rotateX(90deg) rotateY(0deg)',
+  'rotateX(0deg) rotateY(90deg)',
+  'rotateX(0deg) rotateY(180deg)'
 ];
 
 // =============== MULTIPLAYER STATE ===============
@@ -656,10 +555,9 @@ let diceValue = null;
 let diceRolled = false;
 let validMoves = [];
 let isAnimating = false;
-let finishedPlayers = []; // tracks finish order (slot indices)
+let finishedPlayers = [];
 let jailMissCounter = {0: 0, 1: 0, 2: 0, 3: 0};
 
-// Storage helpers that persist across mobile background throttling and tab reloads
 function saveSession(key, value) {
   try {
     sessionStorage.setItem(key, value);
@@ -682,17 +580,325 @@ function clearSession(key) {
   } catch(e) {}
 }
 
+// =============== PLAYER IDENTITY & FRIENDS ===============
+let currentPlayerIdentity = null;
+
+async function initPlayerIdentity() {
+  try {
+    let saved = localStorage.getItem('dosaPlayer');
+    if (saved) {
+      currentPlayerIdentity = JSON.parse(saved);
+    }
+  } catch(e) {}
+
+  if (!currentPlayerIdentity || !currentPlayerIdentity.id) {
+    const rawName = getSession('dosaName') || 'Player';
+    currentPlayerIdentity = {
+      id: 'p_' + Math.random().toString(36).substring(2, 9),
+      username: rawName,
+      tag: rawName + '#' + Math.floor(1000 + Math.random() * 9000)
+    };
+  }
+
+  try {
+    const res = await fetch('/api/player/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(currentPlayerIdentity)
+    });
+    if (res.ok) {
+      const data = await res.json();
+      currentPlayerIdentity = data;
+    }
+  } catch(e) {}
+
+  localStorage.setItem('dosaPlayer', JSON.stringify(currentPlayerIdentity));
+  updateIdentityDisplay();
+  
+  if (socket.connected) {
+    socket.emit('register_identity', currentPlayerIdentity);
+  }
+  loadFriendsList();
+}
+
+function updateIdentityDisplay() {
+  if (!currentPlayerIdentity) return;
+  const navTag = document.getElementById('nav-player-tag');
+  const myTagDisplay = document.getElementById('my-tag-display');
+  const nickInput = document.getElementById('nickname-input');
+
+  if (navTag) navTag.innerText = currentPlayerIdentity.tag || currentPlayerIdentity.username;
+  if (myTagDisplay) myTagDisplay.innerText = currentPlayerIdentity.tag;
+  if (nickInput && !nickInput.value) nickInput.value = currentPlayerIdentity.username;
+}
+
+let nicknameTimeout = null;
+function onNicknameChange() {
+  clearTimeout(nicknameTimeout);
+  nicknameTimeout = setTimeout(async () => {
+    const nickInput = document.getElementById('nickname-input');
+    const newName = (nickInput?.value || '').trim();
+    if (!newName || !currentPlayerIdentity) return;
+    
+    currentPlayerIdentity.username = newName;
+    const parts = (currentPlayerIdentity.tag || '').split('#');
+    const code = parts[1] || Math.floor(1000 + Math.random() * 9000);
+    currentPlayerIdentity.tag = newName + '#' + code;
+    
+    saveSession('dosaName', newName);
+    localStorage.setItem('dosaPlayer', JSON.stringify(currentPlayerIdentity));
+    updateIdentityDisplay();
+
+    try {
+      await fetch('/api/player/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(currentPlayerIdentity)
+      });
+      socket.emit('register_identity', currentPlayerIdentity);
+    } catch(e) {}
+  }, 600);
+}
+
+function copyMyPlayerTag() {
+  if (!currentPlayerIdentity) return;
+  navigator.clipboard?.writeText(currentPlayerIdentity.tag);
+  const btnText = document.getElementById('copy-tag-text');
+  if (btnText) {
+    btnText.innerText = 'Copied!';
+    setTimeout(() => { btnText.innerText = 'Copy'; }, 2000);
+  }
+}
+
+function copyRoomInviteDirect() {
+  const code = getSession('dosaRoom') || document.getElementById('room-code-input')?.value.trim() || 'DOSA';
+  const url = window.location.origin + '/?room=' + code;
+  navigator.clipboard?.writeText(url);
+  showToast('🔗 Room invite link copied to clipboard!');
+}
+
+function openFriendsModal() {
+  document.getElementById('friends-modal')?.classList.remove('hidden');
+  const statusMsg = document.getElementById('friend-status-msg');
+  if (statusMsg) statusMsg.innerText = '';
+  loadOnlinePlayers();
+  loadFriendsList();
+}
+
+function closeFriendsModal() {
+  document.getElementById('friends-modal')?.classList.add('hidden');
+}
+
+async function loadOnlinePlayers() {
+  const container = document.getElementById('online-players-container');
+  if (!container || !currentPlayerIdentity) return;
+  try {
+    const res = await fetch('/api/online-players?exclude=' + currentPlayerIdentity.id);
+    const online = await res.json();
+    if (!Array.isArray(online) || online.length === 0) {
+      container.innerHTML = '<p class="text-xs text-zinc-500 text-center py-2">No other players online right now.</p>';
+      return;
+    }
+    container.innerHTML = '';
+    online.forEach(p => {
+      const row = document.createElement('div');
+      row.className = 'flex items-center justify-between p-2 rounded-xl bg-zinc-900/80 border border-zinc-800 text-xs';
+      row.innerHTML = `
+        <div class="flex items-center gap-2 truncate">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0"></span>
+          <span class="font-medium text-white truncate">${p.tag || p.username}</span>
+        </div>
+        <div class="flex items-center gap-1.5 flex-shrink-0">
+          <button onclick="quickAddOnlineFriend('${p.tag || p.username}')" class="px-2 py-1 rounded-lg text-[10px] font-semibold bg-zinc-800 hover:bg-zinc-700 text-zinc-200 transition-all">+ Add</button>
+          <button onclick="inviteFriend('${p.id}', '${p.username}')" class="px-2 py-1 rounded-lg text-[10px] font-semibold bg-zinc-800 hover:bg-zinc-700 text-white transition-all">Invite</button>
+        </div>
+      `;
+      container.appendChild(row);
+    });
+  } catch(e) {
+    container.innerHTML = '<p class="text-xs text-zinc-500 text-center py-2">Could not load players.</p>';
+  }
+}
+
+async function loadFriendsList() {
+  if (!currentPlayerIdentity) return;
+  const container = document.getElementById('friends-list-container');
+  const badge = document.getElementById('friends-badge-count');
+  try {
+    const res = await fetch('/api/friends/' + currentPlayerIdentity.id);
+    const friends = await res.json();
+    if (badge) {
+      badge.innerText = Array.isArray(friends) && friends.length > 0 ? 'Friends (' + friends.length + ')' : 'Friends';
+    }
+    if (!container) return;
+    if (!Array.isArray(friends) || friends.length === 0) {
+      container.innerHTML = '<p class="text-xs text-zinc-500 text-center py-4">No friends added yet.<br><span class="text-[10px] text-zinc-600">Add by tag above or click "+ Add" under Online Players!</span></p>';
+      return;
+    }
+    container.innerHTML = '';
+    friends.forEach(f => {
+      const isOnline = !!f.isOnline;
+      const statusDot = isOnline
+        ? '<span class="w-2 h-2 rounded-full bg-emerald-400" title="Online"></span>'
+        : '<span class="w-2 h-2 rounded-full bg-zinc-600" title="Offline"></span>';
+      const statusText = isOnline
+        ? '<span class="text-[10px] text-emerald-400 font-semibold">Online</span>'
+        : '<span class="text-[10px] text-zinc-500 font-medium">Offline</span>';
+
+      const row = document.createElement('div');
+      row.className = 'flex items-center justify-between p-2 rounded-xl bg-zinc-900/60 border border-zinc-800';
+      row.innerHTML = `
+        <div class="flex items-center gap-2 truncate">
+          ${statusDot}
+          <div class="truncate">
+            <div class="text-xs font-semibold text-white truncate">${f.tag || f.username}</div>
+            ${statusText}
+          </div>
+        </div>
+        <div class="flex items-center gap-1.5 flex-shrink-0">
+          <button onclick="inviteFriend('${f.id}', '${f.username}')" class="px-2.5 py-1 rounded-lg text-[10px] font-semibold btn-modern-primary">Invite</button>
+          <button onclick="removeFriendAction('${f.id}')" class="text-zinc-500 hover:text-rose-400 p-1 text-xs transition-colors" title="Remove Friend">✕</button>
+        </div>
+      `;
+      container.appendChild(row);
+    });
+  } catch(e) {
+    if (container) container.innerHTML = '<p class="text-xs text-rose-400 text-center py-2">Error loading friends.</p>';
+  }
+}
+
+async function addFriendAction() {
+  if (!currentPlayerIdentity) return;
+  const input = document.getElementById('add-friend-input');
+  const msg = document.getElementById('friend-status-msg');
+  const query = (input?.value || '').trim();
+  if (!query) {
+    msg.className = 'text-[11px] font-semibold text-amber-400 text-center min-h-[16px] mt-1';
+    msg.innerText = 'Please enter a player tag or username';
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/friends', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: currentPlayerIdentity.id, query })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      msg.className = 'text-[11px] font-semibold text-rose-400 text-center min-h-[16px] mt-1';
+      msg.innerText = data.error || 'Failed to add player';
+      return;
+    }
+    msg.className = 'text-[11px] font-semibold text-emerald-400 text-center min-h-[16px] mt-1';
+    msg.innerText = 'Connected with ' + (data.tag || data.username) + '!';
+    input.value = '';
+    loadFriendsList();
+  } catch(e) {
+    msg.className = 'text-[11px] font-semibold text-rose-400 text-center min-h-[16px] mt-1';
+    msg.innerText = 'Network error. Please try again.';
+  }
+}
+
+async function quickAddOnlineFriend(tagOrName) {
+  const input = document.getElementById('add-friend-input');
+  if (input) input.value = tagOrName;
+  addFriendAction();
+}
+
+async function removeFriendAction(friendId) {
+  if (!currentPlayerIdentity) return;
+  try {
+    await fetch('/api/friends', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: currentPlayerIdentity.id, friendId })
+    });
+    loadFriendsList();
+  } catch(e) {}
+}
+
+function inviteFriend(friendId, friendUsername) {
+  const code = getSession('dosaRoom') || document.getElementById('room-code-input')?.value.trim() || 'DOSA';
+  socket.emit('send_friend_invite', {
+    friendId,
+    fromUsername: currentPlayerIdentity ? currentPlayerIdentity.username : 'Friend',
+    roomId: code,
+    friendUsername
+  });
+  navigator.clipboard?.writeText(window.location.origin + '/?room=' + code);
+  showToast('Invite sent to ' + friendUsername + '! Link copied to clipboard.');
+}
+
+function showToast(text) {
+  const old = document.getElementById('app-floating-toast');
+  if (old) old.remove();
+  const toast = document.createElement('div');
+  toast.id = 'app-floating-toast';
+  toast.className = 'fixed top-4 left-1/2 -translate-x-1/2 z-[250] px-4 py-2 rounded-xl text-xs font-semibold bg-zinc-900 border border-zinc-700 text-white shadow-xl flex items-center gap-2 animate-fade-in';
+  toast.innerText = text;
+  document.body.appendChild(toast);
+  setTimeout(() => toast?.remove(), 3000);
+}
+
+socket.on('friends_updated', () => {
+  loadFriendsList();
+  loadOnlinePlayers();
+});
+
+socket.on('invite_status', (data) => {
+  const msg = document.getElementById('friend-status-msg');
+  if (msg) {
+    msg.className = data.success
+      ? 'text-[11px] font-semibold text-emerald-400 text-center min-h-[16px] mt-1'
+      : 'text-[11px] font-semibold text-amber-400 text-center min-h-[16px] mt-1';
+    msg.innerText = data.message;
+  }
+});
+
+socket.on('receive_friend_invite', (data) => {
+  playSafeSound();
+  document.getElementById('friend-invite-toast')?.remove();
+
+  const toast = document.createElement('div');
+  toast.id = 'friend-invite-toast';
+  toast.className = 'fixed top-4 left-1/2 -translate-x-1/2 z-[300] max-w-sm w-[92%] p-4 rounded-2xl modern-card border border-zinc-700 flex items-center justify-between gap-3 shadow-2xl';
+
+  toast.innerHTML = `
+    <div class="flex items-center gap-2.5 truncate">
+      <div class="w-9 h-9 rounded-xl flex items-center justify-center text-lg bg-zinc-800 text-white flex-shrink-0">🎮</div>
+      <div class="truncate">
+        <div class="text-xs font-bold text-white truncate"><span class="text-white">${data.fromUsername}</span> invited you!</div>
+        <div class="text-[10px] text-zinc-400 uppercase tracking-wider font-mono">Room: ${data.roomId}</div>
+      </div>
+    </div>
+    <div class="flex items-center gap-1.5 flex-shrink-0">
+      <button onclick="acceptFriendInvite('${data.roomId}')" class="px-3 py-1.5 rounded-lg text-xs font-semibold btn-modern-primary">Join</button>
+      <button onclick="document.getElementById('friend-invite-toast').remove()" class="w-7 h-7 rounded-lg flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-800 text-xs">✕</button>
+    </div>
+  `;
+  document.body.appendChild(toast);
+  setTimeout(() => toast?.remove(), 25000);
+});
+
+function acceptFriendInvite(roomId) {
+  document.getElementById('friend-invite-toast')?.remove();
+  const roomInput = document.getElementById('room-code-input');
+  if (roomInput) roomInput.value = roomId;
+  joinRoom();
+}
+
 // =============== NETWORK HANDLERS ===============
 socket.on('connect', () => {
-  if (currentUser) {
-    socket.emit('register_user', currentUser.id);
+  if (currentPlayerIdentity) {
+    socket.emit('register_identity', currentPlayerIdentity);
   }
   const code = getSession('dosaRoom');
   const slot = getSession('dosaSlot');
   const name = getSession('dosaName');
   
   if (code && slot !== null) {
-    socket.emit('reclaim_slot', { roomId: code, slot: parseInt(slot), playerName: name || `Player ${parseInt(slot) + 1}` });
+    socket.emit('reclaim_slot', { roomId: code, slot: parseInt(slot), playerName: name || ('Player ' + (parseInt(slot) + 1)) });
     setTimeout(() => socket.emit('request_sync'), 300);
   } else if (code) {
     socket.emit('join_room', code); 
@@ -720,13 +926,11 @@ socket.on('sync_data', (state) => {
     activeSlots = state.activeSlots;
     pegsCountGlobal = state.pegsCountGlobal;
     visualMap = state.visualMap;
-    if (state.playerNames) {
-      latestPlayerNames = state.playerNames;
-    }
+    if (state.playerNames) latestPlayerNames = state.playerNames;
     if (state.slots) {
       latestSlots = state.slots;
       mySlot = null;
-      for(let i=0; i<4; i++) {
+      for (let i = 0; i < 4; i++) {
         if (state.slots[i] === socket.id) {
           mySlot = i;
           break;
@@ -734,13 +938,9 @@ socket.on('sync_data', (state) => {
       }
       if (mySlot === null) {
         const savedSlot = getSession('dosaSlot');
-        if (savedSlot !== null) {
-          mySlot = parseInt(savedSlot);
-        }
+        if (savedSlot !== null) mySlot = parseInt(savedSlot);
       }
-      if (mySlot !== null) {
-        saveSession('dosaSlot', mySlot);
-      }
+      if (mySlot !== null) saveSession('dosaSlot', mySlot);
       isHost = (state.slots.find(s => s !== null && s !== 'bot') === socket.id);
     }
 
@@ -754,25 +954,19 @@ socket.on('sync_data', (state) => {
   }
 });
 
-// Failsafe for mobile background throttling
 setInterval(() => {
   if (isAnimating) {
     const cube = document.getElementById('dice-cube');
-    cube.classList.remove('rolling');
+    if (cube) cube.classList.remove('rolling');
     isAnimating = false;
     updateUI();
   }
 }, 3000);
 
 socket.on('lobby_state', (state) => {
-  if (state.slots) {
-    latestSlots = state.slots;
-  }
-  if (state.playerNames) {
-    latestPlayerNames = state.playerNames;
-  }
+  if (state.slots) latestSlots = state.slots;
+  if (state.playerNames) latestPlayerNames = state.playerNames;
 
-  // Determine mySlot strictly from server state
   mySlot = null;
   for (let i = 0; i < 4; i++) {
     if (state.slots[i] === socket.id) {
@@ -780,11 +974,8 @@ socket.on('lobby_state', (state) => {
       break;
     }
   }
-  if (mySlot !== null) {
-    saveSession('dosaSlot', mySlot);
-  } else {
-    clearSession('dosaSlot');
-  }
+  if (mySlot !== null) saveSession('dosaSlot', mySlot);
+  else clearSession('dosaSlot');
 
   isHost = (state.host === socket.id || state.slots.find(s => s !== null && s !== 'bot') === socket.id);
 
@@ -800,99 +991,96 @@ socket.on('lobby_state', (state) => {
   document.getElementById('lobby-screen').classList.remove('hidden');
   document.getElementById('game-screen').classList.add('hidden');
   document.getElementById('victory-screen').classList.add('hidden');
-  document.getElementById('lobby-room-code').innerText = `ROOM: ${state.roomId}`;
+  document.getElementById('lobby-room-code').innerText = 'ROOM: ' + state.roomId;
 
-  // Render 4 Player Cards
   for (let i = 0; i < 4; i++) {
-    const slotEl = document.getElementById(`slot-${i}`);
+    const slotEl = document.getElementById('slot-' + i);
     if (!slotEl) continue;
     const col = PLAYERS[i].dotColor;
     const isMe = (state.slots[i] === socket.id);
     const isOccupied = !!state.slots[i];
     const isBot = (state.slots[i] === 'bot');
-    const pName = state.playerNames[i] || `Player ${i+1}`;
+    const pName = state.playerNames[i] || ('Player ' + (i+1));
 
     if (isMe) {
-      slotEl.style.cssText = `background: linear-gradient(135deg, ${col}25, rgba(16,22,36,0.95)); border: 2px solid ${col}; box-shadow: 0 0 20px ${col}44; min-height: 104px;`;
-      slotEl.innerHTML = `
-        <div class="flex items-center justify-between w-full mb-1">
-          <div class="flex items-center gap-1.5">
-            <div class="w-3 h-3 rounded-full" style="background:${col}; box-shadow:0 0 8px ${col};"></div>
-            <span class="text-[11px] font-black tracking-wider uppercase text-white">P${i+1}</span>
-          </div>
-          <span class="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">YOU</span>
-        </div>
-        <div class="text-center my-auto py-1">
-          <div class="text-sm font-black text-white truncate px-1">${pName}</div>
-        </div>
-        <div class="w-full py-1 text-center text-[10px] font-bold text-emerald-400 bg-emerald-500/10 rounded-lg">Active Slot</div>
-      `;
-    } else if (isBot) {
-      slotEl.style.cssText = `background: rgba(255,255,255,0.03); border: 1.5px solid rgba(255,255,255,0.1); min-height: 104px;`;
+      slotEl.className = 'rounded-xl p-3 flex flex-col justify-between bg-zinc-900 border-2 border-white/60 min-h-[96px] shadow-sm';
       slotEl.innerHTML = `
         <div class="flex items-center justify-between w-full mb-1">
           <div class="flex items-center gap-1.5">
             <div class="w-2.5 h-2.5 rounded-full" style="background:${col};"></div>
-            <span class="text-[11px] font-bold uppercase text-slate-400">P${i+1}</span>
+            <span class="text-xs font-bold text-white">P${i+1}</span>
           </div>
-          <span class="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">BOT</span>
+          <span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-white text-zinc-950">YOU</span>
         </div>
-        <div class="text-center my-auto py-1">
-          <div class="text-xs font-bold text-slate-300 truncate px-1">${pName}</div>
+        <div class="text-center my-auto py-0.5">
+          <div class="text-xs font-semibold text-white truncate px-1">${pName}</div>
+        </div>
+        <div class="w-full py-1 text-center text-[10px] font-semibold text-zinc-400 bg-zinc-800/50 rounded-lg">Active Slot</div>
+      `;
+    } else if (isBot) {
+      slotEl.className = 'rounded-xl p-3 flex flex-col justify-between bg-zinc-900/60 border border-zinc-800 min-h-[96px]';
+      slotEl.innerHTML = `
+        <div class="flex items-center justify-between w-full mb-1">
+          <div class="flex items-center gap-1.5">
+            <div class="w-2.5 h-2.5 rounded-full" style="background:${col};"></div>
+            <span class="text-xs font-medium text-zinc-400">P${i+1}</span>
+          </div>
+          <span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400">BOT</span>
+        </div>
+        <div class="text-center my-auto py-0.5">
+          <div class="text-xs font-medium text-zinc-300 truncate px-1">${pName}</div>
         </div>
         <div class="flex gap-1.5 w-full">
-          <button onclick="joinSlot(${i})" class="flex-1 py-1.5 rounded-lg text-[11px] font-bold bg-white/10 hover:bg-white/20 text-white transition-all">Take Slot</button>
-          ${isHost ? `<button onclick="removeBot(${i})" class="w-8 py-1.5 rounded-lg text-xs font-bold bg-rose-500/20 text-rose-300 hover:bg-rose-500/35 transition-all">✕</button>` : ''}
+          <button onclick="joinSlot(${i})" class="flex-1 py-1 rounded-lg text-[10px] font-medium bg-zinc-800 hover:bg-zinc-700 text-white transition-all">Take</button>
+          ${isHost ? `<button onclick="removeBot(${i})" class="w-7 py-1 rounded-lg text-xs font-bold bg-zinc-800 hover:bg-rose-500/20 text-rose-400 transition-all">✕</button>` : ''}
         </div>
       `;
     } else if (isOccupied) {
-      slotEl.style.cssText = `background: rgba(255,255,255,0.03); border: 1.5px solid rgba(255,255,255,0.1); min-height: 104px;`;
+      slotEl.className = 'rounded-xl p-3 flex flex-col justify-between bg-zinc-900/60 border border-zinc-800 min-h-[96px]';
       slotEl.innerHTML = `
         <div class="flex items-center justify-between w-full mb-1">
           <div class="flex items-center gap-1.5">
             <div class="w-2.5 h-2.5 rounded-full" style="background:${col};"></div>
-            <span class="text-[11px] font-bold uppercase text-slate-400">P${i+1}</span>
+            <span class="text-xs font-medium text-zinc-400">P${i+1}</span>
           </div>
-          <span class="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">READY</span>
+          <span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400">READY</span>
         </div>
-        <div class="text-center my-auto py-1">
-          <div class="text-xs font-bold text-slate-200 truncate px-1">${pName}</div>
+        <div class="text-center my-auto py-0.5">
+          <div class="text-xs font-medium text-zinc-200 truncate px-1">${pName}</div>
         </div>
-        <div class="w-full py-1 text-center text-[10px] font-bold text-slate-400 bg-white/5 rounded-lg">Occupied</div>
+        <div class="w-full py-1 text-center text-[10px] font-medium text-zinc-500 bg-zinc-950/40 rounded-lg">Occupied</div>
       `;
     } else {
-      // Empty Slot
-      slotEl.style.cssText = `background: rgba(255,255,255,0.02); border: 1.5px dashed rgba(255,255,255,0.15); min-height: 104px;`;
+      slotEl.className = 'rounded-xl p-3 flex flex-col justify-between bg-zinc-900/30 border border-dashed border-zinc-800 min-h-[96px]';
       slotEl.innerHTML = `
         <div class="flex items-center justify-between w-full mb-1">
           <div class="flex items-center gap-1.5">
-            <div class="w-2.5 h-2.5 rounded-full opacity-40" style="background:${col};"></div>
-            <span class="text-[11px] font-bold uppercase text-slate-500">P${i+1}</span>
+            <div class="w-2.5 h-2.5 rounded-full opacity-30" style="background:${col};"></div>
+            <span class="text-xs font-medium text-zinc-500">P${i+1}</span>
           </div>
-          <span class="text-[9px] font-bold uppercase text-slate-600">OPEN</span>
+          <span class="text-[9px] font-medium uppercase text-zinc-600">OPEN</span>
         </div>
         <div class="text-center my-auto py-0.5">
-          <div class="text-xs font-medium text-slate-500">Empty</div>
+          <div class="text-xs font-normal text-zinc-500">Empty</div>
         </div>
         <div class="flex gap-1.5 w-full">
-          <button onclick="joinSlot(${i})" class="flex-1 py-1.5 rounded-lg text-[11px] font-bold transition-all bg-cyan-500/20 hover:bg-cyan-500/35 text-cyan-300 border border-cyan-500/30 active:scale-95">Claim</button>
-          ${isHost ? `<button onclick="addBot(${i})" class="px-2 py-1.5 rounded-lg text-xs font-bold bg-white/10 hover:bg-white/20 text-slate-300 border border-white/15 transition-all" title="Add Bot">🤖</button>` : ''}
+          <button onclick="joinSlot(${i})" class="flex-1 py-1 rounded-lg text-[10px] font-semibold btn-modern-primary">Claim</button>
+          ${isHost ? `<button onclick="addBot(${i})" class="px-2 py-1 rounded-lg text-xs font-bold btn-modern-secondary" title="Add Bot">🤖</button>` : ''}
         </div>
       `;
     }
   }
   
-  // Update Pegs Mode UI
   const pegs = state.gameSettings.pegsPerPlayer;
   const btn2 = document.getElementById('btn-pegs-2');
   const btn4 = document.getElementById('btn-pegs-4');
   if (btn2 && btn4) {
     if (pegs === 2) {
-      btn2.className = "py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-[0_0_15px_rgba(0,240,255,0.35)]";
-      btn4.className = "py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all text-slate-400 hover:text-white bg-transparent";
+      btn2.className = "py-2 rounded-lg font-semibold text-xs transition-all bg-white text-zinc-950 shadow-sm";
+      btn4.className = "py-2 rounded-lg font-semibold text-xs transition-all text-zinc-400 hover:text-white bg-transparent";
     } else {
-      btn2.className = "py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all text-slate-400 hover:text-white bg-transparent";
-      btn4.className = "py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-[0_0_15px_rgba(0,240,255,0.35)]";
+      btn2.className = "py-2 rounded-lg font-semibold text-xs transition-all text-zinc-400 hover:text-white bg-transparent";
+      btn4.className = "py-2 rounded-lg font-semibold text-xs transition-all bg-white text-zinc-950 shadow-sm";
     }
   }
 
@@ -901,25 +1089,24 @@ socket.on('lobby_state', (state) => {
     hostLabel.innerText = isHost ? "Host Controls" : "Controlled by Host";
   }
 
-  // Start Button Configuration
   const startContainer = document.getElementById('start-btn-container');
   const totalPlayers = state.slots.filter(s => s !== null).length;
   if (startContainer) {
     if (isHost) {
       if (totalPlayers >= 2) {
-        startContainer.innerHTML = `<button id="start-btn" onclick="startGame()" class="w-full py-4 rounded-2xl font-black tracking-widest uppercase btn-game-primary text-white text-sm shadow-[0_0_20px_rgba(0,240,255,0.4)]">START MATCH 🚀</button>`;
+        startContainer.innerHTML = `<button id="start-btn" onclick="startGame()" class="w-full py-3.5 rounded-xl font-semibold btn-modern-primary text-sm shadow-sm">START MATCH 🚀</button>`;
       } else {
         startContainer.innerHTML = `
           <div class="flex flex-col gap-2">
-            <button id="start-btn" onclick="addBotAndStart()" class="w-full py-4 rounded-2xl font-black tracking-widest uppercase btn-game-primary text-white text-xs flex items-center justify-center gap-2">
+            <button id="start-btn" onclick="addBotAndStart()" class="w-full py-3.5 rounded-xl font-semibold btn-modern-primary text-xs flex items-center justify-center gap-2">
               <span>🤖 ADD AI BOT & START MATCH</span>
             </button>
-            <p class="text-[10px] text-center text-slate-400">At least 2 players or bots needed to start</p>
+            <p class="text-[10px] text-center text-zinc-500">At least 2 players or bots needed</p>
           </div>
         `;
       }
     } else {
-      startContainer.innerHTML = `<button id="start-btn" disabled class="w-full py-4 rounded-2xl font-black tracking-widest uppercase bg-white/5 border border-white/10 text-slate-500 cursor-not-allowed text-xs">WAITING FOR HOST TO START...</button>`;
+      startContainer.innerHTML = `<button id="start-btn" disabled class="w-full py-3.5 rounded-xl font-semibold bg-zinc-900 border border-zinc-800 text-zinc-500 cursor-not-allowed text-xs">WAITING FOR HOST TO START...</button>`;
     }
   }
 });
@@ -927,7 +1114,7 @@ socket.on('lobby_state', (state) => {
 function copyRoomInvite() {
   const code = getSession('dosaRoom');
   if (!code) return;
-  const url = `${window.location.origin}/?room=${code}`;
+  const url = window.location.origin + '/?room=' + code;
   navigator.clipboard?.writeText(url);
   const btnText = document.getElementById('copy-btn-text');
   if (btnText) {
@@ -970,7 +1157,7 @@ function joinSlot(slotIndex) {
   if (latestSlots && latestSlots[slotIndex] && latestSlots[slotIndex] !== socket.id && latestSlots[slotIndex] !== 'bot') {
     return;
   }
-  const name = document.getElementById('nickname-input')?.value.trim() || `Player ${slotIndex + 1}`;
+  const name = document.getElementById('nickname-input')?.value.trim() || ('Player ' + (slotIndex + 1));
   saveSession('dosaSlot', slotIndex);
   saveSession('dosaName', name);
   mySlot = slotIndex;
@@ -1027,14 +1214,11 @@ socket.on('game_started', (data) => {
   document.getElementById('game-screen').classList.add('flex');
   pegsCountGlobal = data.gameSettings.pegsPerPlayer;
   latestSlots = data.slots;
-  if (data.playerNames) {
-    latestPlayerNames = data.playerNames;
-  }
+  if (data.playerNames) latestPlayerNames = data.playerNames;
   activeSlots = data.slots.map((s, i) => s ? i : null).filter(i => i !== null);
 
-  // Recalculate mySlot and isHost to prevent any desync at start
   mySlot = null;
-  for(let i=0; i<4; i++) {
+  for (let i = 0; i < 4; i++) {
     if (data.slots[i] === socket.id) {
       mySlot = i;
       break;
@@ -1067,10 +1251,9 @@ socket.on('dice_rolled', (data) => {
     diceRolled = true;
     isAnimating = false;
 
-    // Bot emote on 6:
     if (isHost && latestSlots[currentPlayer] === 'bot' && diceValue === 6 && Math.random() < 0.4) {
       setTimeout(() => {
-        const emotes6 = ['🎲', '😮', '🍀', '😎'];
+        const emotes6 = ['🎲', '👑', '😎'];
         const randomEmote = emotes6[Math.floor(Math.random() * emotes6.length)];
         socket.emit('send_emote', { player: currentPlayer, emoji: randomEmote });
       }, 300);
@@ -1088,20 +1271,16 @@ socket.on('dice_rolled', (data) => {
         renderPieces();
         if (isHost && latestSlots[currentPlayer] === 'bot') {
           setTimeout(() => {
-            // Weighted scoring bot: balanced, smart, human-like
             function scoreBotMove(m) {
               let score = 0;
-              // Personality jitter (±20) so bot doesn't make identical moves every turn
               score += (Math.random() * 40 - 20);
 
-              // Capture enemy: reduced from 150 to 95 so bot isn't ruthlessly obsessed
               if (m.action === 'move' || m.action === 'leave_jail') {
                 const hasEnemy = pieces.some(p =>
                   p.player !== currentPlayer && p.state === 'perimeter' && p.pos === m.target
                 );
                 if (hasEnemy) score += 95;
               }
-              // Advance toward home: reward distance traveled
               if (m.action === 'move') {
                 const start = visualMap[currentPlayer] * (pegsCountGlobal === 2 ? 8 : 16) + (pegsCountGlobal === 2 ? 2 : 4);
                 const totalLen = pegsCountGlobal === 2 ? 32 : 64;
@@ -1109,11 +1288,8 @@ socket.on('dice_rolled', (data) => {
                 score += dist * 0.9;
                 if (dist > (pegsCountGlobal === 2 ? 25 : 50)) score += 25;
               }
-              // Entering home is very good
               if (m.action === 'home') score += 110 + (m.target * 10);
-              // Getting out of jail is good
               if (m.action === 'leave_jail') score += 65;
-              // Avoid dangerous squares
               if (m.action === 'move') {
                 const totalLen = pegsCountGlobal === 2 ? 32 : 64;
                 const inDanger = pieces.some(p =>
@@ -1128,7 +1304,6 @@ socket.on('dice_rolled', (data) => {
             const scoredMoves = validMoves.map(m => ({ move: m, score: scoreBotMove(m) }));
             scoredMoves.sort((a, b) => b.score - a.score);
 
-            // 20% chance to pick the 2nd best move if within 40 points
             let chosen = scoredMoves[0].move;
             if (scoredMoves.length > 1 && Math.random() < 0.20 && (scoredMoves[0].score - scoredMoves[1].score < 40)) {
               chosen = scoredMoves[1].move;
@@ -1151,7 +1326,6 @@ socket.on('move_executed', (data) => {
     piece.state = 'home'; piece.pos = target;
   }
   
-  // Combat Check
   let captured = false;
   if (piece.state === 'perimeter') {
     const enemies = pieces.filter(p => p.player !== currentPlayer && p.state === 'perimeter' && p.pos === piece.pos);
@@ -1162,10 +1336,9 @@ socket.on('move_executed', (data) => {
       for (let i = 0; i < pegsCountGlobal; i++) {
         if (!taken.includes(i)) { e.pos = i; break; }
       }
-      // If the captured player is a bot, let them emote sad
       if (isHost && latestSlots[e.player] === 'bot' && Math.random() < 0.6) {
         setTimeout(() => {
-          socket.emit('send_emote', { player: e.player, emoji: Math.random() < 0.5 ? '😢' : '💧' });
+          socket.emit('send_emote', { player: e.player, emoji: '😭' });
         }, 500);
       }
     });
@@ -1177,16 +1350,11 @@ socket.on('move_executed', (data) => {
     playSafeSound();
   }
   
-  // If current player is a bot, let them emote depending on their action!
   if (isHost && latestSlots[currentPlayer] === 'bot') {
     let emote = null;
-    if (captured) {
-      emote = Math.random() < 0.5 ? '😎' : '😂';
-    } else if (action === 'home') {
-      emote = Math.random() < 0.5 ? '🎉' : '🚀';
-    } else if (action === 'shortcut') {
-      emote = '🔥';
-    }
+    if (captured) emote = Math.random() < 0.5 ? '😎' : '😂';
+    else if (action === 'home') emote = '👑';
+    else if (action === 'shortcut') emote = '🔥';
     
     if (emote && Math.random() < 0.8) {
       setTimeout(() => {
@@ -1198,14 +1366,13 @@ socket.on('move_executed', (data) => {
   validMoves = [];
   renderPieces();
   
-  // Win Check — player finished all pegs in home
   const inHome = pieces.filter(p => p.player === currentPlayer && p.state === 'home');
   if (inHome.length === pegsCountGlobal && !finishedPlayers.includes(currentPlayer)) {
     finishedPlayers.push(currentPlayer);
     if (currentPlayer === mySlot || (isHost && latestSlots[currentPlayer] === 'bot')) {
       socket.emit('player_finished', currentPlayer);
     }
-    return; // wait for server player_ranked response to continue
+    return;
   }
   
   if (currentPlayer === mySlot || (isHost && latestSlots[currentPlayer] === 'bot')) {
@@ -1232,26 +1399,23 @@ socket.on('player_ranked', (data) => {
   const { playerSlot, rank, finishOrder } = data;
   playVictorySound();
   finishedPlayers = finishOrder;
-  const rankEmoji = ['🥇','🥈','🥉','4️⃣'][rank - 1] || `#${rank}`;
-  const name = latestPlayerNames[playerSlot] || (latestSlots[playerSlot] === 'bot' ? `Bot P${playerSlot+1}` : PLAYERS[playerSlot].name);
+  const rankEmoji = ['🥇','🥈','🥉','4️⃣'][rank - 1] || ('#' + rank);
+  const name = latestPlayerNames[playerSlot] || (latestSlots[playerSlot] === 'bot' ? ('Bot P' + (playerSlot+1)) : PLAYERS[playerSlot].name);
   
-  // Show toast
   const toast = document.createElement('div');
-  toast.style.cssText = `position:fixed; top:20px; left:50%; transform:translateX(-50%); z-index:200; padding:12px 24px; border-radius:999px; font-weight:900; font-size:14px; letter-spacing:0.1em; text-transform:uppercase; animation: floatUp 3s forwards; white-space:nowrap; background: linear-gradient(135deg,#1e1b4b,#312e81); border: 1px solid rgba(255,255,255,0.2); color: white; box-shadow: 0 8px 30px rgba(0,0,0,0.5);`;
-  toast.innerText = `${rankEmoji} ${name} finished!`;
+  toast.className = 'fixed top-5 left-1/2 -translate-x-1/2 z-[200] px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider bg-zinc-900 border border-zinc-700 text-white shadow-2xl animate-fade-in whitespace-nowrap';
+  toast.innerText = rankEmoji + ' ' + name + ' finished!';
   document.body.appendChild(toast);
   setTimeout(() => toast.remove(), 3000);
   
-  // If I finished, show spectator banner
   if (playerSlot === mySlot) {
     const banner = document.createElement('div');
     banner.id = 'spectator-banner';
-    banner.style.cssText = `position:fixed; bottom:0; left:0; right:0; z-index:100; padding:14px; text-align:center; font-weight:900; font-size:13px; letter-spacing:0.15em; text-transform:uppercase; background: linear-gradient(135deg,rgba(99,102,241,0.9),rgba(139,92,246,0.9)); backdrop-filter:blur(10px); border-top: 1px solid rgba(255,255,255,0.2); color:white;`;
-    banner.innerText = `${rankEmoji} You finished ${rank === 1 ? '1st' : rank === 2 ? '2nd' : rank === 3 ? '3rd' : rank+'th'}! Spectating...`;
+    banner.className = 'fixed bottom-0 left-0 right-0 z-[100] py-3 text-center text-xs font-bold uppercase tracking-wider bg-zinc-900/90 border-t border-zinc-800 backdrop-blur-md text-white';
+    banner.innerText = rankEmoji + ' You finished ' + (rank === 1 ? '1st' : rank === 2 ? '2nd' : rank === 3 ? '3rd' : rank+'th') + '! Spectating...';
     document.body.appendChild(banner);
   }
   
-  // Continue the game — pass the turn
   if (currentPlayer === mySlot || (isHost && latestSlots[currentPlayer] === 'bot')) {
     setTimeout(() => socket.emit('next_turn'), 600);
   }
@@ -1263,19 +1427,19 @@ socket.on('game_over', (finishOrder) => {
   let podium = '';
   if (Array.isArray(finishOrder) && finishOrder.length > 0) {
     finishOrder.forEach((slot, i) => {
-      const name = latestPlayerNames[slot] || (latestSlots[slot] === 'bot' ? `Bot P${slot+1}` : PLAYERS[slot].name);
+      const name = latestPlayerNames[slot] || (latestSlots[slot] === 'bot' ? ('Bot P' + (slot+1)) : PLAYERS[slot].name);
       const col = PLAYERS[slot].dotColor;
       const isMe = (slot === mySlot);
       podium += `
-        <div class="flex items-center justify-between p-2.5 rounded-xl transition-all" style="background: ${col}18; border: 1px solid ${col}55; box-shadow: 0 4px 15px ${col}25;">
+        <div class="flex items-center justify-between p-3 rounded-xl bg-zinc-900 border border-zinc-800">
           <div class="flex items-center gap-2.5">
-            <span class="text-2xl">${MEDALS[i] || '🎖️'}</span>
+            <span class="text-xl">${MEDALS[i] || '🎖️'}</span>
             <div>
-              <div class="font-black text-sm tracking-wider" style="color: ${col};">${name}</div>
-              <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">${i === 0 ? 'Champion 👑' : `Rank #${i+1}`}</div>
+              <div class="font-bold text-xs" style="color: ${col};">${name}</div>
+              <div class="text-[10px] text-zinc-500 uppercase tracking-wider">${i === 0 ? 'Champion 👑' : ('Rank #' + (i+1))}</div>
             </div>
           </div>
-          ${isMe ? '<span class="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-white/20 text-white">YOU</span>' : ''}
+          ${isMe ? '<span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-white text-zinc-950">YOU</span>' : ''}
         </div>
       `;
     });
@@ -1285,7 +1449,6 @@ socket.on('game_over', (finishOrder) => {
 });
 
 // =============== BOARD INITIALIZATION ===============
-
 function initBoard(keepState = false) {
   updateBoardConstants();
 
@@ -1301,28 +1464,23 @@ function initBoard(keepState = false) {
   
   function addHole(x, y, type) {
     const el = document.createElement('div');
-    let bg, border, shadow;
-    if (type === 'jail') {
-      bg = 'radial-gradient(circle at 50% 50%, rgba(255,255,255,0.06), rgba(0,0,0,0.6))';
-      border = 'rgba(255,255,255,0.12)';
-      shadow = 'inset 0 2px 4px rgba(0,0,0,0.85), 0 1px 1px rgba(255,255,255,0.05)';
-    } else if (type === 'home') {
-      bg = 'radial-gradient(circle at 50% 50%, rgba(255,255,255,0.12), rgba(0,0,0,0.5))';
-      border = 'rgba(255,255,255,0.25)';
-      shadow = 'inset 0 2px 5px rgba(0,0,0,0.9), 0 1px 2px rgba(255,255,255,0.1)';
-    } else {
-      bg = 'radial-gradient(circle at 50% 50%, rgba(255,255,255,0.08), rgba(0,0,0,0.7))';
-      border = 'rgba(255,255,255,0.16)';
-      shadow = 'inset 0 2px 5px rgba(0,0,0,0.9), 0 1px 1px rgba(255,255,255,0.08)';
+    let bg = '#16161a';
+    let border = 'rgba(255, 255, 255, 0.08)';
+    let shadow = 'inset 0 2px 4px rgba(0,0,0,0.8)';
+    
+    if (type === 'home') {
+      bg = '#1f1f26';
+      border = 'rgba(255, 255, 255, 0.16)';
     }
+
     const holeSizePct = (0.78 / GRID_SIZE) * 100;
     el.className = `absolute rounded-full board-hole`;
-    el.style.cssText = `left:${(x + OFFSET + 0.5) * (100 / GRID_SIZE)}%; top:${(y + OFFSET + 0.5) * (100 / GRID_SIZE)}%; width:${holeSizePct}%; height:${holeSizePct}%; transform:translate(-50%,-50%); background:${bg}; border: 1px solid ${border}; box-shadow: ${shadow};`;
+    el.style.cssText = `left:` + ((x + OFFSET + 0.5) * (100 / GRID_SIZE)) + `%; top:` + ((y + OFFSET + 0.5) * (100 / GRID_SIZE)) + `%; width:` + holeSizePct + `%; height:` + holeSizePct + `%; transform:translate(-50%,-50%); background:` + bg + `; border: 1px solid ` + border + `; box-shadow: ` + shadow + `;`;
     holesEl.appendChild(el);
   }
 
   for (let p in JAILS) {
-    JAILS[p].forEach((pos, i) => {
+    JAILS[p].forEach((pos) => {
       addHole(pos[0], pos[1], 'jail');
     });
   }
@@ -1335,7 +1493,6 @@ function initBoard(keepState = false) {
     }
   }
   
-  // Determine Board Rotation
   let boardRot = 0;
   if (mySlot !== null) {
     const myVPlayer = visualMap[mySlot];
@@ -1344,19 +1501,18 @@ function initBoard(keepState = false) {
     else if (myVPlayer === 2) boardRot = 0;
     else if (myVPlayer === 3) boardRot = -90;
   }
-  document.getElementById('board-container').style.transform = `rotate(${boardRot}deg)`;
+  document.getElementById('board-container').style.transform = 'rotate(' + boardRot + 'deg)';
 
-  // Draw Player Labels
   const labelOffset = pegsCountGlobal === 2 ? 6.5 : 10.5;
   const LABEL_POS = { 0: [0, -labelOffset], 1: [labelOffset, 0], 2: [0, labelOffset], 3: [-labelOffset, 0] };
   for (let p of activeSlots) {
     const vPlayer = visualMap[p];
     const el = document.createElement('div');
-    el.className = `absolute text-xs font-bold opacity-40 tracking-widest ${PLAYERS[p].text} pointer-events-none text-center whitespace-nowrap`;
-    el.style.left = `${(LABEL_POS[vPlayer][0] + OFFSET + 0.5) * (100 / GRID_SIZE)}%`;
-    el.style.top = `${(LABEL_POS[vPlayer][1] + OFFSET + 0.5) * (100 / GRID_SIZE)}%`;
-    el.style.transform = `translate(-50%, -50%) rotate(${-boardRot}deg)`;
-    el.innerText = latestPlayerNames[p] || `P${parseInt(p)+1}`;
+    el.className = `absolute text-[11px] font-semibold opacity-40 ` + PLAYERS[p].text + ` pointer-events-none text-center whitespace-nowrap`;
+    el.style.left = ((LABEL_POS[vPlayer][0] + OFFSET + 0.5) * (100 / GRID_SIZE)) + '%';
+    el.style.top = ((LABEL_POS[vPlayer][1] + OFFSET + 0.5) * (100 / GRID_SIZE)) + '%';
+    el.style.transform = 'translate(-50%, -50%) rotate(' + (-boardRot) + 'deg)';
+    el.innerText = latestPlayerNames[p] || ('P' + (parseInt(p)+1));
     holesEl.appendChild(el);
   }
 
@@ -1375,8 +1531,8 @@ function initBoard(keepState = false) {
       el.id = `piece-${id}`;
       el.className = `piece absolute rounded-full z-10`;
       const dotCol = PLAYERS[p].dotColor;
-      const pieceSizePct = (0.65 / GRID_SIZE) * 100;
-      el.style.cssText = `width:${pieceSizePct}%; height:${pieceSizePct}%; transform:translate(-50%,-50%); background: radial-gradient(circle at 35% 35%, #ffffff 0%, ${dotCol} 55%, #050510 110%); box-shadow: 0 4px 8px rgba(0,0,0,0.7), 0 0 12px ${dotCol}88, inset 0 1px 2px rgba(255,255,255,0.8); border: 1px solid rgba(255,255,255,0.4);`;
+      const pieceSizePct = (0.68 / GRID_SIZE) * 100;
+      el.style.cssText = `width:` + pieceSizePct + `%; height:` + pieceSizePct + `%; transform:translate(-50%,-50%); background: radial-gradient(circle at 35% 35%, #ffffff 0%, ` + dotCol + ` 60%, #0a0a0e 115%); box-shadow: 0 3px 6px rgba(0,0,0,0.6), inset 0 1px 1px rgba(255,255,255,0.7); border: 1px solid rgba(255,255,255,0.3);`;
       piecesContainer.appendChild(el);
     }
   }
@@ -1407,9 +1563,10 @@ function renderPieces() {
   pieces.forEach(piece => {
     const { x, y, offsetX, offsetY } = getPieceVisualPosition(piece);
     const el = document.getElementById(`piece-${piece.id}`);
+    if (!el) return;
     
-    el.style.left = `calc(${(x + OFFSET + 0.5) * (100 / GRID_SIZE)}% + ${offsetX}px)`;
-    el.style.top = `calc(${(y + OFFSET + 0.5) * (100 / GRID_SIZE)}% + ${offsetY}px)`;
+    el.style.left = `calc(` + ((x + OFFSET + 0.5) * (100 / GRID_SIZE)) + `% + ` + offsetX + `px)`;
+    el.style.top = `calc(` + ((y + OFFSET + 0.5) * (100 / GRID_SIZE)) + `% + ` + offsetY + `px)`;
     
     const isValid = currentPlayer === mySlot && validMoves.some(m => m.piece.id === piece.id);
     if (isValid) {
@@ -1425,17 +1582,16 @@ function renderPieces() {
 function updateUI() {
   const statusEl = document.getElementById('status-text');
   const pillEl = document.getElementById('status-turn-pill');
-  let nameStr = latestPlayerNames[currentPlayer] || `Player ${currentPlayer + 1}`;
+  let nameStr = latestPlayerNames[currentPlayer] || ('Player ' + (currentPlayer + 1));
   let isMyTurn = (currentPlayer === mySlot);
-  let prefix = isMyTurn ? 'YOUR TURN' : `${nameStr.toUpperCase()}`;
+  let prefix = isMyTurn ? 'Your Turn' : (nameStr + "'s Turn");
   if (statusEl) statusEl.innerText = prefix;
   
-  const col = PLAYERS[currentPlayer]?.dotColor || '#00f0ff';
+  const col = PLAYERS[currentPlayer]?.dotColor || '#38bdf8';
   if (pillEl) {
-    pillEl.style.cssText = `background: ${col}22; border: 1px solid ${col}; color: ${col}; box-shadow: 0 0 15px ${col}66;`;
+    pillEl.style.cssText = 'background: ' + col + '18; border: 1px solid ' + col + '44; color: ' + col + ';';
   }
 
-  // Render Real-Time Cyber HUD Player Chips
   const hudBar = document.getElementById('hud-players-bar');
   if (hudBar) {
     hudBar.innerHTML = '';
@@ -1445,16 +1601,13 @@ function updateUI() {
       const isTurn = (p === currentPlayer);
       const isMe = (p === mySlot);
       const pColor = PLAYERS[p].dotColor;
-      const pName = latestPlayerNames[p] || `P${p+1}`;
+      const pName = latestPlayerNames[p] || ('P' + (p+1));
       
-      chip.className = `flex items-center gap-1.5 px-2 py-1 rounded-xl transition-all ${isTurn ? 'scale-105 z-10' : 'opacity-70'}`;
-      chip.style.cssText = isTurn 
-        ? `background: ${pColor}28; border: 1.5px solid ${pColor}; box-shadow: 0 0 12px ${pColor}55;` 
-        : `background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);`;
+      chip.className = `flex items-center gap-1.5 px-2 py-1 rounded-lg transition-all ` + (isTurn ? 'bg-zinc-800 border border-zinc-700' : 'opacity-60');
       
       chip.innerHTML = `
-        <div class="w-2.5 h-2.5 rounded-full ${PLAYERS[p].color} ${isTurn ? 'animate-ping' : ''}" style="box-shadow: 0 0 6px ${pColor};"></div>
-        <div class="text-[11px] font-bold truncate max-w-[60px] ${isTurn ? 'text-white font-black' : 'text-slate-300'}">${pName}${isMe ? ' (You)' : ''}</div>
+        <div class="w-2 h-2 rounded-full ${PLAYERS[p].color}"></div>
+        <div class="text-[10px] font-medium truncate max-w-[55px] ${isTurn ? 'text-white font-semibold' : 'text-zinc-400'}">${pName}${isMe ? ' (You)' : ''}</div>
       `;
       hudBar.appendChild(chip);
     }
@@ -1463,7 +1616,6 @@ function updateUI() {
   const cube = document.getElementById('dice-cube');
   if (cube) {
     cube.style.setProperty('--player-color', PLAYERS[currentPlayer].dotColor);
-    // Trigger bot roll
     if (isHost && latestSlots[currentPlayer] === 'bot' && !diceRolled && !isAnimating) {
       setTimeout(() => rollDice(true), 1000);
     }
@@ -1496,7 +1648,7 @@ function playDiceSound() {
     osc.frequency.setValueAtTime(140, ctx.currentTime);
     osc.frequency.exponentialRampToValueAtTime(380, ctx.currentTime + 0.08);
     osc.frequency.exponentialRampToValueAtTime(180, ctx.currentTime + 0.16);
-    gain.gain.setValueAtTime(0.25, ctx.currentTime);
+    gain.gain.setValueAtTime(0.2, ctx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.18);
     osc.connect(gain);
     gain.connect(ctx.destination);
@@ -1513,7 +1665,7 @@ function playCaptureSound() {
     osc.type = 'sawtooth';
     osc.frequency.setValueAtTime(320, ctx.currentTime);
     osc.frequency.exponentialRampToValueAtTime(60, ctx.currentTime + 0.22);
-    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.setValueAtTime(0.25, ctx.currentTime);
     gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 0.22);
     osc.connect(gain);
     gain.connect(ctx.destination);
@@ -1530,7 +1682,7 @@ function playSafeSound() {
     osc.type = 'sine';
     osc.frequency.setValueAtTime(587.33, ctx.currentTime);
     osc.frequency.setValueAtTime(880, ctx.currentTime + 0.08);
-    gain.gain.setValueAtTime(0.2, ctx.currentTime);
+    gain.gain.setValueAtTime(0.18, ctx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.28);
     osc.connect(gain);
     gain.connect(ctx.destination);
@@ -1548,7 +1700,7 @@ function playVictorySound() {
       const gain = ctx.createGain();
       osc.type = 'triangle';
       osc.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.12);
-      gain.gain.setValueAtTime(0.25, ctx.currentTime + idx * 0.12);
+      gain.gain.setValueAtTime(0.2, ctx.currentTime + idx * 0.12);
       gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + idx * 0.12 + 0.35);
       osc.connect(gain);
       gain.connect(ctx.destination);
@@ -1572,14 +1724,12 @@ document.addEventListener('click', (e) => {
   }
 });
 
-// =============== INTERACTION LOGIC ===============
 function sendEmote(emoji) {
   if (mySlot === null) return;
   socket.emit('send_emote', emoji);
   document.getElementById('emote-picker')?.classList.add('hidden');
 }
 
-// Sound map for special emotes
 const EMOTE_SOUNDS = {
   '🐦': new Audio('/bird sound.mp3'),
   '💧': new Audio('/waterdrop sound.mp3'),
@@ -1590,49 +1740,43 @@ socket.on('receive_emote', (data) => {
   const vPlayer = visualMap[player];
   const holesEl = document.getElementById('holes');
   
-  // Play sound if this emote has one
   if (EMOTE_SOUNDS[emoji]) {
     const snd = EMOTE_SOUNDS[emoji].cloneNode();
     snd.volume = 0.8;
-    snd.play().catch(() => {}); // silently ignore autoplay block
+    snd.play().catch(() => {});
   }
   
   const wrapper = document.createElement('div');
   wrapper.className = 'absolute z-[100] drop-shadow-xl pointer-events-none';
   
   const el = document.createElement('div');
-  el.className = 'text-5xl emote-anim';
+  el.className = 'text-4xl emote-anim';
   el.innerText = emoji;
   
   const labelOffset = pegsCountGlobal === 2 ? 5 : 9;
   const LABEL_POS = { 0: [0, -labelOffset], 1: [labelOffset, 0], 2: [0, labelOffset], 3: [-labelOffset, 0] };
-  wrapper.style.left = `${(LABEL_POS[vPlayer][0] + OFFSET + 0.5) * (100 / GRID_SIZE)}%`;
-  wrapper.style.top = `${(LABEL_POS[vPlayer][1] + OFFSET + 0.5) * (100 / GRID_SIZE)}%`;
+  wrapper.style.left = ((LABEL_POS[vPlayer][0] + OFFSET + 0.5) * (100 / GRID_SIZE)) + '%';
+  wrapper.style.top = ((LABEL_POS[vPlayer][1] + OFFSET + 0.5) * (100 / GRID_SIZE)) + '%';
   
-  // Counter-rotate the wrapper so it always faces upwards relative to the screen
   const container = document.getElementById('board-container');
   const rotMatch = container.style.transform.match(/rotate\(([-\d]+)deg\)/);
   const boardRot = rotMatch ? parseInt(rotMatch[1]) : 0;
-  wrapper.style.transform = `translate(-50%, -50%) rotate(${-boardRot}deg)`;
+  wrapper.style.transform = 'translate(-50%, -50%) rotate(' + (-boardRot) + 'deg)';
   
   wrapper.appendChild(el);
   holesEl.appendChild(wrapper);
-  setTimeout(() => wrapper.remove(), 2000);
+  setTimeout(() => wrapper.remove(), 2200);
 });
 
 function getWeightedDiceRoll(player) {
   const hasPiecesInJail = pieces.some(p => p.player === player && p.state === 'jail');
-  let weight6 = 1.6; // Base ~24.2% chance for 6
+  let weight6 = 1.6;
   if (hasPiecesInJail) {
     const misses = jailMissCounter[player] || 0;
-    if (misses >= 3) {
-      weight6 = 3.5; // ~41% chance if stuck for 3+ turns
-    } else if (misses >= 2) {
-      weight6 = 2.4; // ~32% chance
-    }
+    if (misses >= 3) weight6 = 3.5;
+    else if (misses >= 2) weight6 = 2.4;
   }
 
-  // Weights for [1, 2, 3, 4, 5, 6]
   const weights = [1, 1, 1, 1, 1, weight6];
   const totalWeight = weights.reduce((a, b) => a + b, 0);
   let random = Math.random() * totalWeight;
@@ -1661,7 +1805,6 @@ function rollDice(isBotAuto = false) {
   socket.emit('roll_dice', { player: currentPlayer, value: val });
 }
 
-
 function selectMove(moveObj) {
   socket.emit('execute_move', { pieceId: moveObj.piece.id, action: moveObj.action, target: moveObj.target });
 }
@@ -1669,13 +1812,12 @@ function selectMove(moveObj) {
 function calculateValidMoves() {
   validMoves = [];
   
-  // 1. Mandatory Shortcut Check
   let forcedShortcuts = [];
   for (let piece of pieces.filter(p => p.player === currentPlayer)) {
     if (piece.state === 'perimeter' && SHORTCUT_SPACES.includes(piece.pos) && diceValue === 1) {
       const step = pegsCountGlobal === 2 ? 8 : 16;
       const totalLen = pegsCountGlobal === 2 ? 32 : 64;
-      const target = (piece.pos + step) % totalLen; // Jump to the NEXT inner corner
+      const target = (piece.pos + step) % totalLen;
       let isBlocked = pieces.some(p => p.player === currentPlayer && p.state === 'perimeter' && p.pos === target);
       if (!isBlocked) {
         forcedShortcuts.push({ piece, action: 'shortcut', target });
@@ -1683,19 +1825,17 @@ function calculateValidMoves() {
     }
   }
 
-  // If there are forced shortcuts, those are the ONLY valid moves.
   if (forcedShortcuts.length > 0) {
     validMoves = forcedShortcuts;
     return;
   }
 
-  // 2. Normal Moves
   let potentialMoves = [];
   pieces.filter(p => p.player === currentPlayer).forEach(piece => {
     if (piece.state === 'jail') {
       if (diceValue === 6) {
         const start = visualMap[currentPlayer] * (pegsCountGlobal === 2 ? 8 : 16) + (pegsCountGlobal === 2 ? 2 : 4);
-        potentialMoves.push({ piece, action: 'leave_jail', target: start }); // Land on LEFT outer corner
+        potentialMoves.push({ piece, action: 'leave_jail', target: start });
       }
     } else if (piece.state === 'perimeter') {
       const start = visualMap[currentPlayer] * (pegsCountGlobal === 2 ? 8 : 16) + (pegsCountGlobal === 2 ? 2 : 4);
@@ -1721,22 +1861,6 @@ function calculateValidMoves() {
   });
 }
 
-// Randomly spam bird and waterdrop emotes for bots as a joke
-setInterval(() => {
-  if (isHost && document.getElementById('home-screen').classList.contains('hidden') && document.getElementById('lobby-screen').classList.contains('hidden')) {
-    const botSlots = [];
-    for (let i = 0; i < 4; i++) {
-      if (latestSlots[i] === 'bot') botSlots.push(i);
-    }
-    if (botSlots.length > 0 && Math.random() < 0.15) { // 15% chance every 8 seconds
-      const randomBot = botSlots[Math.floor(Math.random() * botSlots.length)];
-      const jokeEmotes = ['🐦', '💧'];
-      const emoji = jokeEmotes[Math.floor(Math.random() * jokeEmotes.length)];
-      socket.emit('send_emote', { player: randomBot, emoji });
-    }
-  }
-}, 8000);
-
 socket.on('open_rooms', (roomsList) => {
   const container = document.getElementById('open-rooms-container');
   const listEl = document.getElementById('open-rooms-list');
@@ -1753,25 +1877,24 @@ socket.on('open_rooms', (roomsList) => {
   container.classList.remove('hidden');
   activeRooms.forEach(room => {
     const el = document.createElement('div');
-    el.className = 'flex flex-col gap-1 p-3 rounded-xl text-left transition-all hover:bg-white/10 border border-white/5 cursor-pointer';
-    el.style.background = 'rgba(255, 255, 255, 0.04)';
+    el.className = 'flex flex-col gap-1 p-2.5 rounded-xl text-left transition-all hover:bg-zinc-800 bg-zinc-900 border border-zinc-800 cursor-pointer';
     el.onclick = () => {
       document.getElementById('room-code-input').value = room.roomId;
       joinRoom();
     };
     
-    const statusText = room.gameState === 'lobby' ? 'In Lobby ⏳' : 'Playing 🎮';
-    const statusColor = room.gameState === 'lobby' ? 'text-green-400' : 'text-indigo-400';
+    const statusText = room.gameState === 'lobby' ? 'In Lobby' : 'Playing';
+    const statusColor = room.gameState === 'lobby' ? 'text-emerald-400' : 'text-sky-400';
     
     el.innerHTML = `
       <div class="flex justify-between items-center">
-        <span class="font-bold text-white tracking-wider uppercase text-sm">Room: ${room.roomId}</span>
-        <span class="text-xs font-semibold ${statusColor}">${statusText}</span>
+        <span class="font-semibold text-white text-xs">Room: ${room.roomId}</span>
+        <span class="text-[10px] font-medium ${statusColor}">${statusText}</span>
       </div>
-      <div class="flex justify-between items-center text-xs text-indigo-200/60">
+      <div class="flex justify-between items-center text-[11px] text-zinc-400">
         <span>Players: ${room.totalCount}/4 (${room.humanCount} human)</span>
       </div>
-      <div class="text-[10px] text-indigo-300/40 truncate">
+      <div class="text-[10px] text-zinc-500 truncate">
         ${room.playerNames.join(', ')}
       </div>
     `;
@@ -1779,282 +1902,8 @@ socket.on('open_rooms', (roomsList) => {
   });
 });
 
-// =============== AUTH & FRIENDS MANAGEMENT ===============
-let currentUser = null;
-let currentAuthMode = 'login'; // 'login' | 'register'
-
-function initAuthUI() {
-  try {
-    const stored = localStorage.getItem('dosaUser');
-    if (stored) {
-      currentUser = JSON.parse(stored);
-      updateAuthUI();
-      loadFriendsList();
-    }
-  } catch(e) {}
-}
-
-function updateAuthUI() {
-  const loggedOutBar = document.getElementById('user-logged-out-bar');
-  const loggedInBar = document.getElementById('user-logged-in-bar');
-  const usernameDisplay = document.getElementById('current-username-display');
-  const nicknameInput = document.getElementById('nickname-input');
-
-  if (currentUser) {
-    socket.emit('register_user', currentUser.id);
-    if (loggedOutBar) loggedOutBar.classList.add('hidden');
-    if (loggedInBar) loggedInBar.classList.remove('hidden');
-    if (usernameDisplay) usernameDisplay.innerText = currentUser.username;
-    if (nicknameInput && !nicknameInput.value) {
-      nicknameInput.value = currentUser.username;
-      saveSession('dosaName', currentUser.username);
-    }
-  } else {
-    if (loggedOutBar) loggedOutBar.classList.remove('hidden');
-    if (loggedInBar) loggedInBar.classList.add('hidden');
-  }
-}
-
-function openAuthModal() {
-  document.getElementById('auth-modal')?.classList.remove('hidden');
-  const err = document.getElementById('auth-error-msg');
-  if (err) err.innerText = '';
-}
-
-function closeAuthModal() {
-  document.getElementById('auth-modal')?.classList.add('hidden');
-}
-
-function switchAuthTab(mode) {
-  currentAuthMode = mode;
-  const loginTab = document.getElementById('auth-tab-login');
-  const regTab = document.getElementById('auth-tab-register');
-  const submitBtn = document.getElementById('auth-submit-btn');
-  const errMsg = document.getElementById('auth-error-msg');
-  if (errMsg) errMsg.innerText = '';
-
-  if (mode === 'login') {
-    loginTab.style.background = 'linear-gradient(135deg, #00f0ff, #0066ff)';
-    loginTab.style.color = 'white';
-    regTab.style.background = 'transparent';
-    regTab.style.color = '#94a3b8';
-    submitBtn.innerText = 'Sign In';
-  } else {
-    regTab.style.background = 'linear-gradient(135deg, #00f0ff, #0066ff)';
-    regTab.style.color = 'white';
-    loginTab.style.background = 'transparent';
-    loginTab.style.color = '#94a3b8';
-    submitBtn.innerText = 'Create Account';
-  }
-}
-
-async function submitAuth() {
-  const username = document.getElementById('auth-username-input')?.value.trim();
-  const password = document.getElementById('auth-password-input')?.value.trim();
-  const errMsg = document.getElementById('auth-error-msg');
-  if (!username || !password) {
-    errMsg.innerText = 'Please enter both username and password';
-    return;
-  }
-
-  const endpoint = currentAuthMode === 'login' ? '/api/login' : '/api/register';
-  try {
-    const res = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      errMsg.innerText = data.error || 'Authentication failed';
-      return;
-    }
-    currentUser = { id: data.id, username: data.username };
-    localStorage.setItem('dosaUser', JSON.stringify(currentUser));
-    updateAuthUI();
-    closeAuthModal();
-    loadFriendsList();
-  } catch(e) {
-    errMsg.innerText = 'Network error. Please try again.';
-  }
-}
-
-function logoutUser() {
-  currentUser = null;
-  localStorage.removeItem('dosaUser');
-  updateAuthUI();
-}
-
-function openFriendsModal() {
-  if (!currentUser) return openAuthModal();
-  document.getElementById('friends-modal')?.classList.remove('hidden');
-  const msg = document.getElementById('friend-status-msg');
-  if (msg) msg.innerText = '';
-  loadFriendsList();
-}
-
-function closeFriendsModal() {
-  document.getElementById('friends-modal')?.classList.add('hidden');
-}
-
-async function loadFriendsList() {
-  if (!currentUser) return;
-  const container = document.getElementById('friends-list-container');
-  const badge = document.getElementById('friends-badge-count');
-  try {
-    const res = await fetch(`/api/friends/${currentUser.id}`);
-    const friends = await res.json();
-    if (badge) {
-      badge.innerText = Array.isArray(friends) && friends.length > 0 ? `Friends (${friends.length})` : 'Friends';
-    }
-    if (!Array.isArray(friends) || friends.length === 0) {
-      container.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">No friends added yet.<br><span class="text-[10px] text-slate-500">Type a username above to connect!</span></p>';
-      return;
-    }
-    container.innerHTML = '';
-    friends.forEach(f => {
-      const isOnline = !!f.isOnline;
-      const statusDot = isOnline
-        ? '<span class="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]" title="Online"></span>'
-        : '<span class="w-2.5 h-2.5 rounded-full bg-slate-500" title="Offline"></span>';
-      const statusText = isOnline
-        ? '<span class="text-[9px] text-emerald-400 font-black uppercase tracking-wider">Online</span>'
-        : '<span class="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Offline</span>';
-
-      const row = document.createElement('div');
-      row.className = 'flex items-center justify-between p-2.5 rounded-xl border border-white/10 bg-white/5 transition-all hover:bg-white/10';
-      row.innerHTML = `
-        <div class="flex items-center gap-2.5">
-          ${statusDot}
-          <div>
-            <div class="text-xs font-bold text-white">${f.username}</div>
-            ${statusText}
-          </div>
-        </div>
-        <div class="flex items-center gap-1.5">
-          <button onclick="inviteFriend(${f.id}, '${f.username}')" class="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 hover:bg-cyan-500/40 hover:scale-105 active:scale-95 transition-all">Invite</button>
-          <button onclick="removeFriendAction(${f.id})" class="text-slate-400 hover:text-rose-400 p-1 text-xs transition-colors" title="Remove Friend">✕</button>
-        </div>
-      `;
-      container.appendChild(row);
-    });
-  } catch(e) {
-    container.innerHTML = '<p class="text-xs text-rose-400 text-center py-2">Error loading friends.</p>';
-  }
-}
-
-socket.on('friends_updated', () => {
-  if (currentUser) {
-    loadFriendsList();
-  }
-});
-
-async function addFriendAction() {
-  if (!currentUser) return;
-  const input = document.getElementById('add-friend-input');
-  const msg = document.getElementById('friend-status-msg');
-  const friendUsername = input.value.trim();
-  if (!friendUsername) {
-    msg.className = 'text-[11px] font-bold text-center min-h-[16px] mb-2 text-amber-300';
-    msg.innerText = 'Please enter a username to add';
-    return;
-  }
-
-  try {
-    const res = await fetch('/api/friends', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: currentUser.id, friendUsername })
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      msg.className = 'text-[11px] font-bold text-center min-h-[16px] mb-2 text-rose-400';
-      msg.innerText = data.error || 'Failed to add friend';
-      return;
-    }
-    msg.className = 'text-[11px] font-bold text-center min-h-[16px] mb-2 text-emerald-400';
-    msg.innerText = `Connected with ${data.username}!`;
-    input.value = '';
-    loadFriendsList();
-  } catch(e) {
-    msg.className = 'text-[11px] font-bold text-center min-h-[16px] mb-2 text-rose-400';
-    msg.innerText = 'Network error';
-  }
-}
-
-async function removeFriendAction(friendId) {
-  if (!currentUser) return;
-  try {
-    await fetch('/api/friends', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: currentUser.id, friendId })
-    });
-    loadFriendsList();
-  } catch(e) {}
-}
-
-function inviteFriend(friendId, friendUsername) {
-  const code = getSession('dosaRoom');
-  if (!code) {
-    alert("Please join or create a room first, then invite your friend!");
-    return;
-  }
-  socket.emit('send_friend_invite', {
-    friendId,
-    fromUsername: currentUser.username,
-    roomId: code
-  });
-  navigator.clipboard?.writeText(`${window.location.origin}/?room=${code}`);
-}
-
-socket.on('invite_status', (data) => {
-  const msg = document.getElementById('friend-status-msg');
-  if (msg) {
-    msg.className = data.success
-      ? 'text-[11px] font-bold text-center min-h-[16px] mb-2 text-emerald-400'
-      : 'text-[11px] font-bold text-center min-h-[16px] mb-2 text-amber-300';
-    msg.innerText = data.message;
-  }
-});
-
-socket.on('receive_friend_invite', (data) => {
-  playSafeSound();
-
-  document.getElementById('friend-invite-toast')?.remove();
-
-  const toast = document.createElement('div');
-  toast.id = 'friend-invite-toast';
-  toast.className = 'fixed top-5 left-1/2 -translate-x-1/2 z-[300] max-w-md w-[92%] p-4 rounded-2xl flex items-center justify-between gap-3 shadow-2xl transition-all duration-300 animate-bounce';
-  toast.style.cssText = 'background: rgba(18, 14, 45, 0.96); border: 2px solid #818cf8; backdrop-filter: blur(20px); box-shadow: 0 10px 40px rgba(99,102,241,0.5);';
-
-  toast.innerHTML = `
-    <div class="flex items-center gap-3">
-      <div class="w-10 h-10 rounded-full flex items-center justify-center text-xl bg-indigo-500/20 text-indigo-300">🎮</div>
-      <div>
-        <div class="text-xs font-black text-white"><span class="text-indigo-300">${data.fromUsername}</span> invited you to play!</div>
-        <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Room: ${data.roomId}</div>
-      </div>
-    </div>
-    <div class="flex items-center gap-1.5">
-      <button onclick="acceptFriendInvite('${data.roomId}')" class="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all btn-game-primary text-white">Join</button>
-      <button onclick="document.getElementById('friend-invite-toast').remove()" class="w-7 h-7 rounded-xl flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 text-xs">✕</button>
-    </div>
-  `;
-  document.body.appendChild(toast);
-
-  setTimeout(() => toast?.remove(), 25000);
-});
-
-function acceptFriendInvite(roomId) {
-  document.getElementById('friend-invite-toast')?.remove();
-  const roomInput = document.getElementById('room-code-input');
-  if (roomInput) roomInput.value = roomId;
-  joinRoom();
-}
-
 document.addEventListener("DOMContentLoaded", () => {
-  initAuthUI();
+  initPlayerIdentity();
   const savedName = getSession('dosaName');
   if (savedName) {
     const input = document.getElementById('nickname-input');
@@ -2068,16 +1917,14 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 });
 
-// Connection Status Banner
 function updateConnectionBanner(isDisconnected) {
   let banner = document.getElementById('connection-status-banner');
   if (isDisconnected) {
     if (!banner) {
       banner = document.createElement('div');
       banner.id = 'connection-status-banner';
-      banner.className = 'fixed top-3 left-1/2 -translate-x-1/2 z-[250] px-4 py-2 rounded-full text-xs font-bold text-amber-200 tracking-wide flex items-center gap-2 border border-amber-500/30 backdrop-blur-md shadow-2xl transition-all duration-300';
-      banner.style.background = 'rgba(30, 20, 10, 0.88)';
-      banner.innerHTML = '<span class="inline-block w-2 h-2 rounded-full bg-amber-400 animate-ping"></span> ⚡ Reconnecting...';
+      banner.className = 'fixed top-3 left-1/2 -translate-x-1/2 z-[250] px-4 py-1.5 rounded-full text-xs font-medium text-amber-200 bg-zinc-900/90 border border-amber-500/30 backdrop-blur-md shadow-xl flex items-center gap-2';
+      banner.innerHTML = '<span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span> Reconnecting...';
       document.body.appendChild(banner);
     }
   } else if (banner) {
@@ -2089,7 +1936,6 @@ socket.on('disconnect', () => {
   updateConnectionBanner(true);
 });
 
-// Force socket reconnection on mobile visibility change
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible") {
     if (!socket.connected) {
@@ -2100,7 +1946,7 @@ document.addEventListener("visibilitychange", () => {
       const slot = getSession('dosaSlot');
       const name = getSession('dosaName');
       if (code && slot !== null) {
-        socket.emit('reclaim_slot', { roomId: code, slot: parseInt(slot), playerName: name || `Player ${parseInt(slot) + 1}` });
+        socket.emit('reclaim_slot', { roomId: code, slot: parseInt(slot), playerName: name || ('Player ' + (parseInt(slot) + 1)) });
       }
       setTimeout(() => socket.emit("request_sync"), 300);
     }
