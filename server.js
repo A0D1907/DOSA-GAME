@@ -14,39 +14,132 @@ process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });
 
-const dbPath = path.join(__dirname, 'database.sqlite');
-const db = new sqlite3.Database(dbPath, (err) => {
-  if (err) {
-    console.error('Failed to connect to database:', err);
-  } else {
-    console.log('Connected to SQLite database:', dbPath);
-  }
-});
+// =============== DATABASE (Postgres on Render via DATABASE_URL, SQLite locally) ===============
+// Render's filesystem is ephemeral: database.sqlite is wiped on every deploy.
+// If DATABASE_URL is set we use Postgres (persistent). Otherwise SQLite for local dev.
+let db;
+if (process.env.DATABASE_URL) {
+  const { Pool } = require('pg');
+  const useSSL = !/localhost|127\.0\.0\.1/.test(process.env.DATABASE_URL);
+  const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: useSSL ? { rejectUnauthorized: false } : false
+  });
+  pool.on('error', (err) => console.error('Postgres pool error:', err.message));
 
-// Enable WAL mode for better concurrency on ephemeral filesystems
-db.run('PRAGMA journal_mode=WAL;', (err) => {
-  if (err) console.warn('Could not enable WAL mode:', err.message);
-});
+  const toPg = (sql) => {
+    let i = 0;
+    return sql.replace(/\?/g, () => '$' + (++i));
+  };
 
-db.serialize(() => {
-  db.run("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE, password TEXT)");
-  db.run("CREATE TABLE IF NOT EXISTS friends (user_id INTEGER, friend_id INTEGER, PRIMARY KEY(user_id, friend_id))");
-  
-  // New tables for player identities and friendships (persistent across deploys)
-  db.run(`CREATE TABLE IF NOT EXISTS player_identities (
-    id TEXT PRIMARY KEY,
-    username TEXT NOT NULL,
-    tag TEXT NOT NULL,
-    last_seen INTEGER NOT NULL,
-    is_registered INTEGER DEFAULT 0,
-    user_id INTEGER REFERENCES users(id)
-  )`);
-  db.run(`CREATE TABLE IF NOT EXISTS player_friends (
-    player_id TEXT NOT NULL,
-    friend_id TEXT NOT NULL,
-    PRIMARY KEY(player_id, friend_id)
-  )`);
-});
+  db = {
+    isPg: true,
+    get(sql, params, cb) {
+      if (typeof params === 'function') { cb = params; params = []; }
+      pool.query(toPg(sql), params || []).then(
+        (r) => cb(null, r.rows[0] === undefined ? undefined : r.rows[0]),
+        (err) => cb(err)
+      );
+    },
+    all(sql, params, cb) {
+      if (typeof params === 'function') { cb = params; params = []; }
+      pool.query(toPg(sql), params || []).then(
+        (r) => cb(null, r.rows),
+        (err) => cb(err)
+      );
+    },
+    run(sql, params, cb) {
+      if (typeof params === 'function') { cb = params; params = []; }
+      let q = sql;
+      // Translate SQLite upsert dialects to Postgres
+      if (/^INSERT OR REPLACE INTO player_identities/i.test(q)) {
+        q = q.replace(/^INSERT OR REPLACE INTO player_identities\s*\([^)]+\)\s*VALUES\s*\([^)]+\)/i,
+          'INSERT INTO player_identities (id, username, tag, last_seen, is_registered, user_id) VALUES (?, ?, ?, ?, ?, ?) ' +
+          'ON CONFLICT (id) DO UPDATE SET username=EXCLUDED.username, tag=EXCLUDED.tag, ' +
+          'last_seen=EXCLUDED.last_seen, is_registered=EXCLUDED.is_registered, user_id=EXCLUDED.user_id');
+      } else if (/^INSERT OR IGNORE INTO player_friends/i.test(q)) {
+        q = q.replace(/^INSERT OR IGNORE INTO player_friends/i, 'INSERT INTO player_friends') + ' ON CONFLICT DO NOTHING';
+      } else if (/^INSERT INTO users\s*\(username, password\)/i.test(q) && !/RETURNING/i.test(q)) {
+        q = q + ' RETURNING id';
+      }
+      pool.query(toPg(q), params || []).then(
+        (r) => {
+          if (typeof cb !== 'function') return;
+          if (r.rows && r.rows[0] && r.rows[0].id !== undefined) cb.call({ lastID: r.rows[0].id }, null);
+          else cb.call({}, null);
+        },
+        (err) => { if (typeof cb === 'function') cb(err); else console.error('DB run error:', err.message); }
+      );
+    },
+    serialize(fn) { if (typeof fn === 'function') fn(); },
+    close(cb) {
+      pool.end().then(() => { console.log('Postgres pool closed'); if (cb) cb(null); })
+        .catch((err) => { if (cb) cb(err); });
+    }
+  };
+
+  const pgInit = [
+    "CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, username TEXT UNIQUE, password TEXT)",
+    "CREATE TABLE IF NOT EXISTS friends (user_id INTEGER, friend_id INTEGER, PRIMARY KEY(user_id, friend_id))",
+    `CREATE TABLE IF NOT EXISTS player_identities (
+      id TEXT PRIMARY KEY,
+      username TEXT NOT NULL,
+      tag TEXT NOT NULL,
+      last_seen BIGINT NOT NULL,
+      is_registered INTEGER DEFAULT 0,
+      user_id INTEGER REFERENCES users(id)
+    )`,
+    `CREATE TABLE IF NOT EXISTS player_friends (
+      player_id TEXT NOT NULL,
+      friend_id TEXT NOT NULL,
+      PRIMARY KEY(player_id, friend_id)
+    )`
+  ];
+  (async () => {
+    try {
+      for (const q of pgInit) await pool.query(q);
+      console.log('Connected to Postgres (persistent)');
+    } catch (err) {
+      console.error('Postgres init failed:', err.message);
+    }
+  })();
+} else {
+  const dbPath = path.join(__dirname, 'database.sqlite');
+  const sqlite = new sqlite3.Database(dbPath, (err) => {
+    if (err) {
+      console.error('Failed to connect to database:', err);
+    } else {
+      console.log('Connected to SQLite database (local dev only, wiped on Render deploys):', dbPath);
+    }
+  });
+
+  // Enable WAL mode for better concurrency
+  sqlite.run('PRAGMA journal_mode=WAL;', (err) => {
+    if (err) console.warn('Could not enable WAL mode:', err.message);
+  });
+
+  sqlite.serialize(() => {
+    sqlite.run("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE, password TEXT)");
+    sqlite.run("CREATE TABLE IF NOT EXISTS friends (user_id INTEGER, friend_id INTEGER, PRIMARY KEY(user_id, friend_id))");
+
+    // Player identities and friendships
+    sqlite.run(`CREATE TABLE IF NOT EXISTS player_identities (
+      id TEXT PRIMARY KEY,
+      username TEXT NOT NULL,
+      tag TEXT NOT NULL,
+      last_seen INTEGER NOT NULL,
+      is_registered INTEGER DEFAULT 0,
+      user_id INTEGER REFERENCES users(id)
+    )`);
+    sqlite.run(`CREATE TABLE IF NOT EXISTS player_friends (
+      player_id TEXT NOT NULL,
+      friend_id TEXT NOT NULL,
+      PRIMARY KEY(player_id, friend_id)
+    )`);
+  });
+
+  db = sqlite;
+}
 
 app.use(express.json());
 app.use(express.static(__dirname));

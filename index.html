@@ -835,8 +835,8 @@ const PLAYERS = {
 const CUBE_FACE_ANGLES = [
   { x: 0, y: 0 },       // Face 1: Front
   { x: 0, y: -90 },     // Face 2: Right
-  { x: 90, y: 0 },      // Face 3: Top (was -90, swapped with face 4)
-  { x: -90, y: 0 },     // Face 4: Bottom (was 90, swapped with face 3)
+  { x: -90, y: 0 },     // Face 3: Top (rotateX(-90) brings the top face to the camera)
+  { x: 90, y: 0 },      // Face 4: Bottom (rotateX(+90) brings the bottom face to the camera)
   { x: 0, y: 90 },      // Face 5: Left
   { x: 0, y: 180 }      // Face 6: Back
 ];
