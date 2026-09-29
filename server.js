@@ -391,6 +391,7 @@ function getRoomState(roomId) {
       finishOrder: [],
       finishMeta: [],
       boardState: null,
+      moveLog: [],
       endedAt: null
     };
   }
@@ -419,6 +420,7 @@ function resetRoomToLobby(roomId) {
   state.finishOrder = [];
   state.finishMeta = [];
   state.boardState = null;
+  state.moveLog = [];
   state.offlineSlots = [false, false, false, false];
   state.currentPlayer = 0;
   state.turnId = 0;
@@ -426,6 +428,14 @@ function resetRoomToLobby(roomId) {
   state.diceValue = null;
   state.moveExecutedThisTurn = false;
   state.endedAt = null;
+}
+
+// Moves missed while a client was away, so it can replay them onto a stale
+// board snapshot and land exactly on the live position.
+function getReplayMoves(state) {
+  const baseTurn = (state.boardState && typeof state.boardState.turnId === 'number')
+    ? state.boardState.turnId : 0;
+  return (state.moveLog || []).filter(m => m.turnId > baseTurn);
 }
 
 // Elect a new host (first live human) and tell the room, so bot turns and
@@ -608,9 +618,10 @@ io.on('connection', (socket) => {
     // If game is already in progress, send current game state to the new spectator/player
     if (state.gameState === 'playing' && state.boardState) {
       io.to(socket.id).emit('game_started', state);
-      // Also send board state for immediate rendering
+      // Also send board state for immediate rendering, plus missed moves to replay
       setTimeout(() => {
         io.to(socket.id).emit('sync_data', state.boardState);
+        io.to(socket.id).emit('replay_moves', { moves: getReplayMoves(state), finishOrder: state.finishOrder || [] });
       }, 100);
     }
     
@@ -694,6 +705,7 @@ io.on('connection', (socket) => {
       state.finishOrder = []; // reset finish rankings
       state.finishMeta = [];
       state.boardState = null;
+      state.moveLog = [];
       state.offlineSlots = [false, false, false, false];
       state.moveExecutedThisTurn = false;
       state.endedAt = null;
@@ -773,6 +785,10 @@ io.on('connection', (socket) => {
       console.warn(`[Server] Rejected stale execute_move (turn ${moveObj.turnId} vs ${state.turnId}) in room ${socket.roomId}`);
       return;
     }
+    // Journal the move so rejoining clients can replay what they missed.
+    if (!state.moveLog) state.moveLog = [];
+    state.moveLog.push({ pieceId: moveObj.pieceId, action: moveObj.action, target: moveObj.target, turnId: state.turnId });
+    if (state.moveLog.length > 300) state.moveLog.splice(0, state.moveLog.length - 300);
 
     // Strictly enforce exactly ONE move per dice roll
     if (!state.diceRolled || state.moveExecutedThisTurn) {
@@ -868,11 +884,12 @@ io.on('connection', (socket) => {
   socket.on('request_sync', () => {
     if (!socket.roomId) return;
     socket.to(socket.roomId).emit('sync_requested', socket.id);
-    
+
     // Also send the server's cached state directly as a fallback for bot-only matches
     const state = getRoomState(socket.roomId);
     if (state.boardState) {
       socket.emit('sync_data', state.boardState);
+      socket.emit('replay_moves', { moves: getReplayMoves(state), finishOrder: state.finishOrder || [] });
     }
   });
 
@@ -929,6 +946,7 @@ io.on('connection', (socket) => {
     socket.emit('lobby_state', { ...state, roomId: data.roomId });
     if (state.gameState === 'playing' && state.boardState) {
       socket.emit('sync_data', state.boardState);
+      socket.emit('replay_moves', { moves: getReplayMoves(state), finishOrder: state.finishOrder || [] });
     }
     io.to(data.roomId).emit('player_reconnected', data.slot);
     broadcastOpenRooms();
@@ -1019,17 +1037,18 @@ io.on('connection', (socket) => {
         io.to(socket.roomId).emit('player_disconnected', oldSlot);
         migrateHost(socket.roomId);
 
-        // Active game: DO NOT delete room immediately! Give 5 minutes grace period
+        // Active game: DO NOT delete room immediately! Give 15 minutes grace period
+        // so closed/reopened apps can always rejoin the live match.
         const onlineHumans = state.slots.filter((s, i) => s !== null && s !== 'bot' && !state.offlineSlots[i]).length;
         if (onlineHumans === 0 && !state.cleanupTimer) {
-          console.log(`All human players offline in room ${socket.roomId}. Starting 5-minute recovery timer.`);
+          console.log(`All human players offline in room ${socket.roomId}. Starting 15-minute recovery timer.`);
           state.cleanupTimer = setTimeout(() => {
             const recheck = state.slots.filter((s, i) => s !== null && s !== 'bot' && !state.offlineSlots[i]).length;
             if (recheck === 0) {
               delete rooms[socket.roomId];
               console.log(`Recovery window expired. Deleted empty room: ${socket.roomId}`);
             }
-          }, 300000); // 5 minutes
+          }, 900000); // 15 minutes
         }
       }
     }

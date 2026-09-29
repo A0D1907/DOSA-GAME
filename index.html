@@ -1487,6 +1487,7 @@ function acceptFriendInvite(roomId) {
 
 // =============== NETWORK HANDLERS ===============
 let autoRejoinDoneForSocket = null;
+let rejoinPending = false;
 function tryAutoRejoin(reason) {
   if (!socket.connected) return false;
   const code = getSession('dosaRoom');
@@ -1502,12 +1503,16 @@ function tryAutoRejoin(reason) {
 
   if (slotNum !== null && !Number.isNaN(slotNum) && !isSpectateSession) {
     isSpectating = false;
+    clearSession('dosaSpectate');
+    rejoinPending = true;
     socket.emit('reclaim_slot', { roomId: code, slot: slotNum, playerName: name || ('Player ' + (slotNum + 1)) });
   } else if (isSpectateSession) {
     isSpectating = true;
+    rejoinPending = true;
     socket.emit('join_room', { roomId: code, playerName: 'Spectator', spectate: true });
   } else {
     isSpectating = false;
+    rejoinPending = true;
     socket.emit('join_room', { roomId: code, playerName: name || 'Player' });
   }
   // Hide home immediately so refresh restores match view instead of flashing lobby
@@ -1561,8 +1566,20 @@ socket.on('sync_data', (state) => {
     document.getElementById('game-screen').classList.remove('hidden');
 
     pieces = state.pieces;
-    currentPlayer = state.currentPlayer;
-    if (typeof state.turnId === 'number') currentTurnId = state.turnId;
+    // Never rewind the turn clock with a stale cached board: only adopt
+    // turn info that is at least as fresh as what we already have.
+    if (typeof state.turnId === 'number') {
+      if (state.turnId >= currentTurnId) {
+        currentTurnId = state.turnId;
+        if (typeof state.currentPlayer === 'number') currentPlayer = state.currentPlayer;
+      }
+    } else if (typeof state.currentPlayer === 'number' && currentTurnId === 0) {
+      currentPlayer = state.currentPlayer;
+    }
+    if (rejoinPending) {
+      rejoinPending = false;
+      showToast('Back in the match ✓ Resynced');
+    }
     activeSlots = state.activeSlots;
     pegsCountGlobal = state.pegsCountGlobal;
     visualMap = state.visualMap;
@@ -1626,11 +1643,19 @@ socket.on('lobby_state', (state) => {
   isSpectating = (state.gameState === 'playing' && mySlot === null);
 
   if (state.gameState === 'playing') {
+    // Adopt the server's live turn immediately: the cached board arriving
+    // via sync_data may predate it, and must not rewind the clock.
+    if (typeof state.currentPlayer === 'number') currentPlayer = state.currentPlayer;
+    if (typeof state.turnId === 'number') currentTurnId = Math.max(currentTurnId, state.turnId);
     document.getElementById('home-screen').classList.add('hidden');
     document.getElementById('lobby-screen').classList.add('hidden');
     document.getElementById('main-nav-bar')?.classList.add('hidden');
     document.getElementById('game-screen').classList.remove('hidden');
     document.getElementById('game-screen').classList.add('flex');
+    if (rejoinPending) {
+      rejoinPending = false;
+      showToast('Back in the match ✓ Resynced');
+    }
     socket.emit('request_sync');
     return;
   }
@@ -1798,6 +1823,7 @@ function copyRoomInvite() {
 
 function quickMatchVsAI() {
   isSpectating = false;
+  clearSession('dosaSpectate');
   autoRejoinDoneForSocket = socket.id;
   const name = document.getElementById('nickname-input')?.value.trim() || 'Player 1';
   const code = 'SOLO' + Math.floor(100 + Math.random() * 900);
@@ -1815,6 +1841,7 @@ function quickMatchVsAI() {
 
 function joinRoom() {
   isSpectating = false;
+  clearSession('dosaSpectate');
   autoRejoinDoneForSocket = socket.id;
   const code = document.getElementById('room-code-input').value.toUpperCase().trim();
   const name = document.getElementById('nickname-input')?.value.trim() || 'Player';
@@ -2057,38 +2084,55 @@ socket.on('dice_rolled', (data) => {
   }, 650);
 });
 
-socket.on('move_executed', (data) => {
-  const piece = pieces.find(p => p.id === data.pieceId);
-  if (!piece) return;
-  const { action, target } = data;
-  
-  moveSentForCurrentRoll = true;
-  if (botTurnTimer) {
-    clearTimeout(botTurnTimer);
-    botTurnTimer = null;
-  }
-  
+// Pure board-state application of a move (position + captures + pity reset).
+// Used live by move_executed and silently by the rejoin replay journal.
+function applyMoveToPieces(pieceId, action, target) {
+  const piece = pieces.find(p => p.id === pieceId);
+  if (!piece) return null;
+
   if (action === 'leave_jail' || action === 'shortcut' || action === 'move') {
     piece.state = 'perimeter'; piece.pos = target;
   } else if (action === 'home') {
     piece.state = 'home'; piece.pos = target;
+  } else {
+    return null;
   }
 
   // Mercy pity resets as soon as any rook is out of jail
   if (playerHasRookOut(piece.player)) jailStuck[piece.player] = 0;
-  
-  let captured = false;
+
+  const capturedEnemies = [];
   const movingPlayer = piece.player;
   if (piece.state === 'perimeter') {
     const enemies = pieces.filter(p => p.player !== movingPlayer && p.state === 'perimeter' && p.pos === piece.pos);
     enemies.forEach(e => {
       e.state = 'jail';
-      captured = true;
+      capturedEnemies.push(e);
       const taken = pieces.filter(p => p.id !== e.id && p.player === e.player && p.state === 'jail').map(p => p.pos);
       for (let i = 0; i < pegsCountGlobal; i++) {
         if (!taken.includes(i)) { e.pos = i; break; }
       }
-      if (isHost && latestSlots[e.player] === 'bot' && Math.random() < 0.6) {
+    });
+  }
+  return { piece, captured: capturedEnemies.length > 0, capturedEnemies };
+}
+
+socket.on('move_executed', (data) => {
+  const { action, target } = data;
+
+  moveSentForCurrentRoll = true;
+  if (botTurnTimer) {
+    clearTimeout(botTurnTimer);
+    botTurnTimer = null;
+  }
+
+  const applied = applyMoveToPieces(data.pieceId, action, target);
+  if (!applied) return;
+  const { captured, capturedEnemies } = applied;
+
+  if (captured && isHost) {
+    capturedEnemies.forEach(e => {
+      if (latestSlots[e.player] === 'bot' && Math.random() < 0.6) {
         setTimeout(() => {
           socket.emit('send_emote', { player: e.player, emoji: '😭' });
         }, 500);
@@ -2138,6 +2182,24 @@ socket.on('move_executed', (data) => {
       if (botTurnTimer) clearTimeout(botTurnTimer);
       botTurnTimer = setTimeout(() => socket.emit('next_turn', { turnId: currentTurnId }), 600);
     }
+  }
+});
+
+// Rejoin catch-up: silently replay moves missed while away, in order, through
+// the same state path as live moves (no sounds, emotes, timers or rank writes).
+socket.on('replay_moves', (data) => {
+  if (!data || !Array.isArray(data.moves) || data.moves.length === 0) return;
+  let applied = 0;
+  data.moves.forEach(m => {
+    if (!m || typeof m.target !== 'number') return;
+    if (applyMoveToPieces(m.pieceId, m.action, m.target)) applied++;
+  });
+  if (Array.isArray(data.finishOrder)) finishedPlayers = data.finishOrder.slice();
+  if (applied > 0) {
+    validMoves = [];
+    renderPieces();
+    updateUI();
+    showToast(`Caught up ${applied} missed move${applied === 1 ? '' : 's'} ⏩`);
   }
 });
 
@@ -2384,6 +2446,11 @@ function updateUI() {
   let isMyTurn = (currentPlayer === mySlot);
   let prefix = isMyTurn ? 'Your Turn' : (nameStr + "'s Turn");
   if (isSpectating) prefix = 'Spectating: ' + nameStr + "'s Turn";
+  // Visible pity meter: while all your rooks are jailed, show the mercy bonus live
+  if (isMyTurn && !isSpectating && !diceRolled && mySlot !== null && !playerHasRookOut(mySlot)) {
+    const pityPct = Math.min(12 * (jailStuck[mySlot] || 0), 50);
+    if (pityPct > 0) prefix += ` 🍀+${pityPct}%`;
+  }
   if (statusEl) statusEl.innerText = prefix;
   
   const col = PLAYERS[currentPlayer]?.dotColor || '#00c2ff';
@@ -2629,27 +2696,46 @@ function playerHasRookOut(player) {
   return pieces.some(p => p.player === player && p.state !== 'jail');
 }
 
+let mercyProcced = false;
+
 function getFairDiceRoll(player) {
+  mercyProcced = false;
   const v = uniformDie();
   if (v === 6) return 6;
-  // Mercy only applies while ALL of this player's rooks are still in jail
+  // Mercy only applies while ALL of this player's rooks are still in jail.
+  // It applies to bots too: without it a jail-locked bot could stall the
+  // whole table, and the die must stay equally honest for every seat.
   if (typeof player !== 'number' || playerHasRookOut(player)) return v;
   const pity = Math.min(jailStuck[player] || 0, 6);
   if (pity <= 0) return v;
-  // +8% per failed attempt, capped at +35%: long jail streaks get relief,
+  // +12% per failed attempt, capped at +50%: long jail streaks get real relief,
   // but a 6 is never guaranteed, keeping the die honest.
-  const mercyP = Math.min(0.08 * pity, 0.35);
-  if (Math.random() < mercyP) return 6;
+  const mercyP = Math.min(0.12 * pity, 0.5);
+  if (Math.random() < mercyP) {
+    mercyProcced = true;
+    return 6;
+  }
   return v;
 }
 
 function rollDice(isBotAuto = false) {
   if (isAnimating || diceRolled) return;
+  if (mySlot === null && !isSpectating) {
+    // Seat not restored yet (e.g. just reopened the app): retry the rejoin
+    // instead of silently swallowing the tap.
+    showToast('Reconnecting… one sec ⏳');
+    autoRejoinDoneForSocket = null;
+    tryAutoRejoin('roll');
+    return;
+  }
   if (currentPlayer !== mySlot) {
     if (!isHost || latestSlots[currentPlayer] !== 'bot' || !isBotAuto) return;
   }
   animStartTime = Date.now();
   const val = getFairDiceRoll(currentPlayer);
+  if (mercyProcced && currentPlayer === mySlot) {
+    showToast('🍀 Mercy 6! Jail pity came through!');
+  }
   socket.emit('roll_dice', { player: currentPlayer, value: val });
 }
 
@@ -2771,6 +2857,7 @@ socket.on('open_rooms', (roomsList) => {
 
 function joinRoomDirect(roomId) {
   isSpectating = false;
+  clearSession('dosaSpectate');
   autoRejoinDoneForSocket = socket.id;
   const name = document.getElementById('nickname-input')?.value.trim() || 'Player';
   saveSession('dosaRoom', roomId);
