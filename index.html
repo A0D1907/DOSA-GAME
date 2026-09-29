@@ -15,10 +15,93 @@
   <script src="/socket.io/socket.io.js"></script>
   
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap');
-    body { overscroll-behavior: none; font-family: 'Outfit', sans-serif; background: linear-gradient(135deg, #0f0c29, #302b63, #24243e); color: #f1f5f9; min-height: 100vh; }
-    .piece { transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=Chakra+Petch:wght@600;700;800&display=swap');
     
+    :root {
+      --bg-dark: #09071a;
+      --board-bg: #110e2e;
+      --accent-pink: #ff007f;
+      --accent-orange: #ff6b35;
+      --accent-indigo: #6366f1;
+    }
+
+    body {
+      overscroll-behavior: none;
+      font-family: 'Outfit', sans-serif;
+      background: radial-gradient(circle at 50% 10%, #1f1647 0%, #0c0824 55%, #050312 100%);
+      color: #f1f5f9;
+      min-height: 100vh;
+    }
+
+    /* Ambient Video Game Glow & Mesh */
+    .bg-cyber-glow {
+      position: absolute;
+      inset: 0;
+      background-image: 
+        radial-gradient(circle at 20% 15%, rgba(255, 0, 127, 0.15) 0%, transparent 40%),
+        radial-gradient(circle at 80% 85%, rgba(99, 102, 241, 0.18) 0%, transparent 45%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .game-font { font-family: 'Chakra Petch', sans-serif; }
+
+    /* AAA Game Cards */
+    .game-card {
+      background: rgba(18, 14, 45, 0.82);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      backdrop-filter: blur(28px);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.75), 0 0 30px rgba(99, 102, 241, 0.15);
+    }
+
+    /* 3D Tactile Buttons */
+    .btn-game-primary {
+      background: linear-gradient(135deg, #ff007f, #ff6b35);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      box-shadow: 0 5px 0 #9f004f, 0 10px 25px rgba(255, 0, 127, 0.45);
+      transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .btn-game-primary:hover {
+      filter: brightness(1.1);
+      transform: translateY(-2px);
+      box-shadow: 0 7px 0 #9f004f, 0 14px 28px rgba(255, 0, 127, 0.55);
+    }
+    .btn-game-primary:active {
+      transform: translateY(4px);
+      box-shadow: 0 1px 0 #9f004f, 0 4px 10px rgba(255, 0, 127, 0.3);
+    }
+
+    .btn-game-secondary {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      box-shadow: 0 4px 0 rgba(0, 0, 0, 0.4);
+      transition: all 0.15s ease;
+    }
+    .btn-game-secondary:active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 rgba(0, 0, 0, 0.4);
+    }
+
+    /* Recessed Cyber Holes */
+    .board-hole {
+      box-shadow: inset 0 3px 5px rgba(0,0,0,0.9), 0 1px 1px rgba(255,255,255,0.15);
+      transition: all 0.2s ease;
+    }
+
+    /* 3D Marble / Glass Pegs */
+    .piece {
+      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.6), inset 0 2px 4px rgba(255,255,255,0.7), inset 0 -2px 4px rgba(0,0,0,0.6);
+    }
+    .piece.valid-move {
+      animation: targetPulse 1.2s infinite alternate;
+      cursor: pointer;
+    }
+    @keyframes targetPulse {
+      0% { transform: translate(-50%, -50%) scale(1.1); filter: brightness(1.1) drop-shadow(0 0 6px #fff); }
+      100% { transform: translate(-50%, -50%) scale(1.35); filter: brightness(1.3) drop-shadow(0 0 14px #6366f1); }
+    }
+
     /* 3D Dice CSS */
     .dice-scene { width: 44px; height: 44px; perspective: 400px; margin: 0 auto; z-index: 20; }
     .cube {
@@ -35,9 +118,9 @@
     .face {
       position: absolute; width: 44px; height: 44px;
       background: #ffffff;
-      border: 1px solid #e2e8f0; border-radius: 8px;
+      border: 1px solid #e2e8f0; border-radius: 10px;
       display: grid; padding: 6px;
-      box-shadow: inset 0 0 10px rgba(0,0,0,0.02);
+      box-shadow: inset 0 0 10px rgba(0,0,0,0.06), 0 4px 10px rgba(0,0,0,0.3);
     }
     .face-1 { transform: rotateY(0deg) translateZ(22px); place-items: center; }
     .face-2 { transform: rotateY(90deg) translateZ(22px); display: flex; flex-direction: column; justify-content: space-between; padding: 6px; box-sizing: border-box; }
@@ -77,7 +160,8 @@
     }
   </style>
 </head>
-<body class="bg-slate-50 text-slate-900 h-screen flex flex-col overflow-hidden relative selection:bg-rose-500/30">
+<body class="text-slate-100 h-screen flex flex-col overflow-hidden relative selection:bg-rose-500/30">
+  <div class="bg-cyber-glow"></div>
 
   <!-- TOP NAVIGATION BAR -->
   <div class="fixed top-4 right-4 z-[120] flex items-center gap-2">
@@ -149,34 +233,34 @@
   </div>
 
   <!-- HOME SCREEN -->
-  <div id="home-screen" class="absolute inset-0 z-[60] flex flex-col items-center justify-center p-6" style="background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);">
-    <h1 class="text-6xl font-black tracking-[0.3em] uppercase mb-2 text-center" style="color:#ff007f; text-shadow: 0 0 30px rgba(255,0,127,0.8), 0 0 60px rgba(255,0,127,0.4);">DOSA</h1>
-    <p class="text-sm font-bold tracking-[0.5em] text-indigo-300 mb-10 uppercase">Online</p>
-    <div class="w-full max-w-sm p-8 rounded-3xl text-center" style="background: rgba(255,255,255,0.05); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 25px 50px rgba(0,0,0,0.5);">
+  <div id="home-screen" class="absolute inset-0 z-[60] flex flex-col items-center justify-center p-6" style="background: radial-gradient(circle at 50% 30%, #1c1547 0%, #0d0a27 65%, #050314 100%);">
+    <h1 class="text-6xl font-black tracking-[0.3em] uppercase mb-2 text-center game-font" style="color:#ff007f; text-shadow: 0 0 30px rgba(255,0,127,0.8), 0 0 60px rgba(255,0,127,0.4);">DOSA</h1>
+    <p class="text-sm font-bold tracking-[0.5em] text-indigo-300 mb-8 uppercase game-font">Online</p>
+    <div class="w-full max-w-sm p-8 rounded-3xl text-center game-card">
       <p class="text-xs font-bold text-indigo-300 uppercase tracking-widest mb-2">Your Nickname</p>
       <input type="text" id="nickname-input" placeholder="e.g. Maverick" class="w-full h-12 rounded-xl px-4 text-center text-lg font-bold focus:outline-none transition-all mb-4" style="background: rgba(255,255,255,0.08); border: 2px solid rgba(255,255,255,0.15); color: #f1f5f9;" autocomplete="off" maxlength="15" />
       
       <p class="text-xs font-bold text-indigo-300 uppercase tracking-widest mb-2">Enter Room Code</p>
-      <input type="text" id="room-code-input" placeholder="e.g. DOSA" class="w-full h-12 rounded-xl px-4 text-center text-lg font-bold uppercase tracking-widest focus:outline-none transition-all mb-5" style="background: rgba(255,255,255,0.08); border: 2px solid rgba(255,255,255,0.15); color: #f1f5f9;" autocomplete="off" maxlength="8" />
+      <input type="text" id="room-code-input" placeholder="e.g. DOSA" class="w-full h-12 rounded-xl px-4 text-center text-lg font-bold uppercase tracking-widest focus:outline-none transition-all mb-6" style="background: rgba(255,255,255,0.08); border: 2px solid rgba(255,255,255,0.15); color: #f1f5f9;" autocomplete="off" maxlength="8" />
       
-      <button onclick="joinRoom()" class="w-full py-4 rounded-xl font-black tracking-widest uppercase transition-all hover:-translate-y-1 active:translate-y-0" style="background: linear-gradient(135deg, #ff007f, #ff6b35); color: white; box-shadow: 0 8px 25px rgba(255,0,127,0.4);">Join Session</button>
+      <button onclick="joinRoom()" class="w-full py-4 rounded-xl font-black tracking-widest uppercase btn-game-primary text-white">Join Session</button>
       <p class="text-xs text-indigo-300/60 mt-5 font-medium">Create a room or join a friend's.</p>
     </div>
     
     <!-- Open Lobbies Container -->
-    <div id="open-rooms-container" class="w-full max-w-sm mt-6 p-6 rounded-3xl text-center hidden" style="background: rgba(255,255,255,0.05); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 25px 50px rgba(0,0,0,0.5);">
+    <div id="open-rooms-container" class="w-full max-w-sm mt-6 p-6 rounded-3xl text-center game-card hidden">
       <p class="text-xs font-bold text-indigo-300 uppercase tracking-widest mb-3 text-center">Live Games & Lobbies</p>
       <div id="open-rooms-list" class="flex flex-col gap-3 max-h-48 overflow-y-auto pr-1"></div>
     </div>
   </div>
 
   <!-- LOBBY SCREEN -->
-  <div id="lobby-screen" class="hidden absolute inset-0 z-50 flex flex-col items-center justify-center p-6" style="background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);">
-    <h1 class="text-5xl font-black tracking-[0.3em] uppercase mb-1 text-center" style="color:#ff007f; text-shadow: 0 0 20px rgba(255,0,127,0.7);">DOSA</h1>
-    <p class="text-xs font-bold tracking-[0.5em] text-indigo-300 mb-8 uppercase">Online</p>
-    <div class="w-full max-w-sm p-6 rounded-3xl" style="background: rgba(255,255,255,0.05); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 25px 50px rgba(0,0,0,0.5);">
+  <div id="lobby-screen" class="hidden absolute inset-0 z-50 flex flex-col items-center justify-center p-6" style="background: radial-gradient(circle at 50% 30%, #1c1547 0%, #0d0a27 65%, #050314 100%);">
+    <h1 class="text-5xl font-black tracking-[0.3em] uppercase mb-1 text-center game-font" style="color:#ff007f; text-shadow: 0 0 20px rgba(255,0,127,0.7);">DOSA</h1>
+    <p class="text-xs font-bold tracking-[0.5em] text-indigo-300 mb-8 uppercase game-font">Online</p>
+    <div class="w-full max-w-sm p-6 rounded-3xl game-card">
       <div class="mb-5 text-center">
-        <h2 class="text-xl font-black text-white tracking-tight" id="lobby-room-code">Room: ----</h2>
+        <h2 class="text-xl font-black text-white tracking-tight game-font" id="lobby-room-code">Room: ----</h2>
         <p class="text-xs font-bold text-indigo-300 uppercase tracking-widest mt-1">Select Your Player</p>
       </div>
       <div class="grid grid-cols-2 gap-3 mb-6">
@@ -188,12 +272,12 @@
       <div class="mb-5">
         <p class="text-xs font-bold text-indigo-300 uppercase tracking-widest mb-3 text-center">Pegs per Player</p>
         <div class="flex gap-3">
-          <button id="btn-pegs-2" onclick="setPegs(2)" class="flex-1 py-3 rounded-xl font-bold transition-all" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #94a3b8;">2 Pegs</button>
-          <button id="btn-pegs-4" onclick="setPegs(4)" class="flex-1 py-3 rounded-xl font-bold transition-all" style="background: linear-gradient(135deg,#6366f1,#8b5cf6); color: white;">4 Pegs</button>
+          <button id="btn-pegs-2" onclick="setPegs(2)" class="flex-1 py-3 rounded-xl font-bold transition-all btn-game-secondary" style="color: #94a3b8;">2 Pegs</button>
+          <button id="btn-pegs-4" onclick="setPegs(4)" class="flex-1 py-3 rounded-xl font-bold transition-all" style="background: linear-gradient(135deg,#6366f1,#8b5cf6); color: white; box-shadow: 0 4px 15px rgba(99,102,241,0.4);">4 Pegs</button>
         </div>
       </div>
-      <button id="start-btn" onclick="startGame()" disabled class="w-full py-4 rounded-xl font-black tracking-widest uppercase transition-all disabled:opacity-40 disabled:cursor-not-allowed" style="background: linear-gradient(135deg,#ff007f,#ff6b35); color: white; box-shadow: 0 8px 25px rgba(255,0,127,0.4);">Waiting for players...</button>
-      <div class="text-center mt-4 flex justify-between px-2">
+      <button id="start-btn" onclick="startGame()" disabled class="w-full py-4 rounded-xl font-black tracking-widest uppercase transition-all disabled:opacity-40 disabled:cursor-not-allowed btn-game-primary text-white">Waiting for players...</button>
+      <div class="text-center mt-5 flex justify-between px-2">
         <button onclick="leaveRoom()" class="text-xs font-bold text-indigo-300 uppercase tracking-wider hover:text-white transition-colors">🚪 Leave</button>
         <button onclick="resetSession()" class="text-xs font-bold text-red-400 uppercase tracking-wider hover:text-red-300 transition-colors">⚠ Force Reset</button>
       </div>
@@ -202,12 +286,12 @@
 
   <!-- VICTORY SCREEN -->
   <div id="victory-screen" class="hidden absolute inset-0 z-[60] flex flex-col items-center justify-center p-6" style="background: rgba(15,12,41,0.85); backdrop-filter: blur(20px);">
-    <div class="w-full max-w-sm p-10 rounded-3xl text-center" style="background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.15); box-shadow: 0 25px 60px rgba(0,0,0,0.6);">
-      <div class="text-5xl mb-4">🏆</div>
-      <h2 class="text-xs font-bold text-indigo-300 uppercase tracking-[0.4em] mb-3">Final Standings</h2>
-      <div id="winner-name" class="text-left mb-8 space-y-1" style="min-height:40px;"></div>
-      <button onclick="returnToLobby()" class="w-full py-4 mb-3 rounded-2xl font-black tracking-widest uppercase transition-all hover:-translate-y-1" style="background: linear-gradient(135deg,#6366f1,#8b5cf6); color: white; box-shadow: 0 8px 25px rgba(99,102,241,0.4);">Play Again</button>
-      <button onclick="leaveRoom()" class="w-full py-4 rounded-2xl font-bold tracking-widest uppercase transition-all" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: #94a3b8;">Leave Room</button>
+    <div class="w-full max-w-sm p-8 rounded-3xl text-center game-card">
+      <div class="text-6xl mb-4 animate-bounce">🏆</div>
+      <h2 class="text-xs font-bold text-indigo-300 uppercase tracking-[0.4em] mb-4 game-font">Final Standings</h2>
+      <div id="winner-name" class="text-left mb-8 space-y-1.5" style="min-height:40px;"></div>
+      <button onclick="returnToLobby()" class="w-full py-4 mb-3 rounded-2xl font-black tracking-widest uppercase transition-all btn-game-primary text-white">Play Again</button>
+      <button onclick="leaveRoom()" class="w-full py-3.5 rounded-2xl font-bold tracking-widest uppercase transition-all btn-game-secondary text-slate-300">Leave Room</button>
     </div>
   </div>
 
@@ -228,8 +312,8 @@
     <!-- Board Area -->
     <div class="w-full max-w-[420px] mx-auto relative aspect-square flex-shrink-0 z-10">
       <div id="board-container" class="absolute inset-4 transition-transform duration-700 ease-in-out">
-        <!-- Surface -->
-        <div class="absolute inset-0 rounded-2xl shadow-2xl border-2 border-white/10" style="background: linear-gradient(145deg, #1e1b4b, #312e81); box-shadow: 0 0 40px rgba(99,102,241,0.3), inset 0 1px 0 rgba(255,255,255,0.1);"></div>
+        <!-- Surface with Cyber Bezel -->
+        <div class="absolute inset-0 rounded-3xl border border-white/20 shadow-2xl" style="background: radial-gradient(circle at 50% 50%, #151138 0%, #0d0a27 60%, #060414 100%); box-shadow: 0 20px 50px rgba(0,0,0,0.8), 0 0 35px rgba(99,102,241,0.25), inset 0 2px 4px rgba(255,255,255,0.12), inset 0 -2px 6px rgba(0,0,0,0.8);"></div>
         <div id="holes" class="absolute inset-0 z-0"></div>
         <div id="pieces" class="absolute inset-0 z-10 pointer-events-auto"></div>
       </div>
@@ -238,33 +322,32 @@
     <!-- Bottom UI Controls -->
     <div class="flex-1 w-full max-w-[420px] mx-auto mt-2 mb-6 px-4 flex justify-between items-center relative z-10">
       
-      <!-- Emote Button -->
       <!-- Emote Button with Tap-to-Toggle & Scrollable Menu -->
       <div class="relative" id="emote-container">
-        <button id="emote-toggle-btn" onclick="toggleEmoteMenu(event)" class="w-16 h-16 rounded-full flex items-center justify-center active:scale-95 transition-all outline-none text-2xl" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); backdrop-filter: blur(10px);">
+        <button id="emote-toggle-btn" onclick="toggleEmoteMenu(event)" class="w-16 h-16 rounded-2xl flex items-center justify-center transition-all outline-none text-2xl btn-game-secondary hover:scale-105" title="Chat Emotes">
           💬
         </button>
-        <div id="emote-picker" class="absolute bottom-full mb-3 left-0 p-2 rounded-[2rem] flex flex-col gap-1 hidden z-50 overflow-y-auto max-h-[260px] no-scrollbar" style="background: rgba(15,12,41,0.92); border: 1px solid rgba(255,255,255,0.2); backdrop-filter: blur(20px); box-shadow: 0 20px 40px rgba(0,0,0,0.6);">
-          <button onclick="sendEmote('😂')" class="w-11 h-11 flex items-center justify-center rounded-full text-2xl transition-all hover:scale-125 active:scale-90">😂</button>
-          <button onclick="sendEmote('🔥')" class="w-11 h-11 flex items-center justify-center rounded-full text-2xl transition-all hover:scale-125 active:scale-90">🔥</button>
-          <button onclick="sendEmote('👑')" class="w-11 h-11 flex items-center justify-center rounded-full text-2xl transition-all hover:scale-125 active:scale-90">👑</button>
-          <button onclick="sendEmote('😎')" class="w-11 h-11 flex items-center justify-center rounded-full text-2xl transition-all hover:scale-125 active:scale-90">😎</button>
-          <button onclick="sendEmote('💀')" class="w-11 h-11 flex items-center justify-center rounded-full text-2xl transition-all hover:scale-125 active:scale-90">💀</button>
-          <button onclick="sendEmote('😭')" class="w-11 h-11 flex items-center justify-center rounded-full text-2xl transition-all hover:scale-125 active:scale-90">😭</button>
-          <button onclick="sendEmote('😡')" class="w-11 h-11 flex items-center justify-center rounded-full text-2xl transition-all hover:scale-125 active:scale-90">😡</button>
-          <button onclick="sendEmote('🎯')" class="w-11 h-11 flex items-center justify-center rounded-full text-2xl transition-all hover:scale-125 active:scale-90">🎯</button>
-          <button onclick="sendEmote('🚀')" class="w-11 h-11 flex items-center justify-center rounded-full text-2xl transition-all hover:scale-125 active:scale-90">🚀</button>
-          <button onclick="sendEmote('👏')" class="w-11 h-11 flex items-center justify-center rounded-full text-2xl transition-all hover:scale-125 active:scale-90">👏</button>
-          <button onclick="sendEmote('🤡')" class="w-11 h-11 flex items-center justify-center rounded-full text-2xl transition-all hover:scale-125 active:scale-90">🤡</button>
-          <button onclick="sendEmote('🎲')" class="w-11 h-11 flex items-center justify-center rounded-full text-2xl transition-all hover:scale-125 active:scale-90">🎲</button>
-          <button onclick="sendEmote('😮')" class="w-11 h-11 flex items-center justify-center rounded-full text-2xl transition-all hover:scale-125 active:scale-90">😮</button>
-          <button onclick="sendEmote('🍀')" class="w-11 h-11 flex items-center justify-center rounded-full text-2xl transition-all hover:scale-125 active:scale-90">🍀</button>
-          <button onclick="sendEmote('🐦')" class="w-11 h-11 flex items-center justify-center rounded-full text-2xl transition-all hover:scale-125 active:scale-90">🐦</button>
-          <button onclick="sendEmote('💧')" class="w-11 h-11 flex items-center justify-center rounded-full text-2xl transition-all hover:scale-125 active:scale-90">💧</button>
+        <div id="emote-picker" class="absolute bottom-full mb-3 left-0 p-2.5 rounded-3xl flex flex-col gap-1.5 hidden z-50 overflow-y-auto max-h-[260px] no-scrollbar game-card border border-white/20">
+          <button onclick="sendEmote('😂')" class="w-11 h-11 flex items-center justify-center rounded-xl text-2xl transition-all hover:scale-125 hover:bg-white/10 active:scale-90">😂</button>
+          <button onclick="sendEmote('🔥')" class="w-11 h-11 flex items-center justify-center rounded-xl text-2xl transition-all hover:scale-125 hover:bg-white/10 active:scale-90">🔥</button>
+          <button onclick="sendEmote('👑')" class="w-11 h-11 flex items-center justify-center rounded-xl text-2xl transition-all hover:scale-125 hover:bg-white/10 active:scale-90">👑</button>
+          <button onclick="sendEmote('😎')" class="w-11 h-11 flex items-center justify-center rounded-xl text-2xl transition-all hover:scale-125 hover:bg-white/10 active:scale-90">😎</button>
+          <button onclick="sendEmote('💀')" class="w-11 h-11 flex items-center justify-center rounded-xl text-2xl transition-all hover:scale-125 hover:bg-white/10 active:scale-90">💀</button>
+          <button onclick="sendEmote('😭')" class="w-11 h-11 flex items-center justify-center rounded-xl text-2xl transition-all hover:scale-125 hover:bg-white/10 active:scale-90">😭</button>
+          <button onclick="sendEmote('😡')" class="w-11 h-11 flex items-center justify-center rounded-xl text-2xl transition-all hover:scale-125 hover:bg-white/10 active:scale-90">😡</button>
+          <button onclick="sendEmote('🎯')" class="w-11 h-11 flex items-center justify-center rounded-xl text-2xl transition-all hover:scale-125 hover:bg-white/10 active:scale-90">🎯</button>
+          <button onclick="sendEmote('🚀')" class="w-11 h-11 flex items-center justify-center rounded-xl text-2xl transition-all hover:scale-125 hover:bg-white/10 active:scale-90">🚀</button>
+          <button onclick="sendEmote('👏')" class="w-11 h-11 flex items-center justify-center rounded-xl text-2xl transition-all hover:scale-125 hover:bg-white/10 active:scale-90">👏</button>
+          <button onclick="sendEmote('🤡')" class="w-11 h-11 flex items-center justify-center rounded-xl text-2xl transition-all hover:scale-125 hover:bg-white/10 active:scale-90">🤡</button>
+          <button onclick="sendEmote('🎲')" class="w-11 h-11 flex items-center justify-center rounded-xl text-2xl transition-all hover:scale-125 hover:bg-white/10 active:scale-90">🎲</button>
+          <button onclick="sendEmote('😮')" class="w-11 h-11 flex items-center justify-center rounded-xl text-2xl transition-all hover:scale-125 hover:bg-white/10 active:scale-90">😮</button>
+          <button onclick="sendEmote('🍀')" class="w-11 h-11 flex items-center justify-center rounded-xl text-2xl transition-all hover:scale-125 hover:bg-white/10 active:scale-90">🍀</button>
+          <button onclick="sendEmote('🐦')" class="w-11 h-11 flex items-center justify-center rounded-xl text-2xl transition-all hover:scale-125 hover:bg-white/10 active:scale-90">🐦</button>
+          <button onclick="sendEmote('💧')" class="w-11 h-11 flex items-center justify-center rounded-xl text-2xl transition-all hover:scale-125 hover:bg-white/10 active:scale-90">💧</button>
         </div>
       </div>
 
-      <button id="dice-btn" onclick="rollDice()" class="w-24 h-24 rounded-full flex flex-col items-center justify-center active:scale-95 transition-all outline-none relative" style="background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.2); backdrop-filter: blur(10px); box-shadow: 0 8px 32px rgba(0,0,0,0.3);">
+      <button id="dice-btn" onclick="rollDice()" class="w-24 h-24 rounded-3xl flex flex-col items-center justify-center transition-all outline-none relative btn-game-primary" title="Roll Dice">
         <div class="dice-scene pointer-events-none">
           <div class="cube" id="dice-cube" style="--player-color: #f43f5e;">
             <div class="face face-1"><div class="dot"></div></div>
@@ -437,6 +520,9 @@ function clearSession(key) {
 
 // =============== NETWORK HANDLERS ===============
 socket.on('connect', () => {
+  if (currentUser) {
+    socket.emit('register_user', currentUser.id);
+  }
   const code = getSession('dosaRoom');
   const slot = getSession('dosaSlot');
   const name = getSession('dosaName');
@@ -558,19 +644,19 @@ socket.on('lobby_state', (state) => {
     const btn = document.getElementById(`slot-${i}`);
     if (state.slots[i]) {
        if (state.slots[i] === socket.id) {
-         btn.innerHTML = `<button class="w-full h-full bg-slate-100 font-bold flex items-center justify-center gap-2 text-slate-800"><div class="w-4 h-4 rounded-full ${PLAYERS[i].color}"></div> ${state.playerNames[i]} (You)</button>`;
+         btn.innerHTML = `<button class="w-full h-full font-bold flex items-center justify-center gap-2 text-white rounded-xl transition-all" style="background: linear-gradient(135deg, rgba(255,255,255,0.2), rgba(255,255,255,0.08)); border: 1px solid rgba(255,255,255,0.3); box-shadow: 0 4px 12px rgba(0,0,0,0.3);"><div class="w-3.5 h-3.5 rounded-full ${PLAYERS[i].color} shadow-[0_0_8px_${PLAYERS[i].dotColor}]"></div> <span>${state.playerNames[i]}</span> <span class="text-[10px] font-black uppercase text-indigo-300 ml-1">(You)</span></button>`;
        } else if (state.slots[i] === 'bot') {
          btn.innerHTML = `
-           <div class="flex-1 h-full bg-slate-50 font-bold flex items-center justify-center gap-2 text-slate-600"><div class="w-4 h-4 rounded-full ${PLAYERS[i].color}"></div> ${state.playerNames[i]}</div>
-           ${isHost ? `<button onclick="removeBot(${i})" class="w-12 h-full bg-red-100 hover:bg-red-200 text-red-600 font-bold flex items-center justify-center transition-colors">X</button>` : ''}
+           <div class="flex-1 h-full font-bold flex items-center justify-center gap-2 text-slate-200 rounded-l-xl" style="background: rgba(255,255,255,0.08); border-left: 1px solid rgba(255,255,255,0.15); border-top: 1px solid rgba(255,255,255,0.15); border-bottom: 1px solid rgba(255,255,255,0.15);"><div class="w-3.5 h-3.5 rounded-full ${PLAYERS[i].color} shadow-[0_0_8px_${PLAYERS[i].dotColor}]"></div> <span>${state.playerNames[i]}</span></div>
+           ${isHost ? `<button onclick="removeBot(${i})" class="w-11 h-full bg-rose-500/20 hover:bg-rose-500/40 text-rose-300 font-bold flex items-center justify-center transition-all rounded-r-xl border border-rose-500/30">✕</button>` : ''}
          `;
        } else {
-         btn.innerHTML = `<div class="w-full h-full bg-slate-50 font-bold flex items-center justify-center gap-2 text-slate-400 opacity-70 cursor-not-allowed">${state.playerNames[i]}</div>`;
+         btn.innerHTML = `<div class="w-full h-full font-bold flex items-center justify-center gap-2 text-slate-400 opacity-60 cursor-not-allowed rounded-xl" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);"><div class="w-3.5 h-3.5 rounded-full ${PLAYERS[i].color}"></div> <span>${state.playerNames[i]}</span></div>`;
        }
     } else {
        btn.innerHTML = `
-         <button onclick="joinSlot(${i})" class="flex-1 h-full bg-white font-bold flex items-center justify-center gap-2 text-slate-500 hover:bg-slate-50 transition-colors"><div class="w-4 h-4 rounded-full ${PLAYERS[i].color}"></div> Join P${i+1}</button>
-         ${isHost ? `<button onclick="addBot(${i})" class="w-12 h-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold flex items-center justify-center transition-colors text-lg" title="Add Bot">🤖</button>` : ''}
+         <button onclick="joinSlot(${i})" class="flex-1 h-full font-bold flex items-center justify-center gap-2 text-slate-300 hover:text-white transition-all rounded-l-xl" style="background: rgba(255,255,255,0.08); border-left: 1px solid rgba(255,255,255,0.15); border-top: 1px solid rgba(255,255,255,0.15); border-bottom: 1px solid rgba(255,255,255,0.15);"><div class="w-3.5 h-3.5 rounded-full ${PLAYERS[i].color}"></div> Join P${i+1}</button>
+         ${isHost ? `<button onclick="addBot(${i})" class="w-11 h-full hover:brightness-125 font-bold flex items-center justify-center transition-all text-base rounded-r-xl border border-white/15" style="background: rgba(255,255,255,0.12);" title="Add Bot">🤖</button>` : ''}
        `;
     }
   }
@@ -911,12 +997,22 @@ function initBoard(keepState = false) {
   
   function addHole(x, y, type) {
     const el = document.createElement('div');
-    let bg;
-    if (type === 'jail') bg = 'rgba(255,255,255,0.12)';
-    else if (type === 'home') bg = 'rgba(255,255,255,0.18)';
-    else bg = 'rgba(255,255,255,0.1)';
-    el.className = `absolute rounded-full`;
-    el.style.cssText = `left:${(x + OFFSET + 0.5) * (100 / GRID_SIZE)}%; top:${(y + OFFSET + 0.5) * (100 / GRID_SIZE)}%; width:4%; height:4%; transform:translate(-50%,-50%); background:${bg}; border: 1px solid rgba(255,255,255,0.25); box-shadow: inset 0 1px 3px rgba(0,0,0,0.4);`;
+    let bg, border, shadow;
+    if (type === 'jail') {
+      bg = 'radial-gradient(circle at 50% 50%, rgba(255,255,255,0.06), rgba(0,0,0,0.6))';
+      border = 'rgba(255,255,255,0.12)';
+      shadow = 'inset 0 2px 4px rgba(0,0,0,0.85), 0 1px 1px rgba(255,255,255,0.05)';
+    } else if (type === 'home') {
+      bg = 'radial-gradient(circle at 50% 50%, rgba(255,255,255,0.12), rgba(0,0,0,0.5))';
+      border = 'rgba(255,255,255,0.25)';
+      shadow = 'inset 0 2px 5px rgba(0,0,0,0.9), 0 1px 2px rgba(255,255,255,0.1)';
+    } else {
+      bg = 'radial-gradient(circle at 50% 50%, rgba(255,255,255,0.08), rgba(0,0,0,0.7))';
+      border = 'rgba(255,255,255,0.16)';
+      shadow = 'inset 0 2px 5px rgba(0,0,0,0.9), 0 1px 1px rgba(255,255,255,0.08)';
+    }
+    el.className = `absolute rounded-full board-hole`;
+    el.style.cssText = `left:${(x + OFFSET + 0.5) * (100 / GRID_SIZE)}%; top:${(y + OFFSET + 0.5) * (100 / GRID_SIZE)}%; width:4.2%; height:4.2%; transform:translate(-50%,-50%); background:${bg}; border: 1px solid ${border}; box-shadow: ${shadow};`;
     holesEl.appendChild(el);
   }
 
@@ -972,8 +1068,9 @@ function initBoard(keepState = false) {
       
       const el = document.createElement('div');
       el.id = `piece-${id}`;
-      el.className = `piece absolute rounded-full ${PLAYERS[p].glow} z-10`;
-      el.style.cssText = `width:2.8%; height:2.8%; transform:translate(-50%,-50%); background:${PLAYERS[p].dotColor}; box-shadow: 0 0 8px ${PLAYERS[p].dotColor}, 0 0 16px ${PLAYERS[p].dotColor}55;`;
+      el.className = `piece absolute rounded-full z-10`;
+      const dotCol = PLAYERS[p].dotColor;
+      el.style.cssText = `width:3.2%; height:3.2%; transform:translate(-50%,-50%); background: radial-gradient(circle at 35% 35%, #ffffff 0%, ${dotCol} 55%, #050510 110%); box-shadow: 0 4px 8px rgba(0,0,0,0.7), 0 0 12px ${dotCol}88, inset 0 1px 2px rgba(255,255,255,0.8); border: 1px solid rgba(255,255,255,0.4);`;
       piecesContainer.appendChild(el);
     }
   }
@@ -1010,10 +1107,10 @@ function renderPieces() {
     
     const isValid = currentPlayer === mySlot && validMoves.some(m => m.piece.id === piece.id);
     if (isValid) {
-      el.classList.add('ring-4', 'ring-indigo-500/50', 'animate-pulse', 'cursor-pointer', 'scale-125', 'z-20');
+      el.classList.add('valid-move', 'z-30');
       el.onclick = () => selectMove(validMoves.find(m => m.piece.id === piece.id));
     } else {
-      el.classList.remove('ring-4', 'ring-indigo-500/50', 'animate-pulse', 'cursor-pointer', 'scale-125', 'z-20');
+      el.classList.remove('valid-move', 'z-30');
       el.onclick = null;
     }
   });
@@ -1369,12 +1466,13 @@ function updateAuthUI() {
   const nicknameInput = document.getElementById('nickname-input');
 
   if (currentUser) {
+    socket.emit('register_user', currentUser.id);
     if (loggedOutBar) loggedOutBar.classList.add('hidden');
     if (loggedInBar) loggedInBar.classList.remove('hidden');
     if (usernameDisplay) usernameDisplay.innerText = currentUser.username;
     if (nicknameInput && !nicknameInput.value) {
       nicknameInput.value = currentUser.username;
-      sessionStorage.setItem('dosaName', currentUser.username);
+      saveSession('dosaName', currentUser.username);
     }
   } else {
     if (loggedOutBar) loggedOutBar.classList.remove('hidden');
@@ -1476,15 +1574,26 @@ async function loadFriendsList() {
     }
     container.innerHTML = '';
     friends.forEach(f => {
+      const isOnline = !!f.isOnline;
+      const statusDot = isOnline
+        ? '<span class="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]" title="Online"></span>'
+        : '<span class="w-2.5 h-2.5 rounded-full bg-slate-500" title="Offline"></span>';
+      const statusText = isOnline
+        ? '<span class="text-[9px] text-emerald-400 font-bold uppercase tracking-wider">Online</span>'
+        : '<span class="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Offline</span>';
+
       const row = document.createElement('div');
-      row.className = 'flex items-center justify-between p-2 rounded-xl border border-white/10 bg-white/5';
+      row.className = 'flex items-center justify-between p-2.5 rounded-xl border border-white/10 bg-white/5';
       row.innerHTML = `
-        <div class="flex items-center gap-2">
-          <span class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]"></span>
-          <span class="text-xs font-bold text-white">${f.username}</span>
+        <div class="flex items-center gap-2.5">
+          ${statusDot}
+          <div>
+            <div class="text-xs font-bold text-white">${f.username}</div>
+            ${statusText}
+          </div>
         </div>
         <div class="flex items-center gap-1.5">
-          <button onclick="inviteFriend('${f.username}')" class="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/40">Invite</button>
+          <button onclick="inviteFriend(${f.id}, '${f.username}')" class="px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/40 hover:scale-105 active:scale-95 transition-all">Invite</button>
           <button onclick="removeFriendAction(${f.id})" class="text-slate-400 hover:text-rose-400 p-1 text-xs">✕</button>
         </div>
       `;
@@ -1536,14 +1645,63 @@ async function removeFriendAction(friendId) {
   } catch(e) {}
 }
 
-function inviteFriend(friendUsername) {
+function inviteFriend(friendId, friendUsername) {
   const code = getSession('dosaRoom');
-  if (code) {
-    navigator.clipboard?.writeText(`${window.location.origin}/?room=${code}`);
-    alert(`Copied invite link for Room ${code}! Send it to ${friendUsername}`);
-  } else {
-    alert("Join or create a room first to invite your friend!");
+  if (!code) {
+    alert("Please join or create a room first, then invite your friend!");
+    return;
   }
+  socket.emit('send_friend_invite', {
+    friendId,
+    fromUsername: currentUser.username,
+    roomId: code
+  });
+  navigator.clipboard?.writeText(`${window.location.origin}/?room=${code}`);
+}
+
+socket.on('invite_status', (data) => {
+  const msg = document.getElementById('friend-status-msg');
+  if (msg) {
+    msg.className = data.success
+      ? 'text-[11px] font-bold text-center min-h-[16px] mb-2 text-emerald-400'
+      : 'text-[11px] font-bold text-center min-h-[16px] mb-2 text-amber-300';
+    msg.innerText = data.message;
+  }
+});
+
+socket.on('receive_friend_invite', (data) => {
+  playSafeSound();
+
+  document.getElementById('friend-invite-toast')?.remove();
+
+  const toast = document.createElement('div');
+  toast.id = 'friend-invite-toast';
+  toast.className = 'fixed top-5 left-1/2 -translate-x-1/2 z-[300] max-w-md w-[92%] p-4 rounded-2xl flex items-center justify-between gap-3 shadow-2xl transition-all duration-300 animate-bounce';
+  toast.style.cssText = 'background: rgba(18, 14, 45, 0.96); border: 2px solid #818cf8; backdrop-filter: blur(20px); box-shadow: 0 10px 40px rgba(99,102,241,0.5);';
+
+  toast.innerHTML = `
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-full flex items-center justify-center text-xl bg-indigo-500/20 text-indigo-300">🎮</div>
+      <div>
+        <div class="text-xs font-black text-white"><span class="text-indigo-300">${data.fromUsername}</span> invited you to play!</div>
+        <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Room: ${data.roomId}</div>
+      </div>
+    </div>
+    <div class="flex items-center gap-1.5">
+      <button onclick="acceptFriendInvite('${data.roomId}')" class="px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all hover:scale-105 active:scale-95" style="background: linear-gradient(135deg, #ff007f, #ff6b35); color:white;">Join</button>
+      <button onclick="document.getElementById('friend-invite-toast').remove()" class="w-7 h-7 rounded-xl flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 text-xs">✕</button>
+    </div>
+  `;
+  document.body.appendChild(toast);
+
+  setTimeout(() => toast?.remove(), 25000);
+});
+
+function acceptFriendInvite(roomId) {
+  document.getElementById('friend-invite-toast')?.remove();
+  const roomInput = document.getElementById('room-code-input');
+  if (roomInput) roomInput.value = roomId;
+  joinRoom();
 }
 
 document.addEventListener("DOMContentLoaded", () => {

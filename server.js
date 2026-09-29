@@ -39,11 +39,17 @@ app.post('/api/login', (req, res) => {
   });
 });
 
+const onlineUsers = {}; // userId -> socket.id
+
 app.get('/api/friends/:userId', (req, res) => {
   const userId = req.params.userId;
   db.all("SELECT u.id, u.username FROM users u JOIN friends f ON u.id = f.friend_id WHERE f.user_id = ?", [userId], (err, rows) => {
     if (err) return res.status(500).json({ error: 'Server error' });
-    res.json(rows || []);
+    const friendsWithStatus = (rows || []).map(r => ({
+      ...r,
+      isOnline: !!onlineUsers[r.id]
+    }));
+    res.json(friendsWithStatus);
   });
 });
 
@@ -105,6 +111,27 @@ function broadcastOpenRooms() {
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
   broadcastOpenRooms();
+
+  socket.on('register_user', (userId) => {
+    if (userId) {
+      onlineUsers[userId] = socket.id;
+      socket.userId = userId;
+    }
+  });
+
+  socket.on('send_friend_invite', (data) => {
+    const { friendId, fromUsername, roomId } = data;
+    const targetSocketId = onlineUsers[friendId];
+    if (targetSocketId && io.sockets.sockets.get(targetSocketId)) {
+      io.to(targetSocketId).emit('receive_friend_invite', {
+        fromUsername,
+        roomId
+      });
+      socket.emit('invite_status', { success: true, message: `Invite sent to friend!` });
+    } else {
+      socket.emit('invite_status', { success: false, message: `Friend is offline. Invite link copied!` });
+    }
+  });
   
   socket.on('join_room', (roomId) => {
     Array.from(socket.rooms).forEach(r => {
@@ -341,6 +368,9 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);
+    if (socket.userId && onlineUsers[socket.userId] === socket.id) {
+      delete onlineUsers[socket.userId];
+    }
     if (!socket.roomId) return;
     const state = getRoomState(socket.roomId);
     const oldSlot = state.slots.indexOf(socket.id);
