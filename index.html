@@ -167,18 +167,6 @@
       transform: translateY(1px);
     }
 
-    .board-bezel {
-      background: radial-gradient(circle at 50% 38%, #1c1240 0%, #0d0822 62%, #070412 100%);
-      border: 1px solid rgba(255, 255, 255, 0.16);
-      box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.7),
-        0 0 0 2px rgba(139, 92, 246, 0.22),
-        0 0 44px -6px rgba(139, 92, 246, 0.65),
-        0 0 90px -18px rgba(0, 229, 255, 0.5),
-        0 24px 50px rgba(0, 0, 0, 0.7);
-      border-radius: 1.75rem;
-      position: relative;
-    }
-
     .board-hole {
       transition: all 0.2s ease;
       box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.85), 0 0 8px -3px rgba(139, 92, 246, 0.5) !important;
@@ -586,6 +574,9 @@
       <button onclick="quickMatchVsAI()" class="w-full py-3 rounded-xl font-medium btn-modern-secondary text-xs flex items-center justify-center gap-2">
         <span>⚡ Quick Match vs AI (Solo)</span>
       </button>
+      <button onclick="openLeaderboardModal()" class="w-full py-3 mt-2.5 rounded-xl font-medium btn-modern-secondary text-xs flex items-center justify-center gap-2">
+        <span>🏆 Leaderboard</span>
+      </button>
 
       <p class="text-[11px] text-[#8f89b3] mt-4">Play in real-time with friends or challenge smart bots.</p>
     </div>
@@ -687,7 +678,6 @@
 
     <div class="board-wrapper mx-auto relative flex-shrink-0 z-10 my-auto flex items-center justify-center" style="width: min(92vw, 400px, 50vh); height: min(92vw, 400px, 50vh);">
       <div id="board-container" class="absolute inset-2 sm:inset-3 transition-transform duration-700 ease-in-out">
-        <div class="board-bezel absolute inset-0"></div>
         <div id="holes" class="absolute inset-0 z-0"></div>
         <div id="pieces" class="absolute inset-0 z-10 pointer-events-auto"></div>
       </div>
@@ -2431,7 +2421,7 @@ function initBoard(keepState = false) {
       border = 'rgba(0, 229, 255, 0.45)';
     }
 
-    const holeSizePct = (0.78 / GRID_SIZE) * 100;
+    const holeSizePct = (0.9 / GRID_SIZE) * 100;
     el.className = `absolute rounded-full board-hole`;
     el.style.cssText = `left:` + ((x + OFFSET + 0.5) * (100 / GRID_SIZE)) + `%; top:` + ((y + OFFSET + 0.5) * (100 / GRID_SIZE)) + `%; width:` + holeSizePct + `%; height:` + holeSizePct + `%; transform:translate(-50%,-50%); background:` + bg + `; border: 1px solid ` + border + `; box-shadow: ` + shadow + `;`;
     holesEl.appendChild(el);
@@ -2461,19 +2451,6 @@ function initBoard(keepState = false) {
   }
   document.getElementById('board-container').style.transform = 'rotate(' + boardRot + 'deg)';
 
-  const labelOffset = pegsCountGlobal === 2 ? 6.5 : 10.5;
-  const LABEL_POS = { 0: [0, -labelOffset], 1: [labelOffset, 0], 2: [0, labelOffset], 3: [-labelOffset, 0] };
-  for (let p of activeSlots) {
-    const vPlayer = visualMap[p];
-    const el = document.createElement('div');
-    el.className = `absolute text-[11px] font-semibold opacity-40 ` + PLAYERS[p].text + ` pointer-events-none text-center whitespace-nowrap`;
-    el.style.left = ((LABEL_POS[vPlayer][0] + OFFSET + 0.5) * (100 / GRID_SIZE)) + '%';
-    el.style.top = ((LABEL_POS[vPlayer][1] + OFFSET + 0.5) * (100 / GRID_SIZE)) + '%';
-    el.style.transform = 'translate(-50%, -50%) rotate(' + (-boardRot) + 'deg)';
-    el.innerText = latestPlayerNames[p] || ('P' + (parseInt(p)+1));
-    holesEl.appendChild(el);
-  }
-
   const piecesContainer = document.getElementById('pieces');
   piecesContainer.innerHTML = '';
   for (let p = 0; p < 4; p++) {
@@ -2489,7 +2466,7 @@ function initBoard(keepState = false) {
       el.id = `piece-${id}`;
       el.className = `piece absolute rounded-full z-10`;
       const dotCol = PLAYERS[p].dotColor;
-      const pieceSizePct = (0.68 / GRID_SIZE) * 100;
+      const pieceSizePct = (0.8 / GRID_SIZE) * 100;
       el.style.cssText = `width:` + pieceSizePct + `%; height:` + pieceSizePct + `%; transform:translate(-50%,-50%); background: radial-gradient(circle at 35% 35%, #ffffff 0%, ` + dotCol + ` 60%, #0a0a0e 115%); box-shadow: 0 3px 6px rgba(0,0,0,0.6), inset 0 1px 1px rgba(255,255,255,0.7); border: 1px solid rgba(255,255,255,0.3);`;
       piecesContainer.appendChild(el);
     }
