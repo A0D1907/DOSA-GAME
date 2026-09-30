@@ -640,7 +640,11 @@ io.on('connection', (socket) => {
     socket.join(roomId);
     socket.roomId = roomId;
     socket.isSpectate = isSpectate;
-    
+
+    // Fresh = this room did not exist until this very join (e.g. the old one
+    // died with a deploy/sleep). Auto-rejoin uses this to bounce home instead
+    // of walking into yesterday's ghost.
+    const isFreshRoom = !rooms[roomId];
     let state = getRoomState(roomId);
 
     // Rejoining an ended game starts a fresh lobby instead of a dead room
@@ -664,8 +668,8 @@ io.on('connection', (socket) => {
     const firstHuman = state.slots.find(s => s !== null && s !== 'bot');
     state.host = firstHuman || socket.id;
 
-    io.to(roomId).emit('lobby_state', { ...state, socketId: socket.id, roomId });
-    
+    io.to(roomId).emit('lobby_state', { ...state, socketId: socket.id, roomId, fresh: isFreshRoom });
+
     // If game is already in progress, send current game state to the new spectator/player
     if (state.gameState === 'playing' && state.boardState) {
       io.to(socket.id).emit('game_started', { ...state, spectators: getSpectatorCount(roomId) });
@@ -1010,6 +1014,7 @@ io.on('connection', (socket) => {
 
   socket.on('reclaim_slot', (data) => {
     if (!data || !data.roomId || typeof data.slot !== 'number' || data.slot < 0 || data.slot > 3) return;
+    const isFreshRoom = !rooms[data.roomId];
     if (getRoomState(data.roomId).gameState === 'finished') {
       resetRoomToLobby(data.roomId);
     }
@@ -1044,7 +1049,7 @@ io.on('connection', (socket) => {
     state.host = reclaimFirstHuman || socket.id;
 
     // Directly send current state to the recovering player
-    socket.emit('lobby_state', { ...state, roomId: data.roomId });
+    socket.emit('lobby_state', { ...state, roomId: data.roomId, fresh: isFreshRoom });
     if (state.gameState === 'playing' && state.boardState) {
       socket.emit('sync_data', state.boardState);
       socket.emit('replay_moves', { moves: getReplayMoves(state), finishOrder: state.finishOrder || [] });

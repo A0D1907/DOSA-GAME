@@ -1515,6 +1515,7 @@ function acceptFriendInvite(roomId) {
 let autoRejoinDoneForSocket = null;
 let rejoinPending = false;
 let syncRetryCount = 0;
+let awaitingAutoRejoinResult = false;
 function tryAutoRejoin(reason) {
   if (!socket.connected) return false;
   const code = getSession('dosaRoom');
@@ -1522,6 +1523,7 @@ function tryAutoRejoin(reason) {
   // Avoid duplicate rejoins on the same socket connection (connect + DOMContentLoaded both fire)
   if (autoRejoinDoneForSocket === socket.id) return true;
   autoRejoinDoneForSocket = socket.id;
+  awaitingAutoRejoinResult = true;
 
   const slot = getSession('dosaSlot');
   const name = getSession('dosaName');
@@ -1647,6 +1649,7 @@ socket.on('sync_requested', (requesterSocketId) => {
 });
 
 socket.on('sync_data', (state) => {
+  awaitingAutoRejoinResult = false;
   if (state && state.pieces) {
     document.getElementById('home-screen').classList.add('hidden');
     document.getElementById('lobby-screen').classList.add('hidden');
@@ -1726,6 +1729,29 @@ setInterval(() => {
 }, 1000);
 
 socket.on('lobby_state', (state) => {
+  const wasAwaitingRejoin = awaitingAutoRejoinResult;
+  awaitingAutoRejoinResult = false;
+
+  // Ghost room: auto-rejoin landed in a room that didn't exist until this
+  // very join (yesterday's match died with the server). Bounce home instead
+  // of walking into an empty dead lobby. Manual joins never set the flag.
+  if (wasAwaitingRejoin && state.fresh && state.gameState === 'lobby') {
+    socket.emit('leave_room');
+    clearSession('dosaRoom');
+    clearSession('dosaSlot');
+    clearSession('dosaSpectate');
+    isSpectating = false;
+    rejoinPending = false;
+    document.getElementById('game-screen')?.classList.add('hidden');
+    document.getElementById('game-screen')?.classList.remove('flex');
+    document.getElementById('lobby-screen')?.classList.add('hidden');
+    document.getElementById('victory-screen')?.classList.add('hidden');
+    document.getElementById('home-screen')?.classList.remove('hidden');
+    document.getElementById('main-nav-bar')?.classList.remove('hidden');
+    showToast('That match is over 🙂 Start a new one!');
+    return;
+  }
+
   if (state.slots) latestSlots = state.slots;
   if (state.playerNames) latestPlayerNames = state.playerNames;
 
@@ -1768,6 +1794,17 @@ socket.on('lobby_state', (state) => {
     clearSession('dosaSlot');
     clearSession('dosaSpectate');
     isSpectating = false;
+    document.getElementById('game-screen')?.classList.add('hidden');
+    document.getElementById('game-screen')?.classList.remove('flex');
+    document.getElementById('lobby-screen')?.classList.add('hidden');
+    document.getElementById('victory-screen')?.classList.add('hidden');
+    document.getElementById('home-screen')?.classList.remove('hidden');
+    document.getElementById('main-nav-bar')?.classList.remove('hidden');
+    return;
+  }
+
+  // No saved room (e.g. we just bounced out of a ghost): stay home, ignore strays.
+  if (!getSession('dosaRoom')) {
     document.getElementById('game-screen')?.classList.add('hidden');
     document.getElementById('game-screen')?.classList.remove('flex');
     document.getElementById('lobby-screen')?.classList.add('hidden');
@@ -1927,6 +1964,7 @@ function quickMatchVsAI() {
   isSpectating = false;
   clearSession('dosaSpectate');
   autoRejoinDoneForSocket = socket.id;
+  awaitingAutoRejoinResult = false;
   const name = document.getElementById('nickname-input')?.value.trim() || 'Player 1';
   const code = 'SOLO' + Math.floor(100 + Math.random() * 900);
   saveSession('dosaRoom', code);
@@ -1946,6 +1984,7 @@ function joinRoom() {
   isSpectating = false;
   clearSession('dosaSpectate');
   autoRejoinDoneForSocket = socket.id;
+  awaitingAutoRejoinResult = false;
   const code = document.getElementById('room-code-input').value.toUpperCase().trim();
   const name = document.getElementById('nickname-input')?.value.trim() || 'Player';
   if (code.length > 0) {
@@ -2014,6 +2053,7 @@ function returnToLobby() {
 function leaveRoom() {
   isSpectating = false;
   autoRejoinDoneForSocket = null;
+  awaitingAutoRejoinResult = false;
   if (botTurnTimer) { clearTimeout(botTurnTimer); botTurnTimer = null; }
   socket.emit('leave_room');
   clearSession('dosaRoom');
@@ -2029,6 +2069,7 @@ function leaveRoom() {
 }
 
 socket.on('game_started', (data) => {
+  awaitingAutoRejoinResult = false;
   if (botTurnTimer) { clearTimeout(botTurnTimer); botTurnTimer = null; }
   syncRetryCount = 0;
   isAnimating = false;
@@ -3032,6 +3073,7 @@ function joinRoomDirect(roomId) {
   isSpectating = false;
   clearSession('dosaSpectate');
   autoRejoinDoneForSocket = socket.id;
+  awaitingAutoRejoinResult = false;
   const name = document.getElementById('nickname-input')?.value.trim() || 'Player';
   saveSession('dosaRoom', roomId);
   saveSession('dosaName', name);
@@ -3044,6 +3086,7 @@ function joinRoomDirect(roomId) {
 function spectateRoom(roomId) {
   isSpectating = true;
   autoRejoinDoneForSocket = socket.id;
+  awaitingAutoRejoinResult = false;
   saveSession('dosaRoom', roomId);
   saveSession('dosaSpectate', 'true');
   socket.emit('join_room', { roomId, playerName: 'Spectator', spectate: true });
