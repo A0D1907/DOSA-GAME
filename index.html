@@ -940,6 +940,8 @@ let isSpectating = false;
 let pieces = [];
 let currentPlayer = 0;
 let currentTurnId = 0;
+let spectatorCount = 0;
+let killCount = { 0: 0, 1: 0, 2: 0, 3: 0 };
 let diceValue = null;
 let diceRolled = false;
 let validMoves = [];
@@ -1568,6 +1570,69 @@ socket.on('host_migrated', (data) => {
   updateUI();
 });
 
+socket.on('spectators_updated', (data) => {
+  spectatorCount = (data && typeof data.count === 'number') ? data.count : 0;
+  updateUI();
+});
+
+function takeoverBot(slot) {
+  if (!Number.isInteger(slot) || slot < 0 || slot > 3) return;
+  const name = document.getElementById('nickname-input')?.value.trim()
+    || currentPlayerIdentity?.username
+    || ('Player ' + (slot + 1));
+  socket.emit('takeover_bot', { slot, playerName: name });
+}
+
+socket.on('takeover_result', (data) => {
+  if (!data) return;
+  if (!data.ok) {
+    showToast(data.error || 'Could not take that seat');
+    return;
+  }
+  mySlot = data.slot;
+  saveSession('dosaSlot', mySlot);
+  clearSession('dosaSpectate');
+  isSpectating = false;
+  document.getElementById('spectator-banner')?.remove();
+  showToast(`You took over ${latestPlayerNames[mySlot] || ('Bot P' + (mySlot + 1))} 🤖➡️`);
+  updateUI();
+  renderPieces();
+  socket.emit('request_sync');
+});
+
+// Turn heartbeat: every 10s of visible play, reconcile with the server.
+// A missed turn_passed/dice_rolled packet used to wedge the dice until the
+// following turn; now the snapshot pulls the client back onto the live turn.
+setInterval(() => {
+  try {
+    if (socket.connected && !document.getElementById('game-screen')?.classList.contains('hidden')) {
+      socket.emit('request_turn');
+    }
+  } catch (e) {}
+}, 10000);
+
+socket.on('turn_state', (data) => {
+  if (!data || data.gameState !== 'playing') return;
+  if (Array.isArray(data.finishOrder)) finishedPlayers = data.finishOrder.slice();
+  if (typeof data.turnId === 'number' && data.turnId > currentTurnId) {
+    if (typeof data.currentPlayer === 'number') currentPlayer = data.currentPlayer;
+    currentTurnId = data.turnId;
+    // Fresh turn: dice is rollable again. (If the server already holds a roll
+    // we missed, re-rolling is harmless; staying stuck is not.)
+    diceRolled = false;
+    validMoves = [];
+    diceValue = null;
+    isAnimating = false;
+    consecutiveNoMovesOn6 = 0;
+    updateUI();
+    renderPieces();
+    socket.emit('request_sync');
+  } else if (data.turnId === currentTurnId && data.diceRolled && !diceRolled && !isAnimating) {
+    // Same turn, but the server holds a roll we never saw: heal pieces.
+    socket.emit('request_sync');
+  }
+});
+
 function getRegisteredUser() {
   if (currentPlayerIdentity && typeof currentPlayerIdentity.id === 'string' && currentPlayerIdentity.id.startsWith('u_')) {
     const uid = parseInt(currentPlayerIdentity.id.slice(2), 10);
@@ -1637,6 +1702,8 @@ socket.on('sync_data', (state) => {
     isAnimating = false;
     validMoves = [];
     jailStuck = { 0: 0, 1: 0, 2: 0, 3: 0 };
+    // NOTE: killCount is intentionally NOT reset here: replay_moves adds only
+    // the gap, and a fresh peer sync must not wipe live history.
 
     initBoard(true);
     updateUI();
@@ -1979,6 +2046,8 @@ socket.on('game_started', (data) => {
   finishedPlayers = [];
   consecutiveNoMovesOn6 = 0;
   jailStuck = { 0: 0, 1: 0, 2: 0, 3: 0 };
+  killCount = { 0: 0, 1: 0, 2: 0, 3: 0 };
+  if (data && typeof data.spectators === 'number') spectatorCount = data.spectators;
   document.getElementById('main-nav-bar')?.classList.add('hidden'); // HIDE OVERLAPPING HEADER
   document.getElementById('spectator-banner')?.remove();
   document.getElementById('lobby-screen')?.classList.add('hidden');
@@ -2026,9 +2095,10 @@ socket.on('dice_rolled', (data) => {
   isAnimating = true;
 
   diceValue = data.value;
-  // Track failed jail-break attempts for the mercy rule (all clients stay in sync)
+  // Track failed jail-break attempts for the mercy rule (all clients stay in sync):
+  // any non-6 while at least one rook is still jailed builds pity.
   if (typeof data.player === 'number') {
-    if (diceValue !== 6 && !playerHasRookOut(data.player)) {
+    if (diceValue !== 6 && hasJailedRook(data.player)) {
       jailStuck[data.player] = Math.min((jailStuck[data.player] || 0) + 1, 6);
     }
   }
@@ -2144,8 +2214,8 @@ function applyMoveToPieces(pieceId, action, target) {
     return null;
   }
 
-  // Mercy pity resets as soon as any rook is out of jail
-  if (playerHasRookOut(piece.player)) jailStuck[piece.player] = 0;
+  // Mercy pity resets only when a rook actually breaks out of jail
+  if (action === 'leave_jail') jailStuck[piece.player] = 0;
 
   const capturedEnemies = [];
   const movingPlayer = piece.player;
@@ -2175,6 +2245,7 @@ socket.on('move_executed', (data) => {
   const applied = applyMoveToPieces(data.pieceId, action, target);
   if (!applied) return;
   const { captured, capturedEnemies } = applied;
+  if (captured) killCount[applied.piece.player] = (killCount[applied.piece.player] || 0) + capturedEnemies.length;
 
   if (captured && isHost) {
     capturedEnemies.forEach(e => {
@@ -2238,7 +2309,11 @@ socket.on('replay_moves', (data) => {
   let applied = 0;
   data.moves.forEach(m => {
     if (!m || typeof m.target !== 'number') return;
-    if (applyMoveToPieces(m.pieceId, m.action, m.target)) applied++;
+    const r = applyMoveToPieces(m.pieceId, m.action, m.target);
+    if (r) {
+      applied++;
+      if (r.captured) killCount[r.piece.player] = (killCount[r.piece.player] || 0) + r.capturedEnemies.length;
+    }
   });
   if (Array.isArray(data.finishOrder)) finishedPlayers = data.finishOrder.slice();
   if (applied > 0) {
@@ -2317,8 +2392,8 @@ socket.on('game_over', (finishOrder) => {
           <div class="flex items-center gap-2.5">
             <span class="text-xl">${MEDALS[i] || '🎖️'}</span>
             <div>
-              <div class="font-bold text-xs" style="color: ${col};">${name}</div>
-              <div class="text-[10px] text-[#8f89b3] uppercase tracking-wider">${i === 0 ? 'Champion 👑' : ('Rank #' + (i+1))}</div>
+              <div class="font-bold text-xs" style="color: ${col};">${escapeHtml(name)}</div>
+              <div class="text-[10px] text-[#8f89b3] uppercase tracking-wider">${i === 0 ? 'Champion 👑' : ('Rank #' + (i+1))} • 💀${killCount[slot] || 0} kills</div>
             </div>
           </div>
           ${isMe ? '<span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-white text-zinc-950">YOU</span>' : ''}
@@ -2492,8 +2567,8 @@ function updateUI() {
   let isMyTurn = (currentPlayer === mySlot);
   let prefix = isMyTurn ? 'Your Turn' : (nameStr + "'s Turn");
   if (isSpectating) prefix = 'Spectating: ' + nameStr + "'s Turn";
-  // Visible pity meter: while all your rooks are jailed, show the mercy bonus live
-  if (isMyTurn && !isSpectating && !diceRolled && mySlot !== null && !playerHasRookOut(mySlot)) {
+  // Visible pity meter: while you still have rooks jailed, show the mercy bonus live
+  if (isMyTurn && !isSpectating && !diceRolled && mySlot !== null && hasJailedRook(mySlot)) {
     const pityPct = Math.min(12 * (jailStuck[mySlot] || 0), 50);
     if (pityPct > 0) prefix += ` 🍀+${pityPct}%`;
   }
@@ -2507,6 +2582,7 @@ function updateUI() {
   const hudBar = document.getElementById('hud-players-bar');
   if (hudBar) {
     hudBar.innerHTML = '';
+    const takeoverEligible = isSpectating || (mySlot !== null && finishedPlayers.includes(mySlot));
     for (let p = 0; p < 4; p++) {
       if (!activeSlots.includes(p)) continue;
       const chip = document.createElement('div');
@@ -2514,17 +2590,27 @@ function updateUI() {
       const isMe = (p === mySlot);
       const pColor = PLAYERS[p].dotColor;
       const pName = latestPlayerNames[p] || ('P' + (p+1));
-      
+      const isBotSeat = latestSlots[p] === 'bot';
+
       chip.className = `flex items-center gap-1.5 px-2 py-1 rounded-lg transition-all ` + (isTurn ? 'bg-[#241a52] border border-[rgba(0,229,255,0.35)]' : 'opacity-60');
-      
+
       let label = pName;
       if (isMe) label += ' (You)';
-      if (isSpectating) label += ' 👁️';
-      
+      // 👁️ shows on YOUR chip when others are watching you, not on the watcher.
+      if (isMe && !isSpectating && spectatorCount > 0) label += ` 👁️${spectatorCount}`;
+      if (takeoverEligible && isBotSeat) label += ' 🤖➡️';
+
       chip.innerHTML = `
         <div class="w-2 h-2 rounded-full ${PLAYERS[p].color}"></div>
-        <div class="text-[10px] font-medium truncate max-w-[55px] ${isTurn ? 'text-white font-semibold' : 'text-[#b9b3d9]'}">${label}</div>
+        <div class="text-[10px] font-medium truncate max-w-[55px] ${isTurn ? 'text-white font-semibold' : 'text-[#b9b3d9]'}">${escapeHtml(label)}</div>
+        ${killCount[p] > 0 ? `<div class="text-[9px] font-mono font-bold text-[#ffb020] flex-shrink-0" title="Kills">💀${killCount[p]}</div>` : ''}
       `;
+      if (takeoverEligible && isBotSeat) {
+        chip.classList.add('cursor-pointer');
+        chip.style.border = '1px dashed rgba(255,176,32,0.6)';
+        chip.title = 'Take over this bot';
+        chip.onclick = () => takeoverBot(p);
+      }
       hudBar.appendChild(chip);
     }
   }
@@ -2796,8 +2882,8 @@ function uniformDie() {
   return Math.floor(Math.random() * 6) + 1;
 }
 
-function playerHasRookOut(player) {
-  return pieces.some(p => p.player === player && p.state !== 'jail');
+function hasJailedRook(player) {
+  return pieces.some(p => p.player === player && p.state === 'jail');
 }
 
 let mercyProcced = false;
@@ -2806,10 +2892,11 @@ function getFairDiceRoll(player) {
   mercyProcced = false;
   const v = uniformDie();
   if (v === 6) return 6;
-  // Mercy only applies while ALL of this player's rooks are still in jail.
-  // It applies to bots too: without it a jail-locked bot could stall the
+  // Mercy builds while the player still has rooks locked in jail, even if
+  // others are already out and playing. It resets only when a rook breaks
+  // out. Applies to bots too: a jail-locked bot would otherwise stall the
   // whole table, and the die must stay equally honest for every seat.
-  if (typeof player !== 'number' || playerHasRookOut(player)) return v;
+  if (typeof player !== 'number' || !hasJailedRook(player)) return v;
   const pity = Math.min(jailStuck[player] || 0, 6);
   if (pity <= 0) return v;
   // +12% per failed attempt, capped at +50%: long jail streaks get real relief,

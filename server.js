@@ -438,6 +438,24 @@ function getReplayMoves(state) {
   return (state.moveLog || []).filter(m => m.turnId > baseTurn);
 }
 
+// Spectators = sockets in the room holding no seat. Shown to the players
+// being watched (as a 👁️ count), not to the watchers.
+function getSpectatorCount(roomId) {
+  try {
+    const room = io.sockets.adapter.rooms.get(roomId);
+    if (!room) return 0;
+    const state = rooms[roomId];
+    const seated = new Set((state ? state.slots : []).filter(s => s && s !== 'bot'));
+    let n = 0;
+    room.forEach(id => { if (!seated.has(id)) n++; });
+    return n;
+  } catch (e) { return 0; }
+}
+
+function emitSpectators(roomId) {
+  io.to(roomId).emit('spectators_updated', { count: getSpectatorCount(roomId) });
+}
+
 // Elect a new host (first live human) and tell the room, so bot turns and
 // board sync keep working after the previous host drops.
 function migrateHost(roomId) {
@@ -617,14 +635,48 @@ io.on('connection', (socket) => {
     
     // If game is already in progress, send current game state to the new spectator/player
     if (state.gameState === 'playing' && state.boardState) {
-      io.to(socket.id).emit('game_started', state);
+      io.to(socket.id).emit('game_started', { ...state, spectators: getSpectatorCount(roomId) });
       // Also send board state for immediate rendering, plus missed moves to replay
       setTimeout(() => {
         io.to(socket.id).emit('sync_data', state.boardState);
         io.to(socket.id).emit('replay_moves', { moves: getReplayMoves(state), finishOrder: state.finishOrder || [] });
       }, 100);
     }
-    
+
+    emitSpectators(roomId);
+    broadcastOpenRooms();
+  });
+
+  // Bot takeover: a seatless spectator (or a finished player who is done)
+  // may claim a bot's seat mid-game and play it themselves.
+  socket.on('takeover_bot', (data) => {
+    if (!socket.roomId) return;
+    const state = getRoomState(socket.roomId);
+    if (state.gameState !== 'playing') {
+      return socket.emit('takeover_result', { ok: false, error: 'Game is not running' });
+    }
+    const slot = data && typeof data.slot === 'number' ? data.slot : -1;
+    if (slot < 0 || slot > 3 || state.slots[slot] !== 'bot') {
+      return socket.emit('takeover_result', { ok: false, error: 'That seat is not a bot' });
+    }
+    const cur = state.slots.indexOf(socket.id);
+    if (cur !== -1 && !(state.finishOrder || []).includes(cur)) {
+      return socket.emit('takeover_result', { ok: false, error: 'You already have a seat' });
+    }
+    state.slots[slot] = socket.id;
+    state.offlineSlots[slot] = false;
+    if (data && data.playerName) state.playerNames[slot] = data.playerName;
+    if (state.boardState) {
+      state.boardState.slots = [...state.slots];
+      state.boardState.playerNames = [...state.playerNames];
+    }
+    socket.isSpectate = false;
+    const firstHuman = state.slots.find(s => s !== null && s !== 'bot');
+    state.host = firstHuman || socket.id;
+    socket.emit('takeover_result', { ok: true, slot });
+    io.to(socket.roomId).emit('lobby_state', { ...state, roomId: socket.roomId });
+    io.to(socket.roomId).emit('player_reconnected', slot);
+    emitSpectators(socket.roomId);
     broadcastOpenRooms();
   });
 
@@ -716,7 +768,7 @@ io.on('connection', (socket) => {
       state.diceValue = null;
       state.lastTurnAdvance = Date.now();
 
-      io.to(socket.roomId).emit('game_started', state);
+      io.to(socket.roomId).emit('game_started', { ...state, spectators: getSpectatorCount(socket.roomId) });
       broadcastOpenRooms();
 
       // Schedule initial turn watchdog
@@ -881,6 +933,21 @@ io.on('connection', (socket) => {
     state.boardState = boardState;
   });
 
+  // Lightweight turn snapshot for the heartbeat: heals clients that missed
+  // a turn_passed/dice_rolled packet (their dice would otherwise stay dead
+  // until the next turn). No board data, so no re-render storms.
+  socket.on('request_turn', () => {
+    if (!socket.roomId) return;
+    const state = getRoomState(socket.roomId);
+    socket.emit('turn_state', {
+      gameState: state.gameState,
+      currentPlayer: state.currentPlayer,
+      turnId: state.turnId,
+      diceRolled: state.diceRolled,
+      finishOrder: state.finishOrder || []
+    });
+  });
+
   socket.on('request_sync', () => {
     if (!socket.roomId) return;
     socket.to(socket.roomId).emit('sync_requested', socket.id);
@@ -949,6 +1016,7 @@ io.on('connection', (socket) => {
       socket.emit('replay_moves', { moves: getReplayMoves(state), finishOrder: state.finishOrder || [] });
     }
     io.to(data.roomId).emit('player_reconnected', data.slot);
+    emitSpectators(data.roomId);
     broadcastOpenRooms();
   });
 
@@ -969,9 +1037,11 @@ io.on('connection', (socket) => {
         migrateHost(socket.roomId);
       }
     }
+    const leftRoom = socket.roomId;
     socket.leave(socket.roomId);
     socket.roomId = null;
     socket.isSpectate = false;
+    emitSpectators(leftRoom);
     broadcastOpenRooms();
   });
 
@@ -1052,6 +1122,7 @@ io.on('connection', (socket) => {
         }
       }
     }
+    if (socket.roomId) emitSpectators(socket.roomId);
     broadcastOpenRooms();
   });
 });
