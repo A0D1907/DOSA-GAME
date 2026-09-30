@@ -545,7 +545,10 @@ function advanceRoomTurn(roomId, forcedByWatchdog = false) {
 function broadcastOpenRooms() {
   const list = Object.keys(rooms).map(roomId => {
     const room = rooms[roomId];
-    const humanCount = room.slots.filter(s => s !== null && s !== 'bot').length;
+    // Count ONLINE humans only: exited/offline seats are kept for rejoin but
+    // must not advertise the room as active (ghost bot lobbies in the list).
+    const offline = room.offlineSlots || [];
+    const humanCount = room.slots.filter((s, i) => s !== null && s !== 'bot' && !offline[i]).length;
     const totalCount = room.slots.filter(s => s !== null).length;
     return {
       roomId,
