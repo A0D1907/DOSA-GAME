@@ -886,6 +886,7 @@ async function loadLeaderboard() {
     list.innerHTML = '';
     rows.forEach((r, i) => {
       const winRate = r.games > 0 ? Math.round((r.wins / r.games) * 100) : 0;
+      const kills = r.kills || 0;
       const isMe = me && String(me.id) === String(r.id);
       const row = document.createElement('div');
       row.className = 'flex items-center justify-between p-2.5 rounded-xl bg-[#171233] border ' +
@@ -895,7 +896,7 @@ async function loadLeaderboard() {
           <span class="text-lg w-7 text-center flex-shrink-0">${medals[i] || ('#' + (i + 1))}</span>
           <div class="truncate">
             <div class="text-xs font-bold text-white truncate">${escapeHtml(r.username)}${isMe ? ' <span class="text-[9px] px-1.5 py-0.5 rounded bg-white text-zinc-950 font-bold">YOU</span>' : ''}</div>
-            <div class="text-[10px] text-[#8f89b3]">${r.games} games • ${winRate}% win</div>
+            <div class="text-[10px] text-[#8f89b3]">${r.games} games • ${winRate}% win • 💀${kills}</div>
           </div>
         </div>
         <div class="text-sm font-mono font-bold text-[#ffb020] flex-shrink-0">${r.wins}👑</div>
@@ -2099,7 +2100,7 @@ socket.on('dice_rolled', (data) => {
   // any non-6 while at least one rook is still jailed builds pity.
   if (typeof data.player === 'number') {
     if (diceValue !== 6 && hasJailedRook(data.player)) {
-      jailStuck[data.player] = Math.min((jailStuck[data.player] || 0) + 1, 6);
+      jailStuck[data.player] = Math.min((jailStuck[data.player] || 0) + 1, 5);
     }
   }
 
@@ -2286,7 +2287,7 @@ socket.on('move_executed', (data) => {
       // Only credit the leaderboard when a registered human finishes THEIR OWN slot;
       // bot finishes reported by the host carry no account.
       const reg = (currentPlayer === mySlot) ? getRegisteredUser() : null;
-      socket.emit('player_finished', { slot: currentPlayer, userId: reg ? reg.id : null, username: reg ? reg.username : null });
+      socket.emit('player_finished', { slot: currentPlayer, userId: reg ? reg.id : null, username: reg ? reg.username : null, kills: killCount[currentPlayer] || 0 });
     }
     return;
   }
@@ -2569,7 +2570,7 @@ function updateUI() {
   if (isSpectating) prefix = 'Spectating: ' + nameStr + "'s Turn";
   // Visible pity meter: while you still have rooks jailed, show the mercy bonus live
   if (isMyTurn && !isSpectating && !diceRolled && mySlot !== null && hasJailedRook(mySlot)) {
-    const pityPct = Math.min(12 * (jailStuck[mySlot] || 0), 50);
+    const pityPct = Math.min(8 * (jailStuck[mySlot] || 0), 30);
     if (pityPct > 0) prefix += ` 🍀+${pityPct}%`;
   }
   if (statusEl) statusEl.innerText = prefix;
@@ -2637,7 +2638,11 @@ function updateUI() {
   
   if (diceBtn) {
     if (isSpectating) {
-      diceBtn.style.display = 'none';
+      // Spectators watch the live face but can never roll it.
+      diceBtn.style.display = 'flex';
+      diceBtn.disabled = true;
+      diceBtn.style.opacity = '1';
+      diceBtn.style.cursor = 'default';
     } else {
       diceBtn.style.display = 'flex';
       diceBtn.disabled = !isMyTurnToRoll;
@@ -2897,11 +2902,11 @@ function getFairDiceRoll(player) {
   // out. Applies to bots too: a jail-locked bot would otherwise stall the
   // whole table, and the die must stay equally honest for every seat.
   if (typeof player !== 'number' || !hasJailedRook(player)) return v;
-  const pity = Math.min(jailStuck[player] || 0, 6);
+  const pity = Math.min(jailStuck[player] || 0, 5);
   if (pity <= 0) return v;
-  // +12% per failed attempt, capped at +50%: long jail streaks get real relief,
-  // but a 6 is never guaranteed, keeping the die honest.
-  const mercyP = Math.min(0.12 * pity, 0.5);
+  // +8% per failed attempt, capped at +30%: jail droughts get gentle relief
+  // without letting luck dominate — a 6 is never guaranteed.
+  const mercyP = Math.min(0.08 * pity, 0.3);
   if (Math.random() < mercyP) {
     mercyProcced = true;
     return 6;

@@ -98,12 +98,17 @@ if (process.env.DATABASE_URL) {
       user_id INTEGER PRIMARY KEY,
       username TEXT NOT NULL,
       wins INTEGER NOT NULL DEFAULT 0,
-      games INTEGER NOT NULL DEFAULT 0
+      games INTEGER NOT NULL DEFAULT 0,
+      kills INTEGER NOT NULL DEFAULT 0
     )`
   ];
   (async () => {
     try {
       for (const q of pgInit) await pool.query(q);
+      // Migration for databases created before the kills column existed
+      await pool.query('ALTER TABLE leaderboard ADD COLUMN kills INTEGER NOT NULL DEFAULT 0').catch((e) => {
+        if (!/already exists|duplicate/i.test(e.message)) throw e;
+      });
       console.log('Connected to Postgres (persistent)');
     } catch (err) {
       console.error('Postgres init failed:', err.message);
@@ -146,8 +151,13 @@ if (process.env.DATABASE_URL) {
       user_id INTEGER PRIMARY KEY,
       username TEXT NOT NULL,
       wins INTEGER NOT NULL DEFAULT 0,
-      games INTEGER NOT NULL DEFAULT 0
+      games INTEGER NOT NULL DEFAULT 0,
+      kills INTEGER NOT NULL DEFAULT 0
     )`);
+    // Migration for databases created before the kills column existed
+    sqlite.run('ALTER TABLE leaderboard ADD COLUMN kills INTEGER NOT NULL DEFAULT 0', (err) => {
+      if (err && !/duplicate/i.test(err.message)) console.error('leaderboard migration error:', err.message);
+    });
   });
 
   db = sqlite;
@@ -332,20 +342,22 @@ function completeFriendAdd(u1, u2, friendName, friendTag, res) {
 }
 
 // Leaderboard: registered users only. Standard UPSERT works on both Postgres and modern SQLite.
-function recordBoardResult(userId, username, isWin) {
+function recordBoardResult(userId, username, isWin, kills) {
   const uid = parseInt(userId, 10);
   if (!uid || !username) return;
   const w = isWin ? 1 : 0;
-  db.run(`INSERT INTO leaderboard (user_id, username, wins, games) VALUES (?, ?, ?, 1)
+  const k = Math.max(0, parseInt(kills, 10) || 0);
+  db.run(`INSERT INTO leaderboard (user_id, username, wins, games, kills) VALUES (?, ?, ?, 1, ?)
           ON CONFLICT (user_id) DO UPDATE SET username=excluded.username,
-          wins=leaderboard.wins+excluded.wins, games=leaderboard.games+1`,
-    [uid, String(username).trim().slice(0, 24), w],
+          wins=leaderboard.wins+excluded.wins, games=leaderboard.games+1,
+          kills=leaderboard.kills+excluded.kills`,
+    [uid, String(username).trim().slice(0, 24), w, k],
     (err) => { if (err) console.error('leaderboard write error:', err.message); });
 }
 
 app.get('/api/leaderboard', (req, res) => {
-  db.all(`SELECT user_id AS id, username, wins, games FROM leaderboard
-          ORDER BY wins DESC, games ASC LIMIT 50`,
+  db.all(`SELECT user_id AS id, username, wins, games, kills FROM leaderboard
+          ORDER BY wins DESC, kills DESC, games ASC LIMIT 50`,
     (err, rows) => {
       if (err) return res.status(500).json({ error: 'Server error' });
       res.json(rows || []);
@@ -887,16 +899,17 @@ io.on('connection', (socket) => {
     if (!socket.roomId) return;
     const state = getRoomState(socket.roomId);
     if (state.gameState !== 'playing') return;
-    // Accept legacy slot number or { slot, userId, username } from registered players
+    // Accept legacy slot number or { slot, userId, username, kills } from registered players
     const playerSlot = (typeof data === 'object' && data !== null) ? data.slot : data;
     const finUserId = (typeof data === 'object' && data !== null) ? data.userId : null;
     const finUsername = (typeof data === 'object' && data !== null) ? data.username : null;
+    const finKills = (typeof data === 'object' && data !== null) ? data.kills : 0;
     if (typeof playerSlot !== 'number') return;
     if (!state.finishOrder) state.finishOrder = [];
     if (!state.finishMeta) state.finishMeta = [];
     if (!state.finishOrder.includes(playerSlot)) {
       state.finishOrder.push(playerSlot);
-      state.finishMeta.push({ slot: playerSlot, userId: finUserId, username: finUsername });
+      state.finishMeta.push({ slot: playerSlot, userId: finUserId, username: finUsername, kills: finKills });
     }
     const rank = state.finishOrder.length;
     // Broadcast that this player finished with their rank
@@ -912,7 +925,7 @@ io.on('connection', (socket) => {
       clearRoomTurnTimer(socket.roomId);
       // Persist leaderboard results for registered finishers
       (state.finishMeta || []).forEach((m, idx) => {
-        if (m && m.userId) recordBoardResult(m.userId, m.username, idx === 0);
+        if (m && m.userId) recordBoardResult(m.userId, m.username, idx === 0, m.kills);
       });
       io.to(socket.roomId).emit('game_over', state.finishOrder);
     }
