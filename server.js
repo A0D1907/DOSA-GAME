@@ -468,6 +468,27 @@ function emitSpectators(roomId) {
   io.to(roomId).emit('spectators_updated', { count: getSpectatorCount(roomId) });
 }
 
+// Start the recovery countdown when no online humans remain in a live game.
+// Shared by disconnect and leave_room so both exits behave identically.
+function maybeScheduleCleanup(roomId) {
+  const state = rooms[roomId];
+  if (!state || state.gameState !== 'playing' || state.cleanupTimer) return;
+  const onlineHumans = state.slots.filter((s, i) => s !== null && s !== 'bot' && !state.offlineSlots[i]).length;
+  if (onlineHumans === 0) {
+    console.log(`All human players offline in room ${roomId}. Starting 15-minute recovery timer.`);
+    state.cleanupTimer = setTimeout(() => {
+      const current = rooms[roomId];
+      if (!current) return;
+      const recheck = current.slots.filter((s, i) => s !== null && s !== 'bot' && !current.offlineSlots[i]).length;
+      if (recheck === 0) {
+        delete rooms[roomId];
+        console.log(`Recovery window expired. Deleted empty room: ${roomId}`);
+      }
+      broadcastOpenRooms();
+    }, 900000); // 15 minutes
+  }
+}
+
 // Elect a new host (first live human) and tell the room, so bot turns and
 // board sync keep working after the previous host drops.
 function migrateHost(roomId) {
@@ -1044,10 +1065,18 @@ io.on('connection', (socket) => {
         state.playerNames[oldSlot] = '';
         state.offlineSlots[oldSlot] = false;
         io.to(socket.roomId).emit('lobby_state', { ...state, roomId: socket.roomId });
+
+        // Leaving an empty lobby deletes it (mirrors the disconnect path)
+        const humanCount = state.slots.filter(s => s !== null && s !== 'bot').length;
+        if (humanCount === 0) {
+          delete rooms[socket.roomId];
+          console.log(`Deleted empty lobby: ${socket.roomId}`);
+        }
       } else {
         state.offlineSlots[oldSlot] = true;
         io.to(socket.roomId).emit('player_disconnected', oldSlot);
         migrateHost(socket.roomId);
+        maybeScheduleCleanup(socket.roomId);
       }
     }
     const leftRoom = socket.roomId;
@@ -1120,19 +1149,9 @@ io.on('connection', (socket) => {
         io.to(socket.roomId).emit('player_disconnected', oldSlot);
         migrateHost(socket.roomId);
 
-        // Active game: DO NOT delete room immediately! Give 15 minutes grace period
+        // Active game: DO NOT delete room immediately! 15-minute grace period
         // so closed/reopened apps can always rejoin the live match.
-        const onlineHumans = state.slots.filter((s, i) => s !== null && s !== 'bot' && !state.offlineSlots[i]).length;
-        if (onlineHumans === 0 && !state.cleanupTimer) {
-          console.log(`All human players offline in room ${socket.roomId}. Starting 15-minute recovery timer.`);
-          state.cleanupTimer = setTimeout(() => {
-            const recheck = state.slots.filter((s, i) => s !== null && s !== 'bot' && !state.offlineSlots[i]).length;
-            if (recheck === 0) {
-              delete rooms[socket.roomId];
-              console.log(`Recovery window expired. Deleted empty room: ${socket.roomId}`);
-            }
-          }, 900000); // 15 minutes
-        }
+        maybeScheduleCleanup(socket.roomId);
       }
     }
     if (socket.roomId) emitSpectators(socket.roomId);
@@ -1145,9 +1164,32 @@ const server = http.listen(PORT, () => {
   console.log(`Multiplayer Server running on port ${PORT}`);
 });
 
+// Safety net: every 60s, delete non-playing rooms with no live humans
+// (abandoned lobbies, finished games nobody returns to). Playing rooms
+// are governed by the recovery timer instead, so live games are untouched.
+const sweeper = setInterval(() => {
+  try {
+    let changed = false;
+    Object.keys(rooms).forEach((roomId) => {
+      const state = rooms[roomId];
+      if (!state || state.gameState === 'playing' || state.cleanupTimer) return;
+      const liveHumans = state.slots.filter(s => s && s !== 'bot' && io.sockets.sockets.get(s)).length;
+      if (liveHumans === 0) {
+        delete rooms[roomId];
+        changed = true;
+        console.log(`Sweeper deleted idle room: ${roomId}`);
+      }
+    });
+    if (changed) broadcastOpenRooms();
+  } catch (e) {
+    console.error('Sweeper error:', e.message);
+  }
+}, 60000);
+
 function gracefulShutdown(signal) {
   console.log(`Received ${signal}, shutting down gracefully...`);
   try {
+    clearInterval(sweeper);
     Object.keys(rooms).forEach(clearRoomTurnTimer);
     Object.values(rooms).forEach(r => {
       if (r.cleanupTimer) clearTimeout(r.cleanupTimer);
