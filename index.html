@@ -2770,6 +2770,10 @@ const EMOTE_SOUNDS = {
   '🤡': new Audio('/cat laugh sound.mp3'),
 };
 
+const EMOTE_VOLUME = {
+  '🤡': 0.45,
+};
+
 let lastEmoteSoundTime = 0;
 socket.on('receive_emote', (data) => {
   const { player, emoji } = data;
@@ -2781,7 +2785,7 @@ socket.on('receive_emote', (data) => {
   if (EMOTE_SOUNDS[emoji] && now - lastEmoteSoundTime > 120) {
     lastEmoteSoundTime = now;
     const snd = EMOTE_SOUNDS[emoji].cloneNode();
-    snd.volume = 0.8;
+    snd.volume = EMOTE_VOLUME[emoji] !== undefined ? EMOTE_VOLUME[emoji] : 0.8;
     snd.play().catch(() => {});
   }
   
