@@ -2220,6 +2220,7 @@ socket.on('dice_rolled', (data) => {
       calculateValidMoves();
       updateUI();
       if (validMoves.length === 0) {
+        if (currentPlayer === mySlot) showToast(`No moves for ${diceValue} 😕`);
         if (diceValue === 6) {
           consecutiveNoMovesOn6++;
           if (consecutiveNoMovesOn6 > 1) {
@@ -3091,8 +3092,10 @@ function calculateValidMoves() {
   });
 
   validMoves = potentialMoves.filter(move => {
-    const targetState = (move.action === 'home') ? 'home' : 'perimeter';
-    return !pieces.some(p => p.player === currentPlayer && p.state === targetState && p.pos === move.target);
+    // No stacking your own rooks on the shared track — but the safe home
+    // stretch is exempt (standard safe-zone rule): entries must always work.
+    if (move.action === 'home') return true;
+    return !pieces.some(p => p.player === currentPlayer && p.state === 'perimeter' && p.pos === move.target);
   });
 }
 
@@ -3229,6 +3232,17 @@ socket.on('disconnect', () => {
   updateConnectionBanner(true);
   autoRejoinDoneForSocket = null;
 });
+
+// Keepalive: Render's free tier sleeps the service after ~15 min without
+// HTTP traffic, dropping every socket. While connected, ping /health every
+// 9 minutes so an open game (or lobby) never goes quiet long enough to sleep.
+setInterval(() => {
+  try {
+    if (socket.connected) {
+      fetch('/health', { cache: 'no-store' }).catch(() => {});
+    }
+  } catch (e) {}
+}, 9 * 60 * 1000);
 
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible") {

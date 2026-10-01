@@ -1212,6 +1212,12 @@ const PORT = process.env.PORT || 8085;
 const server = http.listen(PORT, () => {
   console.log(`Multiplayer Server running on port ${PORT}`);
 });
+// Fail fast if the port can't bind: a process that swallows EADDRINUSE would
+// sit there serving nothing while the orchestrator thinks it's alive.
+server.on('error', (err) => {
+  console.error('Server listen error:', err.message);
+  process.exit(1);
+});
 
 // Safety net: every 60s, delete non-playing rooms with no live humans
 // (abandoned lobbies, finished games nobody returns to). Playing rooms
