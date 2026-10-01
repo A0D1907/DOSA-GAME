@@ -404,6 +404,8 @@ function getRoomState(roomId) {
       finishMeta: [],
       boardState: null,
       moveLog: [],
+      lastRoll: null,
+      lastMove: null,
       endedAt: null
     };
   }
@@ -433,6 +435,8 @@ function resetRoomToLobby(roomId) {
   state.finishMeta = [];
   state.boardState = null;
   state.moveLog = [];
+  state.lastRoll = null;
+  state.lastMove = null;
   state.offlineSlots = [false, false, false, false];
   state.currentPlayer = 0;
   state.turnId = 0;
@@ -798,6 +802,8 @@ io.on('connection', (socket) => {
       state.finishMeta = [];
       state.boardState = null;
       state.moveLog = [];
+      state.lastRoll = null;
+      state.lastMove = null;
       state.offlineSlots = [false, false, false, false];
       state.moveExecutedThisTurn = false;
       state.endedAt = null;
@@ -841,6 +847,11 @@ io.on('connection', (socket) => {
     state.diceRolled = true;
     state.diceValue = data.value;
     state.moveExecutedThisTurn = false;
+    state.lastRoll = {
+      player: (typeof data === 'object' && typeof data.player === 'number') ? data.player : state.currentPlayer,
+      value: data.value,
+      turnId: state.turnId
+    };
 
     // Refresh watchdog to allow animation and move execution
     clearRoomTurnTimer(socket.roomId);
@@ -863,6 +874,35 @@ io.on('connection', (socket) => {
     });
   });
 
+  // Echo confirmation: if a roller/mover missed their own broadcast echo
+  // (one dropped packet wedges their client until the watchdog skips them),
+  // re-send exactly what the server recorded instead of letting them act blind.
+  socket.on('request_roll_echo', (data) => {
+    if (!socket.roomId) return;
+    const state = getRoomState(socket.roomId);
+    if (state.gameState !== 'playing') return;
+    if (state.lastRoll && (!data || typeof data.turnId !== 'number' || state.lastRoll.turnId === data.turnId)) {
+      socket.emit('dice_rolled', {
+        player: state.lastRoll.player,
+        value: state.lastRoll.value,
+        turnId: state.lastRoll.turnId
+      });
+    } else {
+      socket.emit('roll_missing', { turnId: state.turnId });
+    }
+  });
+
+  socket.on('request_move_echo', (data) => {
+    if (!socket.roomId) return;
+    const state = getRoomState(socket.roomId);
+    if (state.gameState !== 'playing') return;
+    if (state.lastMove && (!data || typeof data.turnId !== 'number' || state.lastMove.turnId === data.turnId)) {
+      socket.emit('move_executed', state.lastMove);
+    } else {
+      socket.emit('move_missing', { turnId: state.turnId });
+    }
+  });
+
   socket.on('execute_move', (moveObj) => {
     if (!socket.roomId) return;
     const state = getRoomState(socket.roomId);
@@ -877,17 +917,18 @@ io.on('connection', (socket) => {
       console.warn(`[Server] Rejected stale execute_move (turn ${moveObj.turnId} vs ${state.turnId}) in room ${socket.roomId}`);
       return;
     }
-    // Journal the move so rejoining clients can replay what they missed.
-    if (!state.moveLog) state.moveLog = [];
-    state.moveLog.push({ pieceId: moveObj.pieceId, action: moveObj.action, target: moveObj.target, turnId: state.turnId });
-    if (state.moveLog.length > 300) state.moveLog.splice(0, state.moveLog.length - 300);
-
     // Strictly enforce exactly ONE move per dice roll
     if (!state.diceRolled || state.moveExecutedThisTurn) {
       console.warn(`[Server] Rejected duplicate execute_move in room ${socket.roomId}`);
       return;
     }
     state.moveExecutedThisTurn = true;
+
+    state.lastMove = { pieceId: moveObj.pieceId, action: moveObj.action, target: moveObj.target, turnId: state.turnId };
+    // Journal the move so rejoining clients can replay what they missed.
+    if (!state.moveLog) state.moveLog = [];
+    state.moveLog.push({ pieceId: moveObj.pieceId, action: moveObj.action, target: moveObj.target, turnId: state.turnId });
+    if (state.moveLog.length > 300) state.moveLog.splice(0, state.moveLog.length - 300);
 
     // Refresh watchdog for follow-up roll or turn switch
     clearRoomTurnTimer(socket.roomId);

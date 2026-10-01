@@ -669,7 +669,7 @@
           <span>Exit</span>
         </button>
 
-        <div id="status-turn-pill" class="px-3.5 py-1.5 rounded-full text-xs font-semibold border border-[rgba(0,229,255,0.35)] bg-[#171233] transition-all flex items-center gap-1.5 shadow-sm">
+        <div id="status-turn-pill" onclick="manualResync()" title="Tap to resync" class="px-3.5 py-1.5 rounded-full text-xs font-semibold border border-[rgba(0,229,255,0.35)] bg-[#171233] transition-all flex items-center gap-1.5 shadow-sm cursor-pointer active:scale-95">
           <span id="status-turn-dot" class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
           <span id="status-text">Your Turn</span>
         </div>
@@ -1626,6 +1626,11 @@ socket.on('turn_state', (data) => {
     currentTurnId = data.turnId;
     // Fresh turn: dice is rollable again. (If the server already holds a roll
     // we missed, re-rolling is harmless; staying stuck is not.)
+    if (botTurnTimer) {
+      clearTimeout(botTurnTimer);
+      botTurnTimer = null;
+    }
+    moveSentForCurrentRoll = false;
     diceRolled = false;
     validMoves = [];
     diceValue = null;
@@ -1639,6 +1644,17 @@ socket.on('turn_state', (data) => {
     socket.emit('request_sync');
   }
 });
+
+function manualResync() {
+  if (!socket.connected) {
+    showToast('Reconnecting… ⏳');
+    socket.connect();
+    return;
+  }
+  socket.emit('request_turn');
+  socket.emit('request_sync');
+  showToast('Synced ✓');
+}
 
 function getRegisteredUser() {
   if (currentPlayerIdentity && typeof currentPlayerIdentity.id === 'string' && currentPlayerIdentity.id.startsWith('u_')) {
@@ -2055,6 +2071,8 @@ function resetSession() {
 function returnToLobby() {
   isSpectating = false;
   if (botTurnTimer) { clearTimeout(botTurnTimer); botTurnTimer = null; }
+  if (rollEchoTimer) { clearTimeout(rollEchoTimer); rollEchoTimer = null; }
+  if (moveEchoTimer) { clearTimeout(moveEchoTimer); moveEchoTimer = null; }
   socket.emit('return_to_lobby');
   document.getElementById('victory-screen')?.classList.add('hidden');
   document.getElementById('game-screen')?.classList.add('hidden');
@@ -2069,6 +2087,8 @@ function leaveRoom() {
   autoRejoinDoneForSocket = null;
   awaitingAutoRejoinResult = false;
   if (botTurnTimer) { clearTimeout(botTurnTimer); botTurnTimer = null; }
+  if (rollEchoTimer) { clearTimeout(rollEchoTimer); rollEchoTimer = null; }
+  if (moveEchoTimer) { clearTimeout(moveEchoTimer); moveEchoTimer = null; }
   socket.emit('leave_room');
   clearSession('dosaRoom');
   clearSession('dosaSlot');
@@ -2085,6 +2105,8 @@ function leaveRoom() {
 socket.on('game_started', (data) => {
   awaitingAutoRejoinResult = false;
   if (botTurnTimer) { clearTimeout(botTurnTimer); botTurnTimer = null; }
+  if (rollEchoTimer) { clearTimeout(rollEchoTimer); rollEchoTimer = null; }
+  if (moveEchoTimer) { clearTimeout(moveEchoTimer); moveEchoTimer = null; }
   syncRetryCount = 0;
   isAnimating = false;
   diceRolled = false;
@@ -2128,6 +2150,10 @@ socket.on('dice_rolled', (data) => {
   if (botTurnTimer) {
     clearTimeout(botTurnTimer);
     botTurnTimer = null;
+  }
+  if (rollEchoTimer) {
+    clearTimeout(rollEchoTimer);
+    rollEchoTimer = null;
   }
 
   moveSentForCurrentRoll = false;
@@ -2178,6 +2204,7 @@ socket.on('dice_rolled', (data) => {
 
     if (currentPlayer === mySlot || (isHost && latestSlots[currentPlayer] === 'bot')) {
       calculateValidMoves();
+      updateUI();
       if (validMoves.length === 0) {
         if (diceValue === 6) {
           consecutiveNoMovesOn6++;
@@ -2280,12 +2307,19 @@ function applyMoveToPieces(pieceId, action, target) {
 }
 
 socket.on('move_executed', (data) => {
+  // Late echo from a previous turn (e.g. answered just as the watchdog
+  // advanced): applying it would corrupt the board. Drop it.
+  if (data && typeof data.turnId === 'number' && data.turnId !== currentTurnId) return;
   const { action, target } = data;
 
   moveSentForCurrentRoll = true;
   if (botTurnTimer) {
     clearTimeout(botTurnTimer);
     botTurnTimer = null;
+  }
+  if (moveEchoTimer) {
+    clearTimeout(moveEchoTimer);
+    moveEchoTimer = null;
   }
 
   const applied = applyMoveToPieces(data.pieceId, action, target);
@@ -2374,6 +2408,14 @@ socket.on('turn_passed', (data) => {
   if (botTurnTimer) {
     clearTimeout(botTurnTimer);
     botTurnTimer = null;
+  }
+  if (rollEchoTimer) {
+    clearTimeout(rollEchoTimer);
+    rollEchoTimer = null;
+  }
+  if (moveEchoTimer) {
+    clearTimeout(moveEchoTimer);
+    moveEchoTimer = null;
   }
 
   moveSentForCurrentRoll = false;
@@ -2916,6 +2958,9 @@ function getFairDiceRoll(player) {
   return v;
 }
 
+let rollEchoTimer = null;
+let moveEchoTimer = null;
+
 function rollDice(isBotAuto = false) {
   if (isAnimating || diceRolled) return;
   if (mySlot === null && !isSpectating) {
@@ -2934,8 +2979,31 @@ function rollDice(isBotAuto = false) {
   if (mercyProcced && currentPlayer === mySlot) {
     showToast('🍀 Mercy 6! Jail pity came through!');
   }
+  const rolledTurn = currentTurnId;
   socket.emit('roll_dice', { player: currentPlayer, value: val });
+  // Echo confirmation: if our own roll broadcast never comes back (one dropped
+  // packet wedges the turn), ask the server to re-send what it recorded
+  // instead of tapping blindly into a re-roll.
+  if (rollEchoTimer) clearTimeout(rollEchoTimer);
+  rollEchoTimer = setTimeout(() => {
+    rollEchoTimer = null;
+    if (!diceRolled && !isAnimating && rolledTurn === currentTurnId && socket.connected) {
+      socket.emit('request_roll_echo', { turnId: rolledTurn });
+    }
+  }, 2500);
 }
+
+socket.on('roll_missing', () => {
+  // Server never saw a roll for this turn: dice is already enabled, just nudge.
+  if (currentPlayer === mySlot && !diceRolled && !isAnimating) {
+    showToast('Roll didn\'t go through — tap the dice to retry 🎲');
+  }
+});
+
+socket.on('move_missing', () => {
+  // Server never saw our move: heal pieces from the room instead of stalling.
+  socket.emit('request_sync');
+});
 
 let moveSentForCurrentRoll = false;
 
@@ -2948,7 +3016,18 @@ function selectMove(moveObj) {
     clearTimeout(botTurnTimer);
     botTurnTimer = null;
   }
-  socket.emit('execute_move', { pieceId: moveObj.piece.id, action: moveObj.action, target: moveObj.target, turnId: currentTurnId });
+  const movedTurn = currentTurnId;
+  socket.emit('execute_move', { pieceId: moveObj.piece.id, action: moveObj.action, target: moveObj.target, turnId: movedTurn });
+  // Echo confirmation: if our own move broadcast never comes back, the server
+  // sits waiting for a next_turn we will never send (classic wedge until the
+  // watchdog skips us). Ask for a re-send instead.
+  if (moveEchoTimer) clearTimeout(moveEchoTimer);
+  moveEchoTimer = setTimeout(() => {
+    moveEchoTimer = null;
+    if (moveSentForCurrentRoll && movedTurn === currentTurnId && socket.connected) {
+      socket.emit('request_move_echo', { turnId: movedTurn });
+    }
+  }, 2500);
 }
 
 function calculateValidMoves() {
