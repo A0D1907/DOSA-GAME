@@ -797,6 +797,30 @@ io.on('connection', (socket) => {
     const hasHuman = state.slots.some(s => s !== null && s !== 'bot');
     const totalPlayers = state.slots.filter(s => s !== null).length;
     if (hasHuman && totalPlayers >= 2) {
+      // 🔀 Every game starts fresh: randomly deal occupants (humans + bots)
+      // onto random seats, so colors and neighbors change each match.
+      const occupants = [];
+      for (let i = 0; i < 4; i++) {
+        if (state.slots[i] !== null) occupants.push({ seat: state.slots[i], name: state.playerNames[i] });
+      }
+      const order = [0, 1, 2, 3];
+      for (let i = order.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [order[i], order[j]] = [order[j], order[i]];
+      }
+      state.slots = [null, null, null, null];
+      state.playerNames = ['', '', '', ''];
+      occupants.forEach((o, k) => {
+        state.slots[order[k]] = o.seat;
+        state.playerNames[order[k]] = o.name;
+      });
+      // Bots take the name of their new seat for clarity
+      for (let i = 0; i < 4; i++) {
+        if (state.slots[i] === 'bot') state.playerNames[i] = `Bot P${i + 1} 🤖`;
+      }
+      const firstHuman = state.slots.find(s => s !== null && s !== 'bot');
+      state.host = firstHuman || socket.id;
+
       state.gameState = 'playing';
       state.finishOrder = []; // reset finish rankings
       state.finishMeta = [];
@@ -807,8 +831,9 @@ io.on('connection', (socket) => {
       state.offlineSlots = [false, false, false, false];
       state.moveExecutedThisTurn = false;
       state.endedAt = null;
-      const firstActive = state.slots.findIndex(s => s !== null);
-      state.currentPlayer = firstActive !== -1 ? firstActive : 0;
+      // 🎲 Random starter every game (uniform over seated players)
+      const activeSeats = state.slots.map((s, i) => s !== null ? i : null).filter(i => i !== null);
+      state.currentPlayer = activeSeats[Math.floor(Math.random() * activeSeats.length)];
       state.turnId = 1;
       state.diceRolled = false;
       state.diceValue = null;

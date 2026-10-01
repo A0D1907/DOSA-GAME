@@ -2149,6 +2149,8 @@ socket.on('game_started', (data) => {
       break;
     }
   }
+  // Seats were shuffled: persist the NEW seat so rejoin finds us
+  if (mySlot !== null) saveSession('dosaSlot', mySlot);
   isHost = (data.slots.find(s => s !== null && s !== 'bot') === socket.id);
   
   visualMap = {0: 0, 1: 1, 2: 2, 3: 3};
@@ -2156,8 +2158,13 @@ socket.on('game_started', (data) => {
     visualMap[activeSlots[0]] = activeSlots[0];
     visualMap[activeSlots[1]] = (activeSlots[0] + 2) % 4;
   }
-  
+
   initBoard();
+  // Adopt AFTER initBoard: a fresh board defaults currentPlayer to slot 0
+  if (typeof data.currentPlayer === 'number') currentPlayer = data.currentPlayer;
+  updateUI();
+  const starterName = latestPlayerNames[currentPlayer] || ('Player ' + (currentPlayer + 1));
+  showToast(`🔀 Seats shuffled — ${currentPlayer === mySlot ? 'YOU start!' : starterName + ' starts!'}`);
 });
 
 socket.on('dice_rolled', (data) => {
