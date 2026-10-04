@@ -1701,6 +1701,7 @@ socket.on('sync_data', (state) => {
     document.getElementById('game-screen').classList.remove('hidden');
 
     pieces = state.pieces;
+    const priorTurnId = currentTurnId;
     // Never rewind the turn clock with a stale cached board: only adopt
     // turn info that is at least as fresh as what we already have.
     if (typeof state.turnId === 'number') {
@@ -1711,6 +1712,12 @@ socket.on('sync_data', (state) => {
     } else if (typeof state.currentPlayer === 'number' && currentTurnId === 0) {
       currentPlayer = state.currentPlayer;
     }
+    // Keep a live roll across a SAME-turn sync: wiping diceRolled/validMoves
+    // here is what stranded players staring at an isometric cube with dead
+    // pieces. Recompute the moves against the fresh authoritative pieces
+    // instead. A newer turn always takes the full reset path below.
+    const keepLiveRoll = diceRolled && !isSpectating &&
+      typeof state.turnId === 'number' && state.turnId === priorTurnId;
     if (rejoinPending) {
       rejoinPending = false;
       showToast('Back in the match ✓ Resynced');
@@ -1736,10 +1743,17 @@ socket.on('sync_data', (state) => {
       isHost = (state.slots.find(s => s !== null && s !== 'bot') === socket.id);
     }
 
-    diceRolled = false;
-    isAnimating = false;
-    validMoves = [];
-    jailStuck = { 0: 0, 1: 0, 2: 0, 3: 0 };
+    if (keepLiveRoll && currentPlayer === mySlot) {
+      // Same turn, roll already made: re-derive moves on the fresh pieces.
+      isAnimating = false;
+      validMoves = [];
+      calculateValidMoves();
+    } else {
+      diceRolled = false;
+      isAnimating = false;
+      validMoves = [];
+      jailStuck = { 0: 0, 1: 0, 2: 0, 3: 0 };
+    }
     // NOTE: killCount is intentionally NOT reset here: replay_moves adds only
     // the gap, and a fresh peer sync must not wipe live history.
 
@@ -2424,6 +2438,18 @@ socket.on('replay_moves', (data) => {
     updateUI();
     showToast(`Caught up ${applied} missed move${applied === 1 ? '' : 's'} ⏩`);
   }
+});
+
+socket.on('move_rejected', (data) => {
+  // Server ruled the tap illegal (desync between tap and broadcast).
+  // Recompute from the live board instead of leaving dead pieces.
+  if (currentPlayer === mySlot && diceRolled) {
+    showToast((data && data.reason) || 'Move rejected — recomputing…');
+    calculateValidMoves();
+    updateUI();
+    renderPieces();
+  }
+  socket.emit('request_sync');
 });
 
 socket.on('turn_passed', (data) => {

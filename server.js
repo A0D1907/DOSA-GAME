@@ -385,6 +385,8 @@ app.get('/', (req, res) => {
 // rooms state
 const rooms = {};
 
+const { serverVisualMap, serverLegalMoves, serverApplyMove } = require('./rules.js');
+
 function getRoomState(roomId) {
   if (!rooms[roomId]) {
     rooms[roomId] = {
@@ -402,14 +404,33 @@ function getRoomState(roomId) {
       moveExecutedThisTurn: false,
       finishOrder: [],
       finishMeta: [],
-      boardState: null,
       moveLog: [],
       lastRoll: null,
       lastMove: null,
+      pieces: null,
+      visualMap: null,
+      pegsPerPlayer: 4,
       endedAt: null
     };
   }
   return rooms[roomId];
+}
+
+// The one true board snapshot served to rejoiners and sync requests
+function roomSnapshot(roomId) {
+  const state = rooms[roomId];
+  if (!state) return null;
+  const activeSlots = state.slots.map((s, i) => s ? i : null).filter(i => i !== null);
+  return {
+    pieces: state.pieces || [],
+    currentPlayer: state.currentPlayer,
+    turnId: state.turnId,
+    activeSlots,
+    pegsCountGlobal: state.pegsPerPlayer || 4,
+    visualMap: state.visualMap || { 0: 0, 1: 1, 2: 2, 3: 3 },
+    slots: [...state.slots],
+    playerNames: [...state.playerNames]
+  };
 }
 
 function clearRoomTurnTimer(roomId) {
@@ -433,10 +454,11 @@ function resetRoomToLobby(roomId) {
   state.gameState = 'lobby';
   state.finishOrder = [];
   state.finishMeta = [];
-  state.boardState = null;
   state.moveLog = [];
   state.lastRoll = null;
   state.lastMove = null;
+  state.pieces = null;
+  state.visualMap = null;
   state.offlineSlots = [false, false, false, false];
   state.currentPlayer = 0;
   state.turnId = 0;
@@ -447,10 +469,11 @@ function resetRoomToLobby(roomId) {
 }
 
 // Moves missed while a client was away, so it can replay them onto a stale
-// board snapshot and land exactly on the live position.
+// board snapshot and land exactly on the live position. Snapshots are now
+// always built live from authoritative pieces, so this is normally empty —
+// kept as a safety net for in-flight races.
 function getReplayMoves(state) {
-  const baseTurn = (state.boardState && typeof state.boardState.turnId === 'number')
-    ? state.boardState.turnId : 0;
+  const baseTurn = state.turnId || 0;
   return (state.moveLog || []).filter(m => m.turnId > baseTurn);
 }
 
@@ -677,12 +700,12 @@ io.on('connection', (socket) => {
 
     io.to(roomId).emit('lobby_state', { ...state, socketId: socket.id, roomId, fresh: isFreshRoom });
 
-    // If game is already in progress, send current game state to the new spectator/player
-    if (state.gameState === 'playing' && state.boardState) {
-      io.to(socket.id).emit('game_started', { ...state, spectators: getSpectatorCount(roomId) });
+    // If game is already in progress, send the authoritative board + missed moves
+    if (state.gameState === 'playing' && state.pieces) {
+      io.to(socket.id).emit('game_started', { ...state, pieces: undefined, spectators: getSpectatorCount(roomId) });
       // Also send board state for immediate rendering, plus missed moves to replay
       setTimeout(() => {
-        io.to(socket.id).emit('sync_data', state.boardState);
+        io.to(socket.id).emit('sync_data', roomSnapshot(roomId));
         io.to(socket.id).emit('replay_moves', { moves: getReplayMoves(state), finishOrder: state.finishOrder || [] });
       }, 100);
     }
@@ -710,10 +733,6 @@ io.on('connection', (socket) => {
     state.slots[slot] = socket.id;
     state.offlineSlots[slot] = false;
     if (data && data.playerName) state.playerNames[slot] = data.playerName;
-    if (state.boardState) {
-      state.boardState.slots = [...state.slots];
-      state.boardState.playerNames = [...state.playerNames];
-    }
     socket.isSpectate = false;
     const firstHuman = state.slots.find(s => s !== null && s !== 'bot');
     state.host = firstHuman || socket.id;
@@ -824,10 +843,18 @@ io.on('connection', (socket) => {
       state.gameState = 'playing';
       state.finishOrder = []; // reset finish rankings
       state.finishMeta = [];
-      state.boardState = null;
       state.moveLog = [];
       state.lastRoll = null;
       state.lastMove = null;
+      state.pegsPerPlayer = state.gameSettings.pegsPerPlayer;
+      state.visualMap = serverVisualMap(state.slots);
+      state.pieces = [];
+      for (let s = 0; s < 4; s++) {
+        if (state.slots[s] === null) continue;
+        for (let i = 0; i < state.pegsPerPlayer; i++) {
+          state.pieces.push({ id: `${s}-${i}`, player: s, state: 'jail', pos: i });
+        }
+      }
       state.offlineSlots = [false, false, false, false];
       state.moveExecutedThisTurn = false;
       state.endedAt = null;
@@ -868,6 +895,7 @@ io.on('connection', (socket) => {
     const curSeat = state.slots[state.currentPlayer];
     const botTurn = curSeat === 'bot' || state.offlineSlots[state.currentPlayer];
     if (socket.id !== curSeat && !(botTurn && socket.id === state.host)) return;
+    if (!data || !Number.isInteger(data.value) || data.value < 1 || data.value > 6) return;
 
     state.diceRolled = true;
     state.diceValue = data.value;
@@ -927,11 +955,10 @@ io.on('connection', (socket) => {
       socket.emit('move_missing', { turnId: state.turnId });
     }
   });
-
   socket.on('execute_move', (moveObj) => {
     if (!socket.roomId) return;
     const state = getRoomState(socket.roomId);
-    if (state.gameState !== 'playing') return;
+    if (state.gameState !== 'playing' || !state.pieces) return;
 
     // Only the seated player (or the host moving for a bot/offline seat) may move.
     const curSeat = state.slots[state.currentPlayer];
@@ -942,12 +969,27 @@ io.on('connection', (socket) => {
       console.warn(`[Server] Rejected stale execute_move (turn ${moveObj.turnId} vs ${state.turnId}) in room ${socket.roomId}`);
       return;
     }
+
     // Strictly enforce exactly ONE move per dice roll
     if (!state.diceRolled || state.moveExecutedThisTurn) {
       console.warn(`[Server] Rejected duplicate execute_move in room ${socket.roomId}`);
       return;
     }
+
+    // Authoritative legality check: the move must exist in the rules for this
+    // seat and dice value. Desynced or tampered clients can no longer stack
+    // pieces or teleport — illegal attempts are rejected with feedback.
+    const legal = serverLegalMoves(state, state.currentPlayer, state.diceValue);
+    const match = (moveObj && legal.some(m =>
+      m.pieceId === moveObj.pieceId && m.action === moveObj.action && m.target === moveObj.target));
+    if (!match) {
+      console.warn(`[Server] Rejected illegal execute_move in room ${socket.roomId}:`, JSON.stringify(moveObj));
+      socket.emit('move_rejected', { reason: 'That move is not legal this turn' });
+      return;
+    }
+
     state.moveExecutedThisTurn = true;
+    serverApplyMove(state, moveObj.pieceId, moveObj.action, moveObj.target);
 
     state.lastMove = { pieceId: moveObj.pieceId, action: moveObj.action, target: moveObj.target, turnId: state.turnId };
     // Journal the move so rejoining clients can replay what they missed.
@@ -1034,11 +1076,9 @@ io.on('connection', (socket) => {
     broadcastOpenRooms();
   });
 
-  socket.on('update_board_state', (boardState) => {
-    if (!socket.roomId) return;
-    const state = getRoomState(socket.roomId);
-    state.boardState = boardState;
-  });
+  // Retired: the server is authoritative for pieces now, so client board
+  // echoes are ignored. Kept as a no-op so older tabs don't error.
+  socket.on('update_board_state', () => {});
 
   // Lightweight turn snapshot for the heartbeat: heals clients that missed
   // a turn_passed/dice_rolled packet (their dice would otherwise stay dead
@@ -1059,11 +1099,10 @@ io.on('connection', (socket) => {
     if (!socket.roomId) return;
     socket.to(socket.roomId).emit('sync_requested', socket.id);
 
-    // Also send the server's cached state directly as a fallback for bot-only matches
+    // Serve the authoritative snapshot (always live, unlike the old host cache)
     const state = getRoomState(socket.roomId);
-    if (state.boardState) {
-      socket.emit('sync_data', state.boardState);
-      socket.emit('replay_moves', { moves: getReplayMoves(state), finishOrder: state.finishOrder || [] });
+    if (state.gameState === 'playing' && state.pieces) {
+      socket.emit('sync_data', roomSnapshot(socket.roomId));
     }
   });
 
@@ -1104,10 +1143,6 @@ io.on('connection', (socket) => {
       } else if (!state.playerNames[data.slot]) {
         state.playerNames[data.slot] = `Player ${data.slot + 1}`;
       }
-      if (state.boardState) {
-        state.boardState.slots = [...state.slots];
-        state.boardState.playerNames = [...state.playerNames];
-      }
     }
     socket.roomId = data.roomId;
     socket.join(data.roomId);
@@ -1118,9 +1153,9 @@ io.on('connection', (socket) => {
     state.host = reclaimFirstHuman || socket.id;
 
     // Directly send current state to the recovering player
-    socket.emit('lobby_state', { ...state, roomId: data.roomId, fresh: isFreshRoom });
-    if (state.gameState === 'playing' && state.boardState) {
-      socket.emit('sync_data', state.boardState);
+    socket.emit('lobby_state', { ...state, pieces: undefined, roomId: data.roomId, fresh: isFreshRoom });
+    if (state.gameState === 'playing' && state.pieces) {
+      socket.emit('sync_data', roomSnapshot(data.roomId));
       socket.emit('replay_moves', { moves: getReplayMoves(state), finishOrder: state.finishOrder || [] });
     }
     io.to(data.roomId).emit('player_reconnected', data.slot);
