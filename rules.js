@@ -86,4 +86,17 @@ function serverApplyMove(state, pieceId, action, target) {
   return piece;
 }
 
-module.exports = { BOARD_MODES, serverVisualMap, serverLegalMoves, serverApplyMove };
+// Mercy d6: uniform crypto base roll, plus +8% six-chance per pity point
+// (cap 30%, never guaranteed) when pity > 0. `dieFn` injects the base roll
+// for deterministic tests. pity > 0 implies the seat has a jailed rook
+// (callers only accrue it then, and jail breaks reset it).
+function mercyRoll(pity, dieFn) {
+  const crypto = require('crypto');
+  const v = dieFn ? dieFn() : crypto.randomInt(1, 7);
+  if (v === 6 || !(pity > 0)) return { value: v, mercy: false };
+  const p = Math.min(0.08 * Math.min(pity, 5), 0.3);
+  if (Math.random() < p) return { value: 6, mercy: true };
+  return { value: v, mercy: false };
+}
+
+module.exports = { BOARD_MODES, serverVisualMap, serverLegalMoves, serverApplyMove, mercyRoll };

@@ -166,10 +166,47 @@ if (process.env.DATABASE_URL) {
 app.use(express.json());
 app.use(express.static(__dirname));
 
+// In-memory sliding-window rate limiter (bcrypt is CPU-heavy: unthrottled
+// auth endpoints are a trivial DoS vector)
+const rateBuckets = new Map();
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, stamps] of rateBuckets) {
+    const fresh = stamps.filter(t => now - t < 10 * 60 * 1000);
+    if (fresh.length === 0) rateBuckets.delete(key);
+    else rateBuckets.set(key, fresh);
+  }
+}, 60 * 1000).unref();
+
+function rateLimit(max, req, res) {
+  const key = (req.ip || 'unknown') + ':' + req.path;
+  const now = Date.now();
+  const stamps = (rateBuckets.get(key) || []).filter(t => now - t < 10 * 60 * 1000);
+  if (stamps.length >= max) {
+    res.status(429).json({ error: 'Too many attempts. Please wait a few minutes.' });
+    return false;
+  }
+  stamps.push(now);
+  rateBuckets.set(key, stamps);
+  return true;
+}
+
+function validCredentials(username, password) {
+  const u = typeof username === 'string' ? username.trim() : '';
+  const p = typeof password === 'string' ? password : '';
+  // Unicode-friendly (Hebrew nicknames welcome), just length-bound
+  if (u.length < 2 || u.length > 24) return 'Username must be 2-24 characters';
+  if (p.length < 4 || p.length > 72) return 'Password must be 4-72 characters';
+  return null;
+}
+
 app.post('/api/register', (req, res) => {
-  const { username, password } = req.body;
-  if (!username || !password) return res.status(400).json({ error: 'Missing username or password' });
-  
+  if (!rateLimit(20, req, res)) return;
+  let { username, password } = req.body;
+  const credErr = validCredentials(username, password);
+  if (credErr) return res.status(400).json({ error: credErr });
+  username = username.trim();
+
   db.get("SELECT * FROM users WHERE username = ?", [username], (err, row) => {
     if (err) return res.status(500).json({ error: 'Server error' });
     
@@ -200,8 +237,14 @@ app.post('/api/register', (req, res) => {
 });
 
 app.post('/api/login', (req, res) => {
-  const { username, password } = req.body;
-  if (!username || !password) return res.status(400).json({ error: 'Missing username or password' });
+  if (!rateLimit(20, req, res)) return;
+  let { username, password } = req.body;
+  // Loose bounds only (no minimums: legacy accounts predate the register rules)
+  if (typeof username !== 'string' || typeof password !== 'string' ||
+      !username.trim() || !password || username.trim().length > 24 || password.length > 72) {
+    return res.status(400).json({ error: 'Missing username or password' });
+  }
+  username = username.trim();
   db.get("SELECT * FROM users WHERE username = ?", [username], (err, row) => {
     if (err) return res.status(500).json({ error: 'Server error' });
     if (!row) return res.status(400).json({ error: 'No account found with this username. Please register first!' });
@@ -385,7 +428,7 @@ app.get('/', (req, res) => {
 // rooms state
 const rooms = {};
 
-const { serverVisualMap, serverLegalMoves, serverApplyMove } = require('./rules.js');
+const { serverVisualMap, serverLegalMoves, serverApplyMove, mercyRoll } = require('./rules.js');
 
 function getRoomState(roomId) {
   if (!rooms[roomId]) {
@@ -402,9 +445,10 @@ function getRoomState(roomId) {
       diceRolled: false,
       diceValue: null,
       moveExecutedThisTurn: false,
+      allowReroll: false,
+      pity: { 0: 0, 1: 0, 2: 0, 3: 0 },
       finishOrder: [],
       finishMeta: [],
-      moveLog: [],
       lastRoll: null,
       lastMove: null,
       pieces: null,
@@ -429,7 +473,8 @@ function roomSnapshot(roomId) {
     pegsCountGlobal: state.pegsPerPlayer || 4,
     visualMap: state.visualMap || { 0: 0, 1: 1, 2: 2, 3: 3 },
     slots: [...state.slots],
-    playerNames: [...state.playerNames]
+    playerNames: [...state.playerNames],
+    finishOrder: [...(state.finishOrder || [])]
   };
 }
 
@@ -454,11 +499,12 @@ function resetRoomToLobby(roomId) {
   state.gameState = 'lobby';
   state.finishOrder = [];
   state.finishMeta = [];
-  state.moveLog = [];
   state.lastRoll = null;
   state.lastMove = null;
   state.pieces = null;
   state.visualMap = null;
+  state.allowReroll = false;
+  state.pity = { 0: 0, 1: 0, 2: 0, 3: 0 };
   state.offlineSlots = [false, false, false, false];
   state.currentPlayer = 0;
   state.turnId = 0;
@@ -468,14 +514,7 @@ function resetRoomToLobby(roomId) {
   state.endedAt = null;
 }
 
-// Moves missed while a client was away, so it can replay them onto a stale
-// board snapshot and land exactly on the live position. Snapshots are now
-// always built live from authoritative pieces, so this is normally empty —
-// kept as a safety net for in-flight races.
-function getReplayMoves(state) {
-  const baseTurn = state.turnId || 0;
-  return (state.moveLog || []).filter(m => m.turnId > baseTurn);
-}
+
 
 // Spectators = sockets in the room holding no seat. Shown to the players
 // being watched (as a 👁️ count), not to the watchers.
@@ -706,7 +745,6 @@ io.on('connection', (socket) => {
       // Also send board state for immediate rendering, plus missed moves to replay
       setTimeout(() => {
         io.to(socket.id).emit('sync_data', roomSnapshot(roomId));
-        io.to(socket.id).emit('replay_moves', { moves: getReplayMoves(state), finishOrder: state.finishOrder || [] });
       }, 100);
     }
 
@@ -843,7 +881,6 @@ io.on('connection', (socket) => {
       state.gameState = 'playing';
       state.finishOrder = []; // reset finish rankings
       state.finishMeta = [];
-      state.moveLog = [];
       state.lastRoll = null;
       state.lastMove = null;
       state.pegsPerPlayer = state.gameSettings.pegsPerPlayer;
@@ -857,6 +894,8 @@ io.on('connection', (socket) => {
       }
       state.offlineSlots = [false, false, false, false];
       state.moveExecutedThisTurn = false;
+      state.allowReroll = false;
+      state.pity = { 0: 0, 1: 0, 2: 0, 3: 0 };
       state.endedAt = null;
       // 🎲 Random starter every game (uniform over seated players)
       const activeSeats = state.slots.map((s, i) => s !== null ? i : null).filter(i => i !== null);
@@ -888,23 +927,31 @@ io.on('connection', (socket) => {
   socket.on('roll_dice', (data) => {
     if (!socket.roomId) return;
     const state = getRoomState(socket.roomId);
-    if (state.gameState !== 'playing') return;
+    if (state.gameState !== 'playing' || !state.pieces) return;
 
     // Only the seated player (or the host rolling for a bot/offline seat) may roll.
     // Stale/phantom rolls from anyone else are ignored so one client can't jam the turn flow.
     const curSeat = state.slots[state.currentPlayer];
     const botTurn = curSeat === 'bot' || state.offlineSlots[state.currentPlayer];
     if (socket.id !== curSeat && !(botTurn && socket.id === state.host)) return;
-    if (!data || !Number.isInteger(data.value) || data.value < 1 || data.value > 6) return;
+    // Exactly one roll per turn, except the earned re-roll after a 6 / shortcut move
+    if (state.diceRolled && !state.allowReroll) return;
+
+    // Server-side die: uniform crypto roll + jail pity tracked per seat.
+    // Client-sent values are ignored (they predate server dice).
+    const roller = state.currentPlayer;
+    const hasJailed = state.pieces.some(p => p.player === roller && p.state === 'jail');
+    const pityBefore = hasJailed ? (state.pity[roller] || 0) : 0;
+    const { value, mercy } = mercyRoll(pityBefore);
+    if (hasJailed && value !== 6) {
+      state.pity[roller] = Math.min(pityBefore + 1, 5);
+    }
 
     state.diceRolled = true;
-    state.diceValue = data.value;
+    state.allowReroll = false;
+    state.diceValue = value;
     state.moveExecutedThisTurn = false;
-    state.lastRoll = {
-      player: (typeof data === 'object' && typeof data.player === 'number') ? data.player : state.currentPlayer,
-      value: data.value,
-      turnId: state.turnId
-    };
+    state.lastRoll = { player: roller, value, turnId: state.turnId };
 
     // Refresh watchdog to allow animation and move execution
     clearRoomTurnTimer(socket.roomId);
@@ -921,9 +968,11 @@ io.on('connection', (socket) => {
     }, isBot ? 5000 : 20000);
 
     io.to(socket.roomId).emit('dice_rolled', {
-      player: (typeof data === 'object' && typeof data.player === 'number') ? data.player : state.currentPlayer,
-      value: data.value,
-      turnId: state.turnId
+      player: roller,
+      value,
+      turnId: state.turnId,
+      pity: state.pity[roller] || 0,
+      mercy
     });
   });
 
@@ -989,13 +1038,21 @@ io.on('connection', (socket) => {
     }
 
     state.moveExecutedThisTurn = true;
+    // A 6 or shortcut move earns exactly one re-roll; anything else ends the turn
+    state.allowReroll = (state.diceValue === 6 || moveObj.action === 'shortcut');
+    // Jail breakouts reset this seat's pity
+    if (moveObj.action === 'leave_jail') state.pity[state.currentPlayer] = 0;
     serverApplyMove(state, moveObj.pieceId, moveObj.action, moveObj.target);
 
+    // Server-side finish detection: the game ends on the board truth even if
+    // the winner's client dies before reporting (attribution merges on arrival)
+    const mover = state.currentPlayer;
+    if (state.pieces.filter(p => p.player === mover && p.state === 'home').length === state.pegsPerPlayer &&
+        !(state.finishOrder || []).includes(mover)) {
+      recordFinish(socket.roomId, mover, null, null, 0);
+    }
+
     state.lastMove = { pieceId: moveObj.pieceId, action: moveObj.action, target: moveObj.target, turnId: state.turnId };
-    // Journal the move so rejoining clients can replay what they missed.
-    if (!state.moveLog) state.moveLog = [];
-    state.moveLog.push({ pieceId: moveObj.pieceId, action: moveObj.action, target: moveObj.target, turnId: state.turnId });
-    if (state.moveLog.length > 300) state.moveLog.splice(0, state.moveLog.length - 300);
 
     // Refresh watchdog for follow-up roll or turn switch
     clearRoomTurnTimer(socket.roomId);
@@ -1019,17 +1076,62 @@ io.on('connection', (socket) => {
     const state = getRoomState(socket.roomId);
     if (state.gameState !== 'playing') return;
 
-    // Drop stale turn-advance timers from a previous turn.
-    if (data && typeof data.turnId === 'number' && data.turnId !== state.turnId) return;
-
-    // Debounce rapid duplicate next_turn calls (min 350ms between turns)
-    const now = Date.now();
-    if (state.lastTurnAdvance && (now - state.lastTurnAdvance < 350)) {
-      return;
+    if (data && typeof data.turnId === 'number') {
+      // Precise dedup: a stale turnId means this turn already advanced.
+      // (This supersedes the old blunt time-debounce, which ate legitimate
+      // fast turns and stalled games on the watchdog.)
+      if (data.turnId !== state.turnId) return;
+    } else {
+      // Legacy clients without turn tracking: keep the blunt time debounce.
+      const now = Date.now();
+      if (state.lastTurnAdvance && (now - state.lastTurnAdvance < 350)) {
+        return;
+      }
     }
 
     advanceRoomTurn(socket.roomId);
   });
+
+  // Authoritative finish recording shared by server-side detection (rank) and
+  // client reports (account attribution + kills). Either may arrive first.
+  function recordFinish(roomId, slot, userId, username, kills) {
+    const state = getRoomState(roomId);
+    if (!state.finishOrder) state.finishOrder = [];
+    if (!state.finishMeta) state.finishMeta = [];
+    let meta = state.finishMeta.find(m => m && m.slot === slot);
+    const isNew = !state.finishOrder.includes(slot);
+    if (isNew) {
+      state.finishOrder.push(slot);
+      meta = { slot, userId: userId || null, username: username || null, kills: kills || 0 };
+      state.finishMeta.push(meta);
+    } else if (meta) {
+      // Fill in attribution when the client's report arrives after detection
+      if (userId && !meta.userId) {
+        meta.userId = userId;
+        meta.username = username;
+        meta.kills = kills || 0;
+      }
+    }
+    const rank = state.finishOrder.indexOf(slot) + 1;
+    if (isNew) {
+      io.to(roomId).emit('player_ranked', { playerSlot: slot, rank, finishOrder: state.finishOrder });
+    }
+
+    const totalActive = state.slots.filter(s => s !== null).length;
+    const unfinished = totalActive - state.finishOrder.length;
+    if (unfinished <= 1 && state.gameState === 'playing') {
+      // Game is truly over
+      state.gameState = 'finished';
+      state.endedAt = Date.now();
+      clearRoomTurnTimer(roomId);
+      // Persist leaderboard results for registered finishers
+      (state.finishMeta || []).forEach((m, idx) => {
+        if (m && m.userId) recordBoardResult(m.userId, m.username, idx === 0, m.kills);
+      });
+      io.to(roomId).emit('game_over', state.finishOrder);
+    }
+    broadcastOpenRooms();
+  }
 
   socket.on('player_finished', (data) => {
     if (!socket.roomId) return;
@@ -1037,35 +1139,19 @@ io.on('connection', (socket) => {
     if (state.gameState !== 'playing') return;
     // Accept legacy slot number or { slot, userId, username, kills } from registered players
     const playerSlot = (typeof data === 'object' && data !== null) ? data.slot : data;
+    if (typeof playerSlot !== 'number') return;
+    // Trust but verify: the seat must actually have all rooks home
+    const allHome = state.pieces && state.pieces
+      .filter(p => p.player === playerSlot)
+      .every(p => p.state === 'home');
+    if (!allHome) {
+      console.warn(`[Server] Rejected bogus player_finished for slot ${playerSlot} in room ${socket.roomId}`);
+      return;
+    }
     const finUserId = (typeof data === 'object' && data !== null) ? data.userId : null;
     const finUsername = (typeof data === 'object' && data !== null) ? data.username : null;
     const finKills = (typeof data === 'object' && data !== null) ? data.kills : 0;
-    if (typeof playerSlot !== 'number') return;
-    if (!state.finishOrder) state.finishOrder = [];
-    if (!state.finishMeta) state.finishMeta = [];
-    if (!state.finishOrder.includes(playerSlot)) {
-      state.finishOrder.push(playerSlot);
-      state.finishMeta.push({ slot: playerSlot, userId: finUserId, username: finUsername, kills: finKills });
-    }
-    const rank = state.finishOrder.length;
-    // Broadcast that this player finished with their rank
-    io.to(socket.roomId).emit('player_ranked', { playerSlot, rank, finishOrder: state.finishOrder });
-
-    // Count how many unfinished players remain
-    const totalActive = state.slots.filter(s => s !== null).length;
-    const unfinished = totalActive - state.finishOrder.length;
-    if (unfinished <= 1) {
-      // Game is truly over
-      state.gameState = 'finished';
-      state.endedAt = Date.now();
-      clearRoomTurnTimer(socket.roomId);
-      // Persist leaderboard results for registered finishers
-      (state.finishMeta || []).forEach((m, idx) => {
-        if (m && m.userId) recordBoardResult(m.userId, m.username, idx === 0, m.kills);
-      });
-      io.to(socket.roomId).emit('game_over', state.finishOrder);
-    }
-    broadcastOpenRooms();
+    recordFinish(socket.roomId, playerSlot, finUserId, finUsername, finKills);
   });
 
   socket.on('return_to_lobby', () => {
@@ -1156,7 +1242,6 @@ io.on('connection', (socket) => {
     socket.emit('lobby_state', { ...state, pieces: undefined, roomId: data.roomId, fresh: isFreshRoom });
     if (state.gameState === 'playing' && state.pieces) {
       socket.emit('sync_data', roomSnapshot(data.roomId));
-      socket.emit('replay_moves', { moves: getReplayMoves(state), finishOrder: state.finishOrder || [] });
     }
     io.to(data.roomId).emit('player_reconnected', data.slot);
     emitSpectators(data.roomId);
