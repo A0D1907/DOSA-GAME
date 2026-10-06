@@ -340,6 +340,7 @@
       max-width: 96vw;
       position: relative;
       z-index: 10;
+      margin: 0 auto;
       filter: drop-shadow(0 0 34px rgba(139, 92, 246, 0.28));
     }
 
@@ -2512,6 +2513,25 @@ socket.on('game_over', (finishOrder) => {
 });
 
 // =============== BOARD INITIALIZATION ===============
+// Measured fit: size the square from the actual leftover stage space so the
+// board is always centered and never overflows (pure-CSS sizing lies on some
+// mobile viewports once toolbars shift).
+function fitBoard() {
+  try {
+    const stage = document.getElementById('board-stage');
+    const wrap = document.querySelector('.board-wrapper');
+    if (!stage || !wrap) return;
+    const size = Math.max(200, Math.min(stage.clientWidth - 8, stage.clientHeight - 8, 430));
+    const px = Math.floor(size) + 'px';
+    if (wrap.style.width !== px) {
+      wrap.style.width = px;
+      wrap.style.height = px;
+    }
+  } catch (e) {}
+}
+window.addEventListener('resize', fitBoard);
+window.addEventListener('orientationchange', () => setTimeout(fitBoard, 120));
+
 function initBoard(keepState = false) {
   updateBoardConstants();
 
@@ -2627,6 +2647,7 @@ function initBoard(keepState = false) {
 
   updateUI();
   renderPieces();
+  fitBoard();
 }
 
 function getPieceVisualPosition(piece) {
