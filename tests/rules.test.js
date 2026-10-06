@@ -36,15 +36,16 @@ describe('jail exits', () => {
     assert.deepEqual(R.serverLegalMoves(s, 0, 1), []);
   });
 
-  test('2-peg: exits to start 2, remapped seat to 10', () => {
-    assert.deepEqual(mk2exitTargets(0), [2, 2]);
+  test('2-peg: exits to start 4, remapped seat to 18', () => {
+    assert.deepEqual(R.serverLegalMoves(mk(2, null, jail(0, 2)), 0, 6).map(m => m.target), [4, 4]);
     const s = mk(2, { 0: 0, 1: 1, 2: 2, 3: 3 }, jail(1, 2));
-    assert.deepEqual(R.serverLegalMoves(s, 1, 6).map(m => m.target), [10, 10]);
+    assert.deepEqual(R.serverLegalMoves(s, 1, 6).map(m => m.target), [18, 18]);
     assert.deepEqual(R.serverLegalMoves(mk(2, null, jail(0, 2)), 0, 5), []);
+  });
 
-    function mk2exitTargets() {
-      return R.serverLegalMoves(mk(2, null, jail(0, 2)), 0, 6).map(m => m.target);
-    }
+  test('2-peg: shortcut jumps a quarter (14) from inner corners', () => {
+    const s = mk(2, null, [{ id: '0-0', player: 0, state: 'perimeter', pos: 8 }]);
+    assert.deepEqual(R.serverLegalMoves(s, 0, 1), [{ pieceId: '0-0', action: 'shortcut', target: 22 }]);
   });
 });
 
@@ -97,18 +98,19 @@ describe('perimeter play', () => {
 });
 
 describe('home stretch', () => {
-  test('2-peg dist-28 roll-3 enters occupied home (stacking allowed)', () => {
+  test('2-peg dist-53 roll-2 enters occupied home (stacking allowed)', () => {
+    // start idx 4 -> dist 53 sits on idx 1; roll 2 hits home0, roll 3 home1
     const s = mk(2, null, [
-      { id: '0-0', player: 0, state: 'perimeter', pos: 30 },
+      { id: '0-0', player: 0, state: 'perimeter', pos: 1 },
       { id: '0-1', player: 0, state: 'home', pos: 0 }
     ]);
-    const moves = R.serverLegalMoves(s, 0, 3).filter(m => m.action === 'home' && m.target === 0);
-    assert.equal(moves.length, 1);
+    assert.equal(R.serverLegalMoves(s, 0, 2).filter(m => m.action === 'home' && m.target === 0).length, 1);
+    assert.equal(R.serverLegalMoves(s, 0, 3).filter(m => m.action === 'home' && m.target === 1).length, 1);
   });
 
   test('every distance has a legal roll in both modes', () => {
     for (const pegs of [2, 4]) {
-      const maxPer = pegs === 2 ? 30 : 62;
+      const maxPer = pegs === 2 ? 54 : 62;
       const thr = maxPer + 1;
       for (let dist = 0; dist <= maxPer; dist++) {
         const ok = [1, 2, 3, 4, 5, 6].some(d => {

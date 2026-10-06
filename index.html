@@ -786,14 +786,14 @@ let SHORTCUT_SPACES = [10, 26, 42, 58];
 
 function updateBoardConstants() {
   const is2Pegs = (pegsCountGlobal === 2);
-  GRID_SIZE = is2Pegs ? 15 : 19;
-  OFFSET = is2Pegs ? 7 : 9;
+  GRID_SIZE = is2Pegs ? 17 : 19;
+  OFFSET = is2Pegs ? 8 : 9;
 
   JAILS = is2Pegs ? {
-    0: [[-0.7, -7], [0.7, -7]],
-    1: [[7, -0.7], [7, 0.7]],
-    2: [[0.7, 7], [-0.7, 7]],
-    3: [[-7, 0.7], [-7, -0.7]]
+    0: [[-0.5, -8], [0.5, -8]],
+    1: [[8, -0.5], [8, 0.5]],
+    2: [[0.5, 8], [-0.5, 8]],
+    3: [[-8, 0.5], [-8, -0.5]]
   } : {
     0: [[-1.5, -9], [-0.5, -9], [0.5, -9], [1.5, -9]],
     1: [[9, -1.5], [9, -0.5], [9, 0.5], [9, 1.5]],
@@ -802,10 +802,10 @@ function updateBoardConstants() {
   };
 
   HOMES = is2Pegs ? {
-    0: [[0, -4.2], [0, -2.8]],
-    1: [[4.2, 0], [2.8, 0]],
-    2: [[0, 4.2], [0, 2.8]],
-    3: [[-4.2, 0], [-2.8, 0]]
+    0: [[0, -6], [0, -5]],
+    1: [[6, 0], [5, 0]],
+    2: [[0, 6], [0, 5]],
+    3: [[-6, 0], [-5, 0]]
   } : {
     0: [[0, -7], [0, -6], [0, -5], [0, -4], [0, -3], [0, -2], [0, -1]],
     1: [[7, 0], [6, 0], [5, 0], [4, 0], [3, 0], [2, 0], [1, 0]],
@@ -814,10 +814,13 @@ function updateBoardConstants() {
   };
 
   PERIMETER = is2Pegs ? [
-    [-1.4, -5.6], [0, -5.6], [1.4, -5.6], [1.4, -4.2], [1.4, -2.8], [1.4, -1.4], [2.8, -1.4], [4.2, -1.4],
-    [5.6, -1.4], [5.6, 0], [5.6, 1.4], [4.2, 1.4], [2.8, 1.4], [1.4, 1.4], [1.4, 2.8], [1.4, 4.2],
-    [1.4, 5.6], [0, 5.6], [-1.4, 5.6], [-1.4, 4.2], [-1.4, 2.8], [-1.4, 1.4], [-2.8, 1.4], [-4.2, 1.4],
-    [-5.6, 1.4], [-5.6, 0], [-5.6, -1.4], [-4.2, -1.4], [-2.8, -1.4], [-1.4, -1.4], [-1.4, -2.8], [-1.4, -4.2]
+    [-2, -7], [-1, -7], [0, -7], [1, -7], [2, -7], [2, -6], [2, -5], [2, -4],
+    [2, -3], [3, -3], [4, -3], [5, -3], [6, -3], [7, -3], [7, -2], [7, -1],
+    [7, 0], [7, 1], [7, 2], [6, 2], [5, 2], [4, 2], [3, 2], [3, 3],
+    [3, 4], [3, 5], [3, 6], [3, 7], [2, 7], [1, 7], [0, 7], [-1, 7],
+    [-2, 7], [-2, 6], [-2, 5], [-2, 4], [-2, 3], [-3, 3], [-4, 3], [-5, 3],
+    [-6, 3], [-7, 3], [-7, 2], [-7, 1], [-7, 0], [-7, -1], [-7, -2], [-6, -2],
+    [-5, -2], [-4, -2], [-3, -2], [-3, -3], [-3, -4], [-3, -5], [-3, -6], [-3, -7]
   ] : [
     [-2, -8], [-1, -8], [0, -8], [1, -8], [2, -8],
     [2, -7], [2, -6], [2, -5], [2, -4], [2, -3], [2, -2],
@@ -833,8 +836,8 @@ function updateBoardConstants() {
     [-2, -3], [-2, -4], [-2, -5], [-2, -6], [-2, -7]
   ];
 
-  START_SPACES = is2Pegs ? [2, 10, 18, 26] : [4, 20, 36, 52];
-  SHORTCUT_SPACES = is2Pegs ? [5, 13, 21, 29] : [10, 26, 42, 58];
+  START_SPACES = is2Pegs ? [4, 18, 32, 46] : [4, 20, 36, 52];
+  SHORTCUT_SPACES = is2Pegs ? [8, 22, 36, 50] : [10, 26, 42, 58];
 }
 
 const PLAYERS = {
@@ -2264,16 +2267,16 @@ socket.on('dice_rolled', (data) => {
                 if (hasEnemy) score += 95;
               }
               if (m.action === 'move') {
-                const start = visualMap[currentPlayer] * (pegsCountGlobal === 2 ? 8 : 16) + (pegsCountGlobal === 2 ? 2 : 4);
-                const totalLen = pegsCountGlobal === 2 ? 32 : 64;
+                const start = visualMap[currentPlayer] * (pegsCountGlobal === 2 ? 14 : 16) + 4;
+                const totalLen = pegsCountGlobal === 2 ? 56 : 64;
                 const dist = (m.piece.pos - start + totalLen) % totalLen;
                 score += dist * 0.9;
-                if (dist > (pegsCountGlobal === 2 ? 25 : 50)) score += 25;
+                if (dist > (pegsCountGlobal === 2 ? 45 : 50)) score += 25;
               }
               if (m.action === 'home') score += 110 + (m.target * 10);
               if (m.action === 'leave_jail') score += 65;
               if (m.action === 'move') {
-                const totalLen = pegsCountGlobal === 2 ? 32 : 64;
+                const totalLen = pegsCountGlobal === 2 ? 56 : 64;
                 const inDanger = pieces.some(p =>
                   p.player !== currentPlayer && p.state === 'perimeter' &&
                   (p.pos + 1) % totalLen === m.target
@@ -2911,7 +2914,7 @@ socket.on('receive_emote', (data) => {
   const jitterX = (Math.random() - 0.5) * 28;
   const jitterY = (Math.random() - 0.5) * 14;
 
-  const labelOffset = pegsCountGlobal === 2 ? 7 : 9;
+  const labelOffset = pegsCountGlobal === 2 ? 8 : 9;
   const LABEL_POS = { 0: [0, -labelOffset], 1: [labelOffset, 0], 2: [0, labelOffset], 3: [-labelOffset, 0] };
   wrapper.style.left = `calc(${((LABEL_POS[vPlayer][0] + OFFSET + 0.5) * (100 / GRID_SIZE))}% + ${jitterX}px)`;
   wrapper.style.top = `calc(${((LABEL_POS[vPlayer][1] + OFFSET + 0.5) * (100 / GRID_SIZE))}% + ${jitterY}px)`;
@@ -3005,8 +3008,8 @@ function calculateValidMoves() {
   let forcedShortcuts = [];
   for (let piece of pieces.filter(p => p.player === currentPlayer)) {
     if (piece.state === 'perimeter' && SHORTCUT_SPACES.includes(piece.pos) && diceValue === 1) {
-      const step = pegsCountGlobal === 2 ? 8 : 16;
-      const totalLen = pegsCountGlobal === 2 ? 32 : 64;
+      const step = pegsCountGlobal === 2 ? 14 : 16;
+      const totalLen = pegsCountGlobal === 2 ? 56 : 64;
       const target = (piece.pos + step) % totalLen;
       let isBlocked = pieces.some(p => p.player === currentPlayer && p.state === 'perimeter' && p.pos === target);
       if (!isBlocked) {
@@ -3024,19 +3027,19 @@ function calculateValidMoves() {
   pieces.filter(p => p.player === currentPlayer).forEach(piece => {
     if (piece.state === 'jail') {
       if (diceValue === 6) {
-        const start = visualMap[currentPlayer] * (pegsCountGlobal === 2 ? 8 : 16) + (pegsCountGlobal === 2 ? 2 : 4);
+        const start = visualMap[currentPlayer] * (pegsCountGlobal === 2 ? 14 : 16) + 4;
         potentialMoves.push({ piece, action: 'leave_jail', target: start });
       }
     } else if (piece.state === 'perimeter') {
-      const start = visualMap[currentPlayer] * (pegsCountGlobal === 2 ? 8 : 16) + (pegsCountGlobal === 2 ? 2 : 4);
-      const totalLen = pegsCountGlobal === 2 ? 32 : 64;
+      const start = visualMap[currentPlayer] * (pegsCountGlobal === 2 ? 14 : 16) + 4;
+      const totalLen = pegsCountGlobal === 2 ? 56 : 64;
       const currentDist = (piece.pos - start + totalLen) % totalLen;
       const targetDist = currentDist + diceValue;
-      const maxPerDist = pegsCountGlobal === 2 ? 30 : 62;
+      const maxPerDist = pegsCountGlobal === 2 ? 54 : 62;
       if (targetDist <= maxPerDist) {
         potentialMoves.push({ piece, action: 'move', target: (piece.pos + diceValue) % totalLen });
       } else {
-        const homePos = targetDist - (pegsCountGlobal === 2 ? 31 : 63);
+        const homePos = targetDist - (pegsCountGlobal === 2 ? 55 : 63);
         if (homePos < pegsCountGlobal) potentialMoves.push({ piece, action: 'home', target: homePos });
       }
     } else if (piece.state === 'home') {

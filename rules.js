@@ -3,7 +3,7 @@
 
 const BOARD_MODES = {
   4: { step: 16, off: 4, total: 64, maxPer: 62, starts: [4, 20, 36, 52], cuts: [10, 26, 42, 58] },
-  2: { step: 8, off: 2, total: 32, maxPer: 30, starts: [2, 10, 18, 26], cuts: [5, 13, 21, 29] }
+  2: { step: 14, off: 4, total: 56, maxPer: 54, starts: [4, 18, 32, 46], cuts: [8, 22, 36, 50] }
 };
 
 // Same 2-player opposite-seat remap the clients use (identity otherwise).
