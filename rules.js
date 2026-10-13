@@ -20,7 +20,7 @@ function serverVisualMap(slots) {
 
 // All moves the rules allow for `player` with this dice value.
 // `state`: { pieces, visualMap, pegsPerPlayer }.
-// 1:1 with the client logic, including the safe-home stacking exemption.
+// 1:1 with the client logic: strict no-stacking everywhere, home included.
 function serverLegalMoves(state, player, dice) {
   const cfg = BOARD_MODES[state.pegsPerPlayer === 2 ? 2 : 4];
   const vm = state.visualMap || { 0: 0, 1: 1, 2: 2, 3: 3 };
@@ -57,7 +57,10 @@ function serverLegalMoves(state, player, dice) {
       if (tp < state.pegsPerPlayer) moves.push({ pieceId: pc.id, action: 'home', target: tp });
     }
   }
-  return moves.filter(m => m.action === 'home' || !ownAt('perimeter', m.target));
+  return moves.filter(m => {
+    const targetState = (m.action === 'home') ? 'home' : 'perimeter';
+    return !state.pieces.some(p => p.player === player && p.state === targetState && p.pos === m.target);
+  });
 }
 
 // Apply a validated move to a pieces array (positions + captures).

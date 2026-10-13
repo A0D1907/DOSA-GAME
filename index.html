@@ -948,6 +948,7 @@ let killCount = { 0: 0, 1: 0, 2: 0, 3: 0 };
 let diceValue = null;
 let diceRolled = false;
 let validMoves = [];
+let lastPotentialCount = 0;
 let isAnimating = false;
 let finishedPlayers = [];
 
@@ -1626,6 +1627,31 @@ setInterval(() => {
   } catch (e) {}
 }, 10000);
 
+// Liveness watchdog: if it's my turn, my roll settled, no moves are shown and
+// no timer/echo is pending for ~9s straight, the turn is wedged (dropped
+// packet at exactly the wrong moment). Recover exactly as the dice callback
+// would have: show recomputed moves, or pass the turn if there are none.
+let wedgeStrikes = 0;
+setInterval(() => {
+  try {
+    if (document.getElementById('game-screen')?.classList.contains('hidden')) return;
+    if (isSpectating || mySlot === null || currentPlayer !== mySlot) { wedgeStrikes = 0; return; }
+    if (!diceRolled || isAnimating || validMoves.length > 0) { wedgeStrikes = 0; return; }
+    if (botTurnTimer || rollEchoTimer || moveEchoTimer) { wedgeStrikes = 0; return; }
+    if (++wedgeStrikes < 3) return;
+    wedgeStrikes = 0;
+    console.warn('[liveness] recovering stuck turn', JSON.stringify({ currentPlayer, mySlot, diceValue, turnId: currentTurnId }));
+    calculateValidMoves();
+    if (validMoves.length > 0) {
+      updateUI();
+      renderPieces();
+    } else {
+      socket.emit('next_turn', { turnId: currentTurnId });
+    }
+    showToast('Recovered stuck turn 🔧');
+  } catch (e) {}
+}, 3000);
+
 socket.on('turn_state', (data) => {
   if (!data || data.gameState !== 'playing') return;
   if (Array.isArray(data.finishOrder)) finishedPlayers = data.finishOrder.slice();
@@ -2127,6 +2153,7 @@ function leaveRoom() {
 
 socket.on('game_started', (data) => {
   awaitingAutoRejoinResult = false;
+  moveSentForCurrentRoll = false;
   if (botTurnTimer) { clearTimeout(botTurnTimer); botTurnTimer = null; }
   if (rollEchoTimer) { clearTimeout(rollEchoTimer); rollEchoTimer = null; }
   if (moveEchoTimer) { clearTimeout(moveEchoTimer); moveEchoTimer = null; }
@@ -2234,7 +2261,9 @@ socket.on('dice_rolled', (data) => {
       calculateValidMoves();
       updateUI();
       if (validMoves.length === 0) {
-        if (currentPlayer === mySlot) showToast(`No moves for ${diceValue} 😕`);
+        if (currentPlayer === mySlot) {
+          showToast(lastPotentialCount > 0 ? `Blocked by your own rook 😕` : `No moves for ${diceValue} 😕`);
+        }
         if (diceValue === 6) {
           consecutiveNoMovesOn6++;
           if (consecutiveNoMovesOn6 > 1) {
@@ -3069,11 +3098,12 @@ function calculateValidMoves() {
     }
   });
 
+  // Strict no-stacking everywhere, home stretch included: a rook can never
+  // land on its own. Blocked entries explain themselves via toast instead.
+  lastPotentialCount = potentialMoves.length;
   validMoves = potentialMoves.filter(move => {
-    // No stacking your own rooks on the shared track — but the safe home
-    // stretch is exempt (standard safe-zone rule): entries must always work.
-    if (move.action === 'home') return true;
-    return !pieces.some(p => p.player === currentPlayer && p.state === 'perimeter' && p.pos === move.target);
+    const targetState = (move.action === 'home') ? 'home' : 'perimeter';
+    return !pieces.some(p => p.player === currentPlayer && p.state === targetState && p.pos === move.target);
   });
 }
 

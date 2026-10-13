@@ -98,14 +98,18 @@ describe('perimeter play', () => {
 });
 
 describe('home stretch', () => {
-  test('2-peg dist-53 roll-2 enters occupied home (stacking allowed)', () => {
-    // start idx 4 -> dist 53 sits on idx 1; roll 2 hits home0, roll 3 home1
-    const s = mk(2, null, [
+  test('2-peg: occupied home blocks entry, free home allows it (strict, both modes)', () => {
+    // start idx 4 -> dist 53 sits on idx 1; roll 2 targets home0, roll 3 home1
+    const blocked = mk(2, null, [
       { id: '0-0', player: 0, state: 'perimeter', pos: 1 },
       { id: '0-1', player: 0, state: 'home', pos: 0 }
     ]);
-    assert.equal(R.serverLegalMoves(s, 0, 2).filter(m => m.action === 'home' && m.target === 0).length, 1);
-    assert.equal(R.serverLegalMoves(s, 0, 3).filter(m => m.action === 'home' && m.target === 1).length, 1);
+    assert.equal(blocked && R.serverLegalMoves(blocked, 0, 2).filter(m => m.action === 'home').length, 0);
+    assert.equal(R.serverLegalMoves(blocked, 0, 3).filter(m => m.action === 'home' && m.target === 1).length, 1);
+    const free = mk(2, null, [
+      { id: '0-0', player: 0, state: 'perimeter', pos: 1 }
+    ]);
+    assert.equal(R.serverLegalMoves(free, 0, 2).filter(m => m.action === 'home' && m.target === 0).length, 1);
   });
 
   test('every distance has a legal roll in both modes', () => {
