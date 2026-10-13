@@ -133,30 +133,13 @@ describe('home stretch', () => {
   });
 });
 
-describe('mercyRoll', () => {
-  test('no pity means no mercy, natural 6 never mercy', () => {
-    assert.deepEqual(R.mercyRoll(0, () => 3), { value: 3, mercy: false });
-    assert.deepEqual(R.mercyRoll(5, () => 6), { value: 6, mercy: false });
-  });
-
-  test('pity converts with a rigged coin, both ways', () => {
-    const realRandom = Math.random;
-    try {
-      Math.random = () => 0;
-      assert.deepEqual(R.mercyRoll(5, () => 3), { value: 6, mercy: true });
-      Math.random = () => 0.999999;
-      assert.deepEqual(R.mercyRoll(5, () => 3), { value: 3, mercy: false });
-    } finally {
-      Math.random = realRandom;
-    }
-  });
-
-  test('live crypto rolls stay in 1..6 and roughly uniform', () => {
+describe('server die (pure uniform, no memory)', () => {
+  test('crypto.randomInt stays in 1..6 and roughly uniform', () => {
+    const crypto = require('crypto');
     const counts = [0, 0, 0, 0, 0, 0, 0];
     for (let i = 0; i < 6000; i++) {
-      const { value, mercy } = R.mercyRoll(0);
+      const value = crypto.randomInt(1, 7);
       assert.ok(value >= 1 && value <= 6);
-      assert.equal(mercy, false);
       counts[value]++;
     }
     for (let v = 1; v <= 6; v++) {

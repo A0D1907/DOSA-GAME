@@ -283,7 +283,7 @@
       100% { transform: scale(1) translateY(0); opacity: 1; }
     }
     .animate-pop { animation: popIn 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.2) both; }
-    #auth-modal > div, #friends-modal > div, #exit-confirm-modal > div, #leaderboard-modal > div, #victory-screen > div {
+    #auth-modal > div, #friends-modal > div, #exit-confirm-modal > div, #leaderboard-modal > div, #cubestats-modal > div, #victory-screen > div {
       animation: popIn 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
     }
     #status-turn-pill {
@@ -509,6 +509,23 @@
     </div>
   </div>
 
+  <!-- PER-PLAYER CUBE STATISTICS MODAL -->
+  <div id="cubestats-modal" class="fixed inset-0 z-[180] flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm hidden transition-all duration-200">
+    <div class="w-full max-w-sm p-6 rounded-2xl modern-card border border-[rgba(139,92,246,0.4)] shadow-2xl relative">
+      <button onclick="closeCubeStatsModal()" class="absolute top-4 right-4 w-7 h-7 rounded-lg flex items-center justify-center text-[#b9b3d9] hover:text-white hover:bg-[#241a52] transition-all">✕</button>
+
+      <div class="flex items-center gap-2 mb-1">
+        <span class="text-xl">🎲</span>
+        <h3 class="text-sm font-bold text-white uppercase tracking-wider">Cube Stats</h3>
+      </div>
+      <p class="text-xs text-[#b9b3d9] mb-4">Every seat's own die, this match. Fair = 16.7% per face.</p>
+
+      <div id="cubestats-list" class="flex flex-col gap-3 max-h-72 overflow-y-auto">
+        <p class="text-xs text-[#8f89b3] text-center py-4">No rolls yet — play a turn!</p>
+      </div>
+    </div>
+  </div>
+
   <!-- FRIENDS & PLAYERS MODAL -->
   <div id="friends-modal" class="fixed inset-0 z-[160] flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm hidden transition-all duration-200">
     <div class="w-full max-w-md p-6 rounded-2xl modern-card relative max-h-[90vh] flex flex-col">
@@ -682,6 +699,10 @@
           <button onclick="openLeaderboardModal()" class="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-[#171233] border border-[rgba(139,92,246,0.4)] text-xs font-semibold text-[#efeaff] hover:text-white hover:bg-[#241a52] hover:border-[rgba(0,229,255,0.35)] transition-all shadow-sm" title="Leaderboard">
             <span>🏆</span>
             <span class="hidden sm:inline">Top</span>
+          </button>
+          <button onclick="openCubeStatsModal()" class="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-[#171233] border border-[rgba(139,92,246,0.4)] text-xs font-semibold text-[#efeaff] hover:text-white hover:bg-[#241a52] hover:border-[rgba(0,229,255,0.35)] transition-all shadow-sm" title="Cube Statistics">
+            <span>🎲</span>
+            <span class="hidden sm:inline">Cube</span>
           </button>
           <button onclick="openFriendsModal()" class="w-8 h-8 rounded-xl flex items-center justify-center btn-modern-secondary text-xs" title="Friends">
             👥
@@ -914,6 +935,60 @@ function escapeHtml(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   }[c]));
+}
+
+// =============== PER-PLAYER CUBE STATS ===============
+function openCubeStatsModal() {
+  renderCubeStats();
+  document.getElementById('cubestats-modal')?.classList.remove('hidden');
+}
+
+function closeCubeStatsModal() {
+  document.getElementById('cubestats-modal')?.classList.add('hidden');
+}
+
+function renderCubeStats() {
+  const list = document.getElementById('cubestats-list');
+  if (!list) return;
+  const seats = activeSlots.filter(p => cubeStats[p] && cubeStats[p].total > 0);
+  if (seats.length === 0) {
+    list.innerHTML = '<p class="text-xs text-[#8f89b3] text-center py-4">No rolls yet — play a turn!</p>';
+    return;
+  }
+  list.innerHTML = '';
+  seats.forEach(p => {
+    const cs = cubeStats[p];
+    const col = PLAYERS[p]?.dotColor || '#fff';
+    const name = latestPlayerNames[p] || ('Player ' + (p + 1));
+    const isMe = (p === mySlot);
+    const card = document.createElement('div');
+    card.className = 'p-3 rounded-xl bg-[#171233] border border-[rgba(139,92,246,0.4)]';
+    let bars = '';
+    for (let v = 1; v <= 6; v++) {
+      const c = cs.counts[v] || 0;
+      const pct = cs.total > 0 ? ((c / cs.total) * 100) : 0;
+      const w = cs.total > 0 ? Math.min(100, Math.max(4, pct * 2.2)) : 4;
+      bars += `
+        <div class="flex items-center gap-1.5">
+          <span class="text-[10px] w-3 font-mono font-bold text-[#efeaff] text-center">${v}</span>
+          <div class="flex-1 h-2 rounded-full bg-[#241a52] overflow-hidden">
+            <div class="h-full rounded-full transition-all duration-300" style="width: ${w}%; background: ${col}; box-shadow: 0 0 8px ${col};"></div>
+          </div>
+          <span class="text-[10px] font-mono text-[#8f89b3] w-8 text-right">${c}</span>
+        </div>`;
+    }
+    card.innerHTML = `
+      <div class="flex items-center justify-between mb-2">
+        <div class="flex items-center gap-2 truncate">
+          <div class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background:${col}; box-shadow: 0 0 8px ${col};"></div>
+          <span class="text-xs font-bold text-white truncate">${escapeHtml(name)}${isMe ? ' (You)' : ''}</span>
+        </div>
+        <div class="text-[10px] font-mono text-[#b9b3d9] flex-shrink-0">${cs.total} rolls • last: ${cs.last == null ? '–' : cs.last}</div>
+      </div>
+      <div class="flex flex-col gap-1">${bars}</div>
+    `;
+    list.appendChild(card);
+  });
 }
 
 function confirmExitGame() {
@@ -1773,7 +1848,7 @@ socket.on('sync_data', (state) => {
       diceRolled = false;
       isAnimating = false;
       validMoves = [];
-      myPity = 0;
+      resetCubeStats();
     }
     // NOTE: killCount is intentionally NOT reset here: snapshots carry no
     // kill history, and every capture is counted once via live broadcasts.
@@ -2163,7 +2238,7 @@ socket.on('game_started', (data) => {
   validMoves = [];
   finishedPlayers = [];
   consecutiveNoMovesOn6 = 0;
-  myPity = 0;
+  resetCubeStats();
   killCount = { 0: 0, 1: 0, 2: 0, 3: 0 };
   if (data && typeof data.spectators === 'number') spectatorCount = data.spectators;
   document.getElementById('main-nav-bar')?.classList.add('hidden'); // HIDE OVERLAPPING HEADER
@@ -2185,14 +2260,19 @@ socket.on('game_started', (data) => {
       break;
     }
   }
-  // Seats were shuffled: persist the NEW seat so rejoin finds us
   if (mySlot !== null) saveSession('dosaSlot', mySlot);
   isHost = (data.slots.find(s => s !== null && s !== 'bot') === socket.id);
-  
-  visualMap = {0: 0, 1: 1, 2: 2, 3: 3};
-  if (activeSlots.length === 2) {
-    visualMap[activeSlots[0]] = activeSlots[0];
-    visualMap[activeSlots[1]] = (activeSlots[0] + 2) % 4;
+
+  // Board positions come from the server (shuffled each game); the local
+  // formula is only a fallback for stale payloads.
+  if (data.visualMap) {
+    visualMap = data.visualMap;
+  } else {
+    visualMap = {0: 0, 1: 1, 2: 2, 3: 3};
+    if (activeSlots.length === 2) {
+      visualMap[activeSlots[0]] = activeSlots[0];
+      visualMap[activeSlots[1]] = (activeSlots[0] + 2) % 4;
+    }
   }
 
   initBoard();
@@ -2200,7 +2280,7 @@ socket.on('game_started', (data) => {
   if (typeof data.currentPlayer === 'number') currentPlayer = data.currentPlayer;
   updateUI();
   const starterName = latestPlayerNames[currentPlayer] || ('Player ' + (currentPlayer + 1));
-  showToast(`🔀 Seats shuffled — ${currentPlayer === mySlot ? 'YOU start!' : starterName + ' starts!'}`);
+  showToast(`🔀 Board positions shuffled — ${currentPlayer === mySlot ? 'YOU start!' : starterName + ' starts!'}`);
 });
 
 socket.on('dice_rolled', (data) => {
@@ -2224,10 +2304,12 @@ socket.on('dice_rolled', (data) => {
   isAnimating = true;
 
   diceValue = data.value;
-  // Server-owned pity/mercy reporting (display only)
-  if (typeof data.player === 'number' && data.player === mySlot) {
-    myPity = typeof data.pity === 'number' ? data.pity : 0;
-    if (data.mercy) showToast('🍀 Mercy 6! Jail pity came through!');
+  // Per-seat cube statistics: every client tracks every seat from broadcasts
+  if (typeof data.player === 'number' && diceValue >= 1 && diceValue <= 6) {
+    const cs = cubeStats[data.player] || (cubeStats[data.player] = { counts: [0, 0, 0, 0, 0, 0, 0], total: 0, last: null });
+    cs.counts[diceValue]++;
+    cs.total++;
+    cs.last = diceValue;
   }
 
   const cube = document.getElementById('dice-cube');
@@ -2331,8 +2413,7 @@ socket.on('dice_rolled', (data) => {
   }, 650);
 });
 
-// Pure board-state application of a move (position + captures + pity reset).
-// Used live by move_executed and silently by the rejoin replay journal.
+// Pure board-state application of a move (position + captures).
 function applyMoveToPieces(pieceId, action, target) {
   const piece = pieces.find(p => p.id === pieceId);
   if (!piece) return null;
@@ -2344,9 +2425,6 @@ function applyMoveToPieces(pieceId, action, target) {
   } else {
     return null;
   }
-
-  // Mercy pity resets only when a rook actually breaks out of jail
-
 
   const capturedEnemies = [];
   const movingPlayer = piece.player;
@@ -2748,10 +2826,7 @@ function updateUI() {
   let isMyTurn = (currentPlayer === mySlot);
   let prefix = isMyTurn ? 'Your Turn' : (nameStr + "'s Turn");
   if (isSpectating) prefix = 'Spectating: ' + nameStr + "'s Turn";
-  // Visible pity meter (server-reported): mercy bonus for the next roll
-  if (isMyTurn && !isSpectating && !diceRolled && myPity > 0) {
-    prefix += ` 🍀+${Math.min(8 * myPity, 30)}%`;
-  }
+
   if (statusEl) statusEl.innerText = prefix;
   
   const col = PLAYERS[currentPlayer]?.dotColor || '#00c2ff';
@@ -2979,9 +3054,13 @@ socket.on('receive_emote', (data) => {
   setTimeout(() => wrapper.remove(), 2200);
 });
 
-// Mercy pity for MY seat, as reported by the server (which owns the die).
-// Display only: rolls are generated server-side.
-let myPity = 0;
+// Per-seat cube statistics for the current match. Every client builds the
+// same table from dice_rolled broadcasts, so all seats are comparable.
+let cubeStats = {};
+
+function resetCubeStats() {
+  cubeStats = {};
+}
 
 let rollEchoTimer = null;
 let moveEchoTimer = null;
@@ -3001,7 +3080,7 @@ function rollDice(isBotAuto = false) {
   }
   animStartTime = Date.now();
   const rolledTurn = currentTurnId;
-  // No value sent: the server rolls (uniform crypto + jail pity) and broadcasts.
+  // No value sent: the server rolls a pure uniform die and broadcasts.
   socket.emit('roll_dice', { player: currentPlayer });
   // Echo confirmation: if our own roll broadcast never comes back (one dropped
   // packet wedges the turn), ask the server to re-send what it recorded

@@ -428,7 +428,7 @@ app.get('/', (req, res) => {
 // rooms state
 const rooms = {};
 
-const { serverVisualMap, serverLegalMoves, serverApplyMove, mercyRoll } = require('./rules.js');
+const { serverVisualMap, serverLegalMoves, serverApplyMove } = require('./rules.js');
 
 function getRoomState(roomId) {
   if (!rooms[roomId]) {
@@ -446,7 +446,6 @@ function getRoomState(roomId) {
       diceValue: null,
       moveExecutedThisTurn: false,
       allowReroll: false,
-      pity: { 0: 0, 1: 0, 2: 0, 3: 0 },
       finishOrder: [],
       finishMeta: [],
       lastRoll: null,
@@ -504,7 +503,6 @@ function resetRoomToLobby(roomId) {
   state.pieces = null;
   state.visualMap = null;
   state.allowReroll = false;
-  state.pity = { 0: 0, 1: 0, 2: 0, 3: 0 };
   state.offlineSlots = [false, false, false, false];
   state.currentPlayer = 0;
   state.turnId = 0;
@@ -532,6 +530,23 @@ function getSpectatorCount(roomId) {
 
 function emitSpectators(roomId) {
   io.to(roomId).emit('spectators_updated', { count: getSpectatorCount(roomId) });
+}
+
+// Board-position shuffle: seats (and their colors) stay exactly as claimed
+// in the lobby; instead the four board sides are dealt randomly, so who sits
+// next to whom changes every game. 2-player games keep the opposite-side
+// fairness rule.
+function shuffledVisualMap(slots) {
+  const active = slots.map((s, i) => s ? i : null).filter(i => i !== null);
+  if (active.length === 2) return serverVisualMap(slots);
+  const vals = [0, 1, 2, 3];
+  for (let i = vals.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [vals[i], vals[j]] = [vals[j], vals[i]];
+  }
+  const vm = {};
+  for (let s = 0; s < 4; s++) vm[s] = vals[s];
+  return vm;
 }
 
 // Start the recovery countdown when no online humans remain in a live game.
@@ -573,12 +588,14 @@ function advanceRoomTurn(roomId, forcedByWatchdog = false) {
 
   clearRoomTurnTimer(roomId);
 
-  let next = state.currentPlayer;
-  let attempts = 0;
-  do {
-    next = (next + 1) % 4;
-    attempts++;
-  } while ((!state.slots[next] || (state.finishOrder && state.finishOrder.includes(next))) && attempts < 10);
+  // Turns flow around the table in board order (visual seats), skipping
+  // empty and finished seats, so play follows the shuffled layout.
+  const vm = state.visualMap || { 0: 0, 1: 1, 2: 2, 3: 3 };
+  const order = [0, 1, 2, 3]
+    .filter(i => state.slots[i] && !(state.finishOrder || []).includes(i))
+    .sort((a, b) => vm[a] - vm[b]);
+  if (order.length === 0) return;
+  const next = order[(order.indexOf(state.currentPlayer) + 1) % order.length];
 
   state.currentPlayer = next;
   state.diceRolled = false;
@@ -854,27 +871,9 @@ io.on('connection', (socket) => {
     const hasHuman = state.slots.some(s => s !== null && s !== 'bot');
     const totalPlayers = state.slots.filter(s => s !== null).length;
     if (hasHuman && totalPlayers >= 2) {
-      // 🔀 Every game starts fresh: randomly deal occupants (humans + bots)
-      // onto random seats, so colors and neighbors change each match.
-      const occupants = [];
-      for (let i = 0; i < 4; i++) {
-        if (state.slots[i] !== null) occupants.push({ seat: state.slots[i], name: state.playerNames[i] });
-      }
-      const order = [0, 1, 2, 3];
-      for (let i = order.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [order[i], order[j]] = [order[j], order[i]];
-      }
-      state.slots = [null, null, null, null];
-      state.playerNames = ['', '', '', ''];
-      occupants.forEach((o, k) => {
-        state.slots[order[k]] = o.seat;
-        state.playerNames[order[k]] = o.name;
-      });
-      // Bots take the name of their new seat for clarity
-      for (let i = 0; i < 4; i++) {
-        if (state.slots[i] === 'bot') state.playerNames[i] = `Bot P${i + 1} 🤖`;
-      }
+      // Seats (and their colors) stay exactly as claimed in the lobby.
+      // Instead the four board sides are dealt randomly, so who sits next
+      // to whom changes every game. Bots keep their seats and names.
       const firstHuman = state.slots.find(s => s !== null && s !== 'bot');
       state.host = firstHuman || socket.id;
 
@@ -884,7 +883,7 @@ io.on('connection', (socket) => {
       state.lastRoll = null;
       state.lastMove = null;
       state.pegsPerPlayer = state.gameSettings.pegsPerPlayer;
-      state.visualMap = serverVisualMap(state.slots);
+      state.visualMap = shuffledVisualMap(state.slots);
       state.pieces = [];
       for (let s = 0; s < 4; s++) {
         if (state.slots[s] === null) continue;
@@ -895,7 +894,6 @@ io.on('connection', (socket) => {
       state.offlineSlots = [false, false, false, false];
       state.moveExecutedThisTurn = false;
       state.allowReroll = false;
-      state.pity = { 0: 0, 1: 0, 2: 0, 3: 0 };
       state.endedAt = null;
       // 🎲 Random starter every game (uniform over seated players)
       const activeSeats = state.slots.map((s, i) => s !== null ? i : null).filter(i => i !== null);
@@ -937,15 +935,10 @@ io.on('connection', (socket) => {
     // Exactly one roll per turn, except the earned re-roll after a 6 / shortcut move
     if (state.diceRolled && !state.allowReroll) return;
 
-    // Server-side die: uniform crypto roll + jail pity tracked per seat.
-    // Client-sent values are ignored (they predate server dice).
+    // Server-side die: pure uniform crypto roll, identical odds for every
+    // seat, every roll. No pity, no memory, no luck factor whatsoever.
     const roller = state.currentPlayer;
-    const hasJailed = state.pieces.some(p => p.player === roller && p.state === 'jail');
-    const pityBefore = hasJailed ? (state.pity[roller] || 0) : 0;
-    const { value, mercy } = mercyRoll(pityBefore);
-    if (hasJailed && value !== 6) {
-      state.pity[roller] = Math.min(pityBefore + 1, 5);
-    }
+    const value = require('crypto').randomInt(1, 7);
 
     state.diceRolled = true;
     state.allowReroll = false;
@@ -970,9 +963,7 @@ io.on('connection', (socket) => {
     io.to(socket.roomId).emit('dice_rolled', {
       player: roller,
       value,
-      turnId: state.turnId,
-      pity: state.pity[roller] || 0,
-      mercy
+      turnId: state.turnId
     });
   });
 
@@ -1040,8 +1031,6 @@ io.on('connection', (socket) => {
     state.moveExecutedThisTurn = true;
     // A 6 or shortcut move earns exactly one re-roll; anything else ends the turn
     state.allowReroll = (state.diceValue === 6 || moveObj.action === 'shortcut');
-    // Jail breakouts reset this seat's pity
-    if (moveObj.action === 'leave_jail') state.pity[state.currentPlayer] = 0;
     serverApplyMove(state, moveObj.pieceId, moveObj.action, moveObj.target);
 
     // Server-side finish detection: the game ends on the board truth even if
