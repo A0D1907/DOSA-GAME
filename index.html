@@ -1749,8 +1749,9 @@ socket.on('turn_state', (data) => {
     renderPieces();
     socket.emit('request_sync');
   } else if (data.turnId === currentTurnId && data.diceRolled && !diceRolled && !isAnimating) {
-    // Same turn, but the server holds a roll we never saw: heal pieces.
+    // Same turn, but the server holds a roll we never saw: heal pieces and face.
     socket.emit('request_sync');
+    socket.emit('request_roll_echo', { turnId: currentTurnId });
   }
 });
 
@@ -2239,6 +2240,7 @@ socket.on('game_started', (data) => {
   finishedPlayers = [];
   consecutiveNoMovesOn6 = 0;
   resetCubeStats();
+  recordedRolls = new Set();
   killCount = { 0: 0, 1: 0, 2: 0, 3: 0 };
   if (data && typeof data.spectators === 'number') spectatorCount = data.spectators;
   document.getElementById('main-nav-bar')?.classList.add('hidden'); // HIDE OVERLAPPING HEADER
@@ -2283,6 +2285,9 @@ socket.on('game_started', (data) => {
   showToast(`🔀 Board positions shuffled — ${currentPlayer === mySlot ? 'YOU start!' : starterName + ' starts!'}`);
 });
 
+// Rolls already applied (dedupes live + echo receipts for the stats table)
+let recordedRolls = new Set();
+
 socket.on('dice_rolled', (data) => {
   if (botTurnTimer) {
     clearTimeout(botTurnTimer);
@@ -2304,12 +2309,17 @@ socket.on('dice_rolled', (data) => {
   isAnimating = true;
 
   diceValue = data.value;
-  // Per-seat cube statistics: every client tracks every seat from broadcasts
+  // Per-seat cube statistics: every client tracks every seat from broadcasts.
+  // Echo re-sends are deduped so a retried roll never counts twice.
   if (typeof data.player === 'number' && diceValue >= 1 && diceValue <= 6) {
-    const cs = cubeStats[data.player] || (cubeStats[data.player] = { counts: [0, 0, 0, 0, 0, 0, 0], total: 0, last: null });
-    cs.counts[diceValue]++;
-    cs.total++;
-    cs.last = diceValue;
+    const rollKey = `${data.turnId}:${data.player}:${diceValue}`;
+    if (!recordedRolls.has(rollKey)) {
+      recordedRolls.add(rollKey);
+      const cs = cubeStats[data.player] || (cubeStats[data.player] = { counts: [0, 0, 0, 0, 0, 0, 0], total: 0, last: null });
+      cs.counts[diceValue]++;
+      cs.total++;
+      cs.last = diceValue;
+    }
   }
 
   const cube = document.getElementById('dice-cube');
@@ -2328,8 +2338,17 @@ socket.on('dice_rolled', (data) => {
       isAnimating = false;
       return;
     }
+    // Echoed re-send of a missed roll: the roller (or a client that asked
+    // because a move arrived unseen) gets the full flow; everyone else just
+    // watches the face so a dropped packet never strands the cube isometric.
+    const actOnRoll = !data.echo || data.player === mySlot;
     diceRolled = true;
     isAnimating = false;
+    if (!actOnRoll) {
+      updateUI();
+      renderPieces();
+      return;
+    }
 
     if (isHost && latestSlots[currentPlayer] === 'bot' && diceValue === 6 && Math.random() < 0.4) {
       setTimeout(() => {
@@ -2446,6 +2465,11 @@ socket.on('move_executed', (data) => {
   // Late echo from a previous turn (e.g. answered just as the watchdog
   // advanced): applying it would corrupt the board. Drop it.
   if (data && typeof data.turnId === 'number' && data.turnId !== currentTurnId) return;
+  // A move for a roll we never saw (dropped dice_rolled): fetch the echo so
+  // the cube shows the number instead of stranding on isometric.
+  if (!diceRolled && !isAnimating) {
+    socket.emit('request_roll_echo', { turnId: currentTurnId });
+  }
   const { action, target } = data;
 
   moveSentForCurrentRoll = true;

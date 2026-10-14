@@ -978,7 +978,8 @@ io.on('connection', (socket) => {
       socket.emit('dice_rolled', {
         player: state.lastRoll.player,
         value: state.lastRoll.value,
-        turnId: state.lastRoll.turnId
+        turnId: state.lastRoll.turnId,
+        echo: true
       });
     } else {
       socket.emit('roll_missing', { turnId: state.turnId });
