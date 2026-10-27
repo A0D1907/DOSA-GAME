@@ -63,12 +63,36 @@ function serverLegalMoves(state, player, dice) {
   });
 }
 
+// One-time rescue move: moves a piece 1 space backward instead of rolling/playing normal turn.
+function serverRescueMoves(state, player) {
+  const cfg = BOARD_MODES[state.pegsPerPlayer === 2 ? 2 : 4];
+  const vm = state.visualMap || { 0: 0, 1: 1, 2: 2, 3: 3 };
+  const v = vm[player];
+  const start = v * cfg.step + cfg.off;
+  const ownAt = (st, pos) => state.pieces.some(p => p.player === player && p.state === st && p.pos === pos);
+
+  const moves = [];
+  for (const pc of state.pieces.filter(p => p.player === player)) {
+    if (pc.state === 'perimeter') {
+      const cur = (pc.pos - start + cfg.total) % cfg.total;
+      // Cannot back up if at start (prevent skipping the entire board into home entry)
+      if (cur > 0) {
+        const target = (pc.pos - 1 + cfg.total) % cfg.total;
+        if (!ownAt('perimeter', target)) {
+          moves.push({ pieceId: pc.id, action: 'step_back', target });
+        }
+      }
+    }
+  }
+  return moves;
+}
+
 // Apply a validated move to a pieces array (positions + captures).
 // Mutates and returns the moved piece, or null.
 function serverApplyMove(state, pieceId, action, target) {
   const piece = state.pieces.find(p => p.id === pieceId);
   if (!piece) return null;
-  if (action === 'leave_jail' || action === 'shortcut' || action === 'move') {
+  if (action === 'leave_jail' || action === 'shortcut' || action === 'move' || action === 'step_back') {
     piece.state = 'perimeter'; piece.pos = target;
   } else if (action === 'home') {
     piece.state = 'home'; piece.pos = target;
@@ -89,4 +113,4 @@ function serverApplyMove(state, pieceId, action, target) {
   return piece;
 }
 
-module.exports = { BOARD_MODES, serverVisualMap, serverLegalMoves, serverApplyMove };
+module.exports = { BOARD_MODES, serverVisualMap, serverLegalMoves, serverRescueMoves, serverApplyMove };

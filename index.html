@@ -722,7 +722,7 @@
       </div>
     </div>
 
-    <div class="controls-bar w-full max-w-[420px] mx-auto mt-1 mb-5 px-6 flex justify-between items-center relative z-20 flex-shrink-0">
+    <div class="controls-bar w-full max-w-[420px] mx-auto mt-1 mb-5 px-4 flex justify-between items-center relative z-20 flex-shrink-0">
       <div class="relative" id="emote-container">
         <button id="emote-toggle-btn" onclick="toggleEmoteMenu(event)" class="w-14 h-14 rounded-2xl flex items-center justify-center text-xl btn-modern-secondary" title="Emotes">
           💬
@@ -744,6 +744,11 @@
           <button onclick="sendEmote('💧', event)" class="w-10 h-10 flex items-center justify-center rounded-lg text-xl hover:bg-[#241a52] active:scale-125 transition-transform">💧</button>
         </div>
       </div>
+
+      <button id="rescue-btn" onclick="toggleRescueMode()" class="w-14 h-14 rounded-2xl flex flex-col items-center justify-center text-xs font-medium btn-modern-secondary gap-0.5 relative transition-all" title="Rescue (1x): Move 1 step back instead of rolling" disabled>
+        <span class="text-xl">🛟</span>
+        <span id="rescue-badge" class="text-[9px] font-bold text-[#00e5ff]">1x</span>
+      </button>
 
       <button id="dice-btn" onclick="rollDice()" class="w-20 h-20 rounded-2xl flex items-center justify-center transition-all bg-white hover:bg-[#d9d2ff] active:scale-95 shadow-md" title="Roll Dice" disabled>
         <div class="dice-scene pointer-events-none">
@@ -1026,6 +1031,8 @@ let validMoves = [];
 let lastPotentialCount = 0;
 let isAnimating = false;
 let finishedPlayers = [];
+let rescueUsedByPlayer = [false, false, false, false];
+let isRescueMode = false;
 
 function saveSession(key, value) {
   try {
@@ -1822,6 +1829,8 @@ socket.on('sync_data', (state) => {
     activeSlots = state.activeSlots;
     pegsCountGlobal = state.pegsCountGlobal;
     visualMap = state.visualMap;
+    if (state.rescueUsed) rescueUsedByPlayer = state.rescueUsed.slice();
+    isRescueMode = false;
     if (state.playerNames) latestPlayerNames = state.playerNames;
     if (state.slots) {
       latestSlots = state.slots;
@@ -2239,6 +2248,8 @@ socket.on('game_started', (data) => {
   validMoves = [];
   finishedPlayers = [];
   consecutiveNoMovesOn6 = 0;
+  rescueUsedByPlayer = (data && data.rescueUsed) ? data.rescueUsed.slice() : [false, false, false, false];
+  isRescueMode = false;
   resetCubeStats();
   recordedRolls = new Set();
   killCount = { 0: 0, 1: 0, 2: 0, 3: 0 };
@@ -2437,7 +2448,7 @@ function applyMoveToPieces(pieceId, action, target) {
   const piece = pieces.find(p => p.id === pieceId);
   if (!piece) return null;
 
-  if (action === 'leave_jail' || action === 'shortcut' || action === 'move') {
+  if (action === 'leave_jail' || action === 'shortcut' || action === 'move' || action === 'step_back') {
     piece.state = 'perimeter'; piece.pos = target;
   } else if (action === 'home') {
     piece.state = 'home'; piece.pos = target;
@@ -2554,6 +2565,57 @@ socket.on('move_rejected', (data) => {
   socket.emit('request_sync');
 });
 
+socket.on('rescue_executed', (data) => {
+  if (data && typeof data.turnId === 'number' && data.turnId !== currentTurnId) return;
+  const { action, target, pieceId, player, rescueUsed } = data;
+  if (rescueUsed) rescueUsedByPlayer = rescueUsed.slice();
+  else if (typeof player === 'number') rescueUsedByPlayer[player] = true;
+
+  isRescueMode = false;
+  moveSentForCurrentRoll = true;
+  if (botTurnTimer) {
+    clearTimeout(botTurnTimer);
+    botTurnTimer = null;
+  }
+  if (moveEchoTimer) {
+    clearTimeout(moveEchoTimer);
+    moveEchoTimer = null;
+  }
+
+  const applied = applyMoveToPieces(pieceId, action, target);
+  if (!applied) return;
+  const { captured, capturedEnemies } = applied;
+  if (captured) {
+    killCount[applied.piece.player] = (killCount[applied.piece.player] || 0) + capturedEnemies.length;
+    playCaptureSound();
+  } else {
+    playSafeSound();
+  }
+
+  const pName = latestPlayerNames[player] || ('Player ' + (player + 1));
+  showToast(`${pName} used Rescue! 🛟 -1 space`);
+
+  validMoves = [];
+  renderPieces();
+  updateUI();
+
+  if (currentPlayer === mySlot || (isHost && latestSlots[currentPlayer] === 'bot')) {
+    if (botTurnTimer) clearTimeout(botTurnTimer);
+    botTurnTimer = setTimeout(() => socket.emit('next_turn', { turnId: currentTurnId }), 600);
+  }
+});
+
+socket.on('rescue_rejected', (data) => {
+  if (currentPlayer === mySlot) {
+    showToast((data && data.reason) || 'Rescue move rejected');
+    isRescueMode = false;
+    validMoves = [];
+    updateUI();
+    renderPieces();
+  }
+  socket.emit('request_sync');
+});
+
 socket.on('turn_passed', (data) => {
   if (botTurnTimer) {
     clearTimeout(botTurnTimer);
@@ -2569,6 +2631,7 @@ socket.on('turn_passed', (data) => {
   }
 
   moveSentForCurrentRoll = false;
+  isRescueMode = false;
 
   if (data && typeof data.currentPlayer === 'number') {
     currentPlayer = data.currentPlayer;
@@ -2929,6 +2992,42 @@ function updateUI() {
     }
   }
 
+  const rescueBtn = document.getElementById('rescue-btn');
+  const rescueBadge = document.getElementById('rescue-badge');
+  if (rescueBtn) {
+    const isMyTurn = (currentPlayer === mySlot) && !isSpectating;
+    const myRescueUsed = (mySlot !== null) && (rescueUsedByPlayer[mySlot] === true);
+    const canUseRescue = isMyTurn && !diceRolled && !isAnimating && !myRescueUsed;
+
+    if (myRescueUsed) {
+      rescueBtn.disabled = true;
+      rescueBtn.classList.remove('border-[#00e5ff]', 'shadow-[0_0_15px_rgba(0,229,255,0.5)]', 'animate-pulse');
+      rescueBtn.style.opacity = '0.35';
+      rescueBtn.style.cursor = 'not-allowed';
+      if (rescueBadge) {
+        rescueBadge.innerText = '0x';
+        rescueBadge.className = 'text-[9px] font-bold text-[#736b9e]';
+      }
+    } else if (isRescueMode) {
+      rescueBtn.disabled = false;
+      rescueBtn.classList.add('border-[#00e5ff]', 'shadow-[0_0_15px_rgba(0,229,255,0.5)]', 'animate-pulse');
+      rescueBtn.style.opacity = '1';
+      rescueBtn.style.cursor = 'pointer';
+      if (rescueBadge) {
+        rescueBadge.innerText = 'Cancel';
+        rescueBadge.className = 'text-[8px] font-bold text-[#ff2d55]';
+      }
+    } else {
+      rescueBtn.disabled = !canUseRescue;
+      rescueBtn.classList.remove('border-[#00e5ff]', 'shadow-[0_0_15px_rgba(0,229,255,0.5)]', 'animate-pulse');
+      rescueBtn.style.opacity = canUseRescue ? '1' : '0.45';
+      rescueBtn.style.cursor = canUseRescue ? 'pointer' : 'not-allowed';
+      if (rescueBadge) {
+        rescueBadge.innerText = '1x';
+        rescueBadge.className = canUseRescue ? 'text-[9px] font-bold text-[#00e5ff]' : 'text-[9px] font-bold text-[#b9b3d9]';
+      }
+    }
+  }
 }
 
 // =============== WEB AUDIO SYNTHESIZERS ===============
@@ -3090,6 +3189,12 @@ let rollEchoTimer = null;
 let moveEchoTimer = null;
 
 function rollDice(isBotAuto = false) {
+  if (isRescueMode) {
+    isRescueMode = false;
+    validMoves = [];
+    renderPieces();
+    updateUI();
+  }
   if (isAnimating || diceRolled) return;
   if (mySlot === null && !isSpectating) {
     // Seat not restored yet (e.g. just reopened the app): retry the rejoin
@@ -3142,7 +3247,12 @@ function selectMove(moveObj) {
     botTurnTimer = null;
   }
   const movedTurn = currentTurnId;
-  socket.emit('execute_move', { pieceId: moveObj.piece.id, action: moveObj.action, target: moveObj.target, turnId: movedTurn });
+  if (moveObj.action === 'step_back') {
+    isRescueMode = false;
+    socket.emit('execute_rescue', { pieceId: moveObj.piece.id, action: moveObj.action, target: moveObj.target, turnId: movedTurn });
+  } else {
+    socket.emit('execute_move', { pieceId: moveObj.piece.id, action: moveObj.action, target: moveObj.target, turnId: movedTurn });
+  }
   // Echo confirmation: if our own move broadcast never comes back, the server
   // sits waiting for a next_turn we will never send (classic wedge until the
   // watchdog skips us). Ask for a re-send instead.
@@ -3153,6 +3263,53 @@ function selectMove(moveObj) {
       socket.emit('request_move_echo', { turnId: movedTurn });
     }
   }, 2500);
+}
+
+function calculateRescueMoves() {
+  const step = pegsCountGlobal === 2 ? 14 : 16;
+  const totalLen = pegsCountGlobal === 2 ? 56 : 64;
+  const start = visualMap[currentPlayer] * step + 4;
+  const ownAt = (st, pos) => pieces.some(p => p.player === currentPlayer && p.state === st && p.pos === pos);
+
+  const potentialMoves = [];
+  for (let piece of pieces.filter(p => p.player === currentPlayer)) {
+    if (piece.state === 'perimeter') {
+      const currentDist = (piece.pos - start + totalLen) % totalLen;
+      // Cannot back up if at start (prevent skipping the whole board)
+      if (currentDist > 0) {
+        const target = (piece.pos - 1 + totalLen) % totalLen;
+        if (!ownAt('perimeter', target)) {
+          potentialMoves.push({ piece, action: 'step_back', target });
+        }
+      }
+    }
+  }
+  return potentialMoves;
+}
+
+function toggleRescueMode() {
+  if (currentPlayer !== mySlot || diceRolled || isAnimating || isSpectating) return;
+  if (rescueUsedByPlayer[mySlot]) {
+    showToast('Rescue already used this match! 🛟');
+    return;
+  }
+
+  isRescueMode = !isRescueMode;
+  if (isRescueMode) {
+    const rescueMoves = calculateRescueMoves();
+    if (rescueMoves.length === 0) {
+      isRescueMode = false;
+      showToast('No pieces outside jail can step back! 🚫');
+      validMoves = [];
+    } else {
+      validMoves = rescueMoves;
+      showToast('Rescue Active: Tap a piece to step 1 space back 🛟');
+    }
+  } else {
+    validMoves = [];
+  }
+  updateUI();
+  renderPieces();
 }
 
 function calculateValidMoves() {

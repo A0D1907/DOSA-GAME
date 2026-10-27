@@ -147,3 +147,56 @@ describe('server die (pure uniform, no memory)', () => {
     }
   });
 });
+
+describe('rescue moves (one-time step back)', () => {
+  test('allows 1 space backward if piece is on perimeter past start', () => {
+    // Player 0 start is 4. Piece at pos 10.
+    const s = mk(4, null, [{ id: '0-0', player: 0, state: 'perimeter', pos: 10 }]);
+    const moves = R.serverRescueMoves(s, 0);
+    assert.deepEqual(moves, [{ pieceId: '0-0', action: 'step_back', target: 9 }]);
+  });
+
+  test('cannot back up if piece is at start position (prevents skipping track)', () => {
+    // Player 0 start is 4. Piece at pos 4.
+    const s = mk(4, null, [{ id: '0-0', player: 0, state: 'perimeter', pos: 4 }]);
+    const moves = R.serverRescueMoves(s, 0);
+    assert.deepEqual(moves, []);
+  });
+
+  test('cannot back up onto own piece', () => {
+    const s = mk(4, null, [
+      { id: '0-0', player: 0, state: 'perimeter', pos: 10 },
+      { id: '0-1', player: 0, state: 'perimeter', pos: 9 }
+    ]);
+    const moves = R.serverRescueMoves(s, 0);
+    assert.equal(moves.filter(m => m.pieceId === '0-0').length, 0);
+  });
+
+  test('can capture enemy on backward step', () => {
+    const s = mk(4, null, [
+      { id: '0-0', player: 0, state: 'perimeter', pos: 10 },
+      { id: '1-0', player: 1, state: 'perimeter', pos: 9 }
+    ]);
+    const moves = R.serverRescueMoves(s, 0);
+    assert.deepEqual(moves, [{ pieceId: '0-0', action: 'step_back', target: 9 }]);
+    R.serverApplyMove(s, '0-0', 'step_back', 9);
+    const piece = s.pieces.find(p => p.id === '0-0');
+    assert.equal(piece.pos, 9);
+    const enemy = s.pieces.find(p => p.id === '1-0');
+    assert.equal(enemy.state, 'jail');
+  });
+
+  test('pieces in jail cannot use rescue', () => {
+    const s = mk(4, null, jail(0, 4));
+    const moves = R.serverRescueMoves(s, 0);
+    assert.deepEqual(moves, []);
+  });
+
+  test('pieces in home cannot use rescue', () => {
+    const s = mk(4, null, [
+      { id: '0-0', player: 0, state: 'home', pos: 2 }
+    ]);
+    const moves = R.serverRescueMoves(s, 0);
+    assert.deepEqual(moves, []);
+  });
+});

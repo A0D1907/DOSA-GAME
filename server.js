@@ -428,7 +428,7 @@ app.get('/', (req, res) => {
 // rooms state
 const rooms = {};
 
-const { serverVisualMap, serverLegalMoves, serverApplyMove } = require('./rules.js');
+const { serverVisualMap, serverLegalMoves, serverRescueMoves, serverApplyMove } = require('./rules.js');
 
 function getRoomState(roomId) {
   if (!rooms[roomId]) {
@@ -453,7 +453,8 @@ function getRoomState(roomId) {
       pieces: null,
       visualMap: null,
       pegsPerPlayer: 4,
-      endedAt: null
+      endedAt: null,
+      rescueUsed: [false, false, false, false]
     };
   }
   return rooms[roomId];
@@ -473,7 +474,8 @@ function roomSnapshot(roomId) {
     visualMap: state.visualMap || { 0: 0, 1: 1, 2: 2, 3: 3 },
     slots: [...state.slots],
     playerNames: [...state.playerNames],
-    finishOrder: [...(state.finishOrder || [])]
+    finishOrder: [...(state.finishOrder || [])],
+    rescueUsed: [...(state.rescueUsed || [false, false, false, false])]
   };
 }
 
@@ -510,6 +512,7 @@ function resetRoomToLobby(roomId) {
   state.diceValue = null;
   state.moveExecutedThisTurn = false;
   state.endedAt = null;
+  state.rescueUsed = [false, false, false, false];
 }
 
 
@@ -895,6 +898,7 @@ io.on('connection', (socket) => {
       state.moveExecutedThisTurn = false;
       state.allowReroll = false;
       state.endedAt = null;
+      state.rescueUsed = [false, false, false, false];
       // 🎲 Random starter every game (uniform over seated players)
       const activeSeats = state.slots.map((s, i) => s !== null ? i : null).filter(i => i !== null);
       state.currentPlayer = activeSeats[Math.floor(Math.random() * activeSeats.length)];
@@ -1059,6 +1063,75 @@ io.on('connection', (socket) => {
     }, isBot ? 5000 : 20000);
 
     io.to(socket.roomId).emit('move_executed', moveObj);
+  });
+
+  socket.on('execute_rescue', (rescueObj) => {
+    if (!socket.roomId) return;
+    const state = getRoomState(socket.roomId);
+    if (state.gameState !== 'playing' || !state.pieces) return;
+
+    const curSeat = state.currentPlayer;
+    const curSlot = state.slots[curSeat];
+    const botTurn = curSlot === 'bot' || state.offlineSlots[curSeat];
+    if (socket.id !== curSlot && !(botTurn && socket.id === state.host)) return;
+
+    if (rescueObj && typeof rescueObj.turnId === 'number' && rescueObj.turnId !== state.turnId) {
+      console.warn(`[Server] Rejected stale execute_rescue (turn ${rescueObj.turnId} vs ${state.turnId}) in room ${socket.roomId}`);
+      return;
+    }
+
+    if (!state.rescueUsed) state.rescueUsed = [false, false, false, false];
+    if (state.rescueUsed[curSeat]) {
+      console.warn(`[Server] Rejected execute_rescue: already used by player ${curSeat} in room ${socket.roomId}`);
+      socket.emit('rescue_rejected', { reason: 'Rescue already used this match' });
+      return;
+    }
+
+    if (state.diceRolled || state.moveExecutedThisTurn) {
+      console.warn(`[Server] Rejected execute_rescue: dice already rolled or move executed in room ${socket.roomId}`);
+      socket.emit('rescue_rejected', { reason: 'Rescue can only be used before rolling' });
+      return;
+    }
+
+    const legal = serverRescueMoves(state, curSeat);
+    const match = (rescueObj && legal.some(m =>
+      m.pieceId === rescueObj.pieceId && m.action === rescueObj.action && m.target === rescueObj.target));
+    if (!match) {
+      console.warn(`[Server] Rejected illegal execute_rescue in room ${socket.roomId}:`, JSON.stringify(rescueObj));
+      socket.emit('rescue_rejected', { reason: 'That rescue move is not legal' });
+      return;
+    }
+
+    state.rescueUsed[curSeat] = true;
+    state.moveExecutedThisTurn = true;
+    state.diceRolled = true;
+    state.allowReroll = false;
+
+    serverApplyMove(state, rescueObj.pieceId, rescueObj.action, rescueObj.target);
+
+    state.lastMove = { pieceId: rescueObj.pieceId, action: rescueObj.action, target: rescueObj.target, turnId: state.turnId };
+
+    clearRoomTurnTimer(socket.roomId);
+    const rId = socket.roomId;
+    const currentTurnId = state.turnId;
+    const p = state.currentPlayer;
+    const isBot = (state.slots[p] === 'bot' || state.offlineSlots[p]);
+    state.turnWatchdog = setTimeout(() => {
+      const currentState = rooms[rId];
+      if (currentState && currentState.gameState === 'playing' && currentState.turnId === currentTurnId) {
+        console.log(`[Watchdog] Post-rescue timed out for player ${p} in room ${rId}. Advancing turn.`);
+        advanceRoomTurn(rId, true);
+      }
+    }, isBot ? 5000 : 20000);
+
+    io.to(socket.roomId).emit('rescue_executed', {
+      player: curSeat,
+      pieceId: rescueObj.pieceId,
+      action: rescueObj.action,
+      target: rescueObj.target,
+      turnId: state.turnId,
+      rescueUsed: state.rescueUsed
+    });
   });
   
   socket.on('next_turn', (data) => {
